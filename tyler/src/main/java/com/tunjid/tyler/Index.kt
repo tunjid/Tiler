@@ -40,3 +40,10 @@ fun <Query, Item> tiles(
             }
         )
 }
+
+/**
+ * Convenience method to convert a [Flow] of [TileRequest] to a [Flow] of [Tile]s
+ */
+fun <Query, Item> Flow<TileRequest<Query>>.tiles(
+    tiler: (Flow<TileRequest<Query>>) ->Flow<Map<Query, Tile<Query, Item>>>
+) = tiler(this)
