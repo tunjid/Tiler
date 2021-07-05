@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
+/**
+ * class holding meta data about a [Query] for an [Item], the [Item], and when the [Query] was sent
+ */
 data class Tile<Query, Item : Any?>(
     val flowOnAt: Long,
     val request: TileRequest<Query>,
@@ -14,12 +17,17 @@ data class Tile<Query, Item : Any?>(
 )
 
 internal sealed class Result<Query, Item> {
-    data class Data<Query, Item>(val query: Query, val tile: Tile<Query, Item>) :
-        Result<Query, Item>()
+    data class Data<Query, Item>(
+        val query: Query,
+        val tile: Tile<Query, Item>
+    ) : Result<Query, Item>()
 
     data class None<Query, Item>(val query: Query) : Result<Query, Item>()
 }
 
+/**
+ * Book keeper for [Tile] fetching
+ */
 internal data class Tiles<Query, Item>(
     val flow: Flow<Result<Query, Item>> = emptyFlow(),
     val queryFlowValveMap: Map<Query, FlowValve<Query, Item>> = mapOf(),
@@ -37,7 +45,7 @@ internal data class Tiles<Query, Item>(
             )
         }
         is TileRequest.Off -> {
-            // Stop collecting from the lLow to free up resources
+            // Stop collecting from the Flow to free up resources
             queryFlowValveMap[request.query]?.toggle?.invoke(false)
             // No new valve was created, empty flows complete immediately,
             // so they don't count towards te concurrent count
