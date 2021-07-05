@@ -1,16 +1,5 @@
 package com.tunjid.tyler
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-
-fun <Query, Item> Flow<Map<Query, Tile<Query, Item>>>.sortAndFlatten(
-    comparator: Comparator<Query>
-): Flow<Sequence<Item>> = map { it.sortAndFlatten(comparator) }
-
-fun <Query, Item> Flow<Map<Query, Tile<Query, Item>>>.pivotSortAndFlatten(
-    comparator: Comparator<Query>
-): Flow<Sequence<Item>> = map { it.pivotSortAndFlatten(comparator) }
-
 fun <Query, Item> Map<Query, Tile<Query, Item>>.sortAndFlatten(
     comparator: Comparator<Query>
 ): Sequence<Item> =

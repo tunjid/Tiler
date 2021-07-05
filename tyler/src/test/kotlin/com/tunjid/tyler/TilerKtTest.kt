@@ -179,7 +179,7 @@ class TilerKtTest {
             requests
                 .asFlow()
                 .tiles(tiler)
-                .sortAndFlatten(Int::compareTo)
+                .map { it.sortAndFlatten(Int::compareTo) }
                 .take(3)
                 .toList()
         })
@@ -192,6 +192,6 @@ private fun Flow<List<Int>>.withRequestIndex(block: (Int) -> Unit) = onEach { it
 }
 
 private fun Flow<IntTiles>.flattened() =
-    sortAndFlatten(Int::compareTo)
+    map { it.sortAndFlatten(Int::compareTo) }
         .map { it.flatten() }
         .map { it.toList() }
