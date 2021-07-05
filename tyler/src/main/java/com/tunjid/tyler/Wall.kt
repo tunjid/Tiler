@@ -4,34 +4,42 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 internal data class Wall<Query, Item>(
-    val limit: TileRequest.Limit<Query> = TileRequest.Limit.None(),
     val newValve: FlowValve<Query, Item>? = null,
     val queryFlowValveMap: Map<Query, FlowValve<Query, Item>> = mapOf(),
     val fetcher: suspend (Query) -> Flow<List<Item>>
 ) {
     // Empty flows complete immediately, so they don't count towards te concurrent count
-    fun flow(): Flow<Tile<Query, Item>> = newValve?.flow?.map { it.copy(limit = limit) }
-        ?: emptyFlow()
+    fun flow(): Flow<Tile<Query, Item>> = newValve?.flow ?: emptyFlow()
 
     fun add(request: TileRequest<Query>): Wall<Query, Item> = when (request) {
-        is TileRequest.Limit.None -> copy(limit = request, newValve = null)
-        is TileRequest.Limit.Eject -> copy(limit = request, newValve = null)
-        is TileRequest.Valve.Off -> {
-            // Stop collecting from the FLow to free upp resources
+        is TileRequest.Eject -> {
+            // Stop collecting from the FLow to free up resources
+            queryFlowValveMap[request.query]?.toggle?.invoke(false)
+            copy(
+                newValve = FlowValve(
+                    request = request,
+                    // Emit an empty list to eject previous items
+                    fetcher = { flowOf(listOf()) }
+                )
+            )
+        }
+        is TileRequest.Off -> {
+            // Stop collecting from the FLow to free up resources
             queryFlowValveMap[request.query]?.toggle?.invoke(false)
             copy(newValve = null)
         }
-        is TileRequest.Valve.On -> {
+        is TileRequest.On -> {
             val existingValve = queryFlowValveMap[request.query]
             // Turn on the valve if it was previously shut off
             existingValve?.toggle?.invoke(true)
 
             // Only add a valve if one didn't exist prior
             val newValve = if (existingValve == null) FlowValve(
-                query = request.query,
+                request = request,
                 fetcher = fetcher
             ) else null
 
@@ -52,7 +60,7 @@ internal data class Wall<Query, Item>(
  * Allows for turning on and off a Flow
  */
 internal class FlowValve<Query, Item>(
-    query: Query,
+    request: TileRequest<Query>,
     fetcher: suspend (Query) -> Flow<List<Item>>
 ) {
     private val backingFlow = MutableStateFlow(value = true)
@@ -61,7 +69,7 @@ internal class FlowValve<Query, Item>(
 
     val flow: Flow<Tile<Query, Item>> = backingFlow
         .flatMapLatest { isOn ->
-            if (isOn) fetcher.invokeWithTimestamp(query)
+            if (isOn) fetcher.invokeWithTimestamp(request)
             else emptyFlow()
         }
 }
@@ -69,12 +77,12 @@ internal class FlowValve<Query, Item>(
 private suspend fun <Query, Item> (
 suspend (Query) -> Flow<List<Item>>
 ).invokeWithTimestamp(
-    query: Query
+    request: TileRequest<Query>,
 ): Flow<Tile<Query, Item>> {
     val onAt = System.currentTimeMillis()
-    return invoke(query).map { items ->
+    return invoke(request.query).map { items ->
         Tile(
-            query = query,
+            request = request,
             items = items,
             flowOnAt = onAt
         )
