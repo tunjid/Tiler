@@ -1,6 +1,6 @@
 package com.tunjid.tyler
 
-fun <Query, Item> Map<Query, Tile<Query, Item>>.sortAndFlatten(
+fun <Query, Item> Map<Query, Pair<Long, Item>>.sortAndFlatten(
     comparator: Comparator<Query>
 ): Sequence<Item> =
     keys
@@ -8,19 +8,18 @@ fun <Query, Item> Map<Query, Tile<Query, Item>>.sortAndFlatten(
         .sortedWith(comparator)
         .fold(emptySequence()) { sequence, query ->
             val tile = this.getValue(query)
-            sequence + sequenceOf(tile.item)
+            sequence + sequenceOf(tile.second)
         }
 
-fun <Query, Item> Map<Query, Tile<Query, Item>>.pivotSortAndFlatten(
+fun <Query, Item> Map<Query, Pair<Long, Item>>.pivotSortAndFlatten(
     comparator: Comparator<Query>
 ): Sequence<Item> {
     // Sort the keys, should be relatively cheap
     val sorted = keys
         .sortedWith(comparator)
 
-    val mostRecentQuery: Query = values
-        .maxByOrNull(Tile<Query, Item>::flowOnAt)
-        ?.query
+    val mostRecentQuery: Query = keys
+        .maxByOrNull { getValue(it).first }
         ?: return emptySequence()
 
     val startIndex = sorted.indexOf(mostRecentQuery)
@@ -43,7 +42,7 @@ fun <Query, Item> Map<Query, Tile<Query, Item>>.pivotSortAndFlatten(
         .asSequence()
         .map(sorted::get)
         .map(this::getValue)
-        .map(Tile<Query, Item>::item)
+        .map(Pair<Long, Item>::second)
 }
 
 //while (result.size < maxCount && (leftIndex >= 0 || rightIndex <= sorted.lastIndex)) {

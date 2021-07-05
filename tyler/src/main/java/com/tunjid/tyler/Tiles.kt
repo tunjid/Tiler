@@ -11,11 +11,13 @@ import kotlinx.coroutines.flow.map
 /**
  * class holding meta data about a [Query] for an [Item], the [Item], and when the [Query] was sent
  */
-data class Tile<Query, Item : Any?>(
+internal data class Tile<Query, Item : Any?>(
     val flowOnAt: Long,
     val query: Query,
     val item: Item,
 )
+
+internal val <Query, Item : Any?> Tile<Query, Item>.toPair get() = flowOnAt to item
 
 internal sealed class Result<Query, Item> {
     data class Data<Query, Item>(

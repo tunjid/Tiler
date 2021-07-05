@@ -11,11 +11,7 @@ class FlattenKtTest {
         val flattened =
             (1..9)
                 .mapIndexed { index, int ->
-                    index to Tile(
-                        flowOnAt = index.toLong(),
-                        query = int,
-                        item = int.testRange.toList()
-                    )
+                    index to (index.toLong() to int.testRange.toList())
                 }.toMap()
                 .sortAndFlatten(Int::compareTo)
                 .flatten()
@@ -31,17 +27,9 @@ class FlattenKtTest {
     fun `pivots around most recent when limit exists`() {
         val flattened =
             ((1..9).mapIndexed { index, int ->
-                index to Tile(
-                    flowOnAt = index.toLong(),
-                    query = int,
-                    item = int.testRange.toList()
-                )
+                index to (index.toLong() to int.testRange.toList())
             } + (6 downTo 4).mapIndexed { index, int ->
-                index to Tile(
-                    flowOnAt = index.toLong() + 10L,
-                    query = int,
-                    item = int.testRange.toList()
-                )
+                index to (index.toLong() + 10L to int.testRange.toList())
             })
                 .toMap()
                 .pivotSortAndFlatten(Int::compareTo)

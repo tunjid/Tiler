@@ -18,7 +18,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
-private typealias IntTiles = Map<Int, Tile<Int, List<Int>>>
+private typealias IntTiles = Map<Int, Pair<Long, List<Int>>>
 
 @ExperimentalCoroutinesApi
 class TilerKtTest {

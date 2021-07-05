@@ -22,7 +22,7 @@ sealed class TileRequest<Query> {
 @ExperimentalCoroutinesApi
 fun <Query, Item> tiles(
     fetcher: suspend (Query) -> Flow<Item>
-): (Flow<TileRequest<Query>>) -> Flow<Map<Query, Tile<Query, Item>>> = { requests ->
+): (Flow<TileRequest<Query>>) -> Flow<Map<Query, Pair<Long, Item>>> = { requests ->
     requests
         .scan(
             initial = Tiles(fetcher = fetcher),
@@ -38,7 +38,7 @@ fun <Query, Item> tiles(
             initial = mutableMapOf(),
             operation = { mutableMap, result ->
                 when (result) {
-                    is Result.Data -> mutableMap.apply { put(result.query, result.tile) }
+                    is Result.Data -> mutableMap.apply { put(result.query, result.tile.toPair) }
                     is Result.None -> mutableMap.apply { remove(result.query) }
                 }
             }
@@ -49,5 +49,5 @@ fun <Query, Item> tiles(
  * Convenience method to convert a [Flow] of [TileRequest] to a [Flow] of [Tile]s
  */
 fun <Query, Item> Flow<TileRequest<Query>>.tiles(
-    tiler: (Flow<TileRequest<Query>>) ->Flow<Map<Query, Tile<Query, Item>>>
+    tiler: (Flow<TileRequest<Query>>) ->Flow<Map<Query, Pair<Long, Item>>>
 ) = tiler(this)
