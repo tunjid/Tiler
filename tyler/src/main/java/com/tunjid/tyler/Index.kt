@@ -17,7 +17,7 @@ sealed class TileRequest<Query> {
  * [Item]
  */
 fun <Query, Item> tiles(
-    fetcher: suspend (Query) -> Flow<List<Item>>
+    fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<TileRequest<Query>>) -> Flow<Map<Query, Tile<Query, Item>>> = { requests ->
     requests
         .scan(
@@ -27,19 +27,15 @@ fun <Query, Item> tiles(
         // Collect each tile flow independently and merge the results
         .flatMapMerge(
             concurrency = Int.MAX_VALUE,
-            transform = Tiles<Query, Item>::flow
+            transform = { it.flow }
         )
         .scan(
             // This is a Mutable map solely for performance reasons. It is exposed as an immutable map
             initial = mutableMapOf(),
-            operation = { mutableMap, tile ->
-                mutableMap.apply {
-                    when (tile.request) {
-                        is TileRequest.Eject -> remove(tile.request.query)
-                        // Should not happen, the flow should be off
-                        is TileRequest.Off -> put(tile.request.query, tile)
-                        is TileRequest.On -> put(tile.request.query, tile)
-                    }
+            operation = { mutableMap, result ->
+                when (result) {
+                    is Result.Data -> mutableMap.apply { put(result.query, result.tile) }
+                    is Result.None -> mutableMap.apply { remove(result.query) }
                 }
             }
         )

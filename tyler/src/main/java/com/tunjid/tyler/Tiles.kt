@@ -7,36 +7,41 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
-data class Tile<Query, Item>(
+data class Tile<Query, Item : Any?>(
     val flowOnAt: Long,
     val request: TileRequest<Query>,
-    val items: List<Item>,
+    val item: Item,
 )
 
+internal sealed class Result<Query, Item> {
+    data class Data<Query, Item>(val query: Query, val tile: Tile<Query, Item>) :
+        Result<Query, Item>()
+
+    data class None<Query, Item>(val query: Query) : Result<Query, Item>()
+}
+
 internal data class Tiles<Query, Item>(
-    val newValve: FlowValve<Query, Item>? = null,
+    val flow: Flow<Result<Query, Item>> = emptyFlow(),
     val queryFlowValveMap: Map<Query, FlowValve<Query, Item>> = mapOf(),
-    val fetcher: suspend (Query) -> Flow<List<Item>>
+    val fetcher: suspend (Query) -> Flow<Item>
 ) {
-    // Empty flows complete immediately, so they don't count towards te concurrent count
-    fun flow(): Flow<Tile<Query, Item>> = newValve?.flow ?: emptyFlow()
 
     fun add(request: TileRequest<Query>): Tiles<Query, Item> = when (request) {
         is TileRequest.Eject -> {
             // Stop collecting from the Flow to free up resources
             queryFlowValveMap[request.query]?.toggle?.invoke(false)
+            // Eject query
             copy(
-                newValve = FlowValve(
-                    request = request,
-                    // Emit an empty list to eject previous items
-                    fetcher = { flowOf(listOf()) }
-                )
+                flow = flowOf(Result.None(query = request.query)),
+                queryFlowValveMap = queryFlowValveMap.minus(request.query)
             )
         }
         is TileRequest.Off -> {
             // Stop collecting from the lLow to free up resources
             queryFlowValveMap[request.query]?.toggle?.invoke(false)
-            copy(newValve = null)
+            // No new valve was created, empty flows complete immediately,
+            // so they don't count towards te concurrent count
+            copy(flow = emptyFlow())
         }
         is TileRequest.On -> {
             val existingValve = queryFlowValveMap[request.query]
@@ -51,7 +56,7 @@ internal data class Tiles<Query, Item>(
 
             copy(
                 // Don't accidentally duplicate calling a flow for the same query
-                newValve = newValve,
+                flow = newValve?.flow ?: emptyFlow(),
                 // Book keeping for newly added flow
                 queryFlowValveMap = when (newValve) {
                     null -> queryFlowValveMap
@@ -67,30 +72,25 @@ internal data class Tiles<Query, Item>(
  */
 internal class FlowValve<Query, Item>(
     request: TileRequest<Query>,
-    fetcher: suspend (Query) -> Flow<List<Item>>
+    fetcher: suspend (Query) -> Flow<Item>
 ) {
     private val backingFlow = MutableStateFlow(value = true)
 
     val toggle: (Boolean) -> Unit = backingFlow::value::set
 
-    val flow: Flow<Tile<Query, Item>> = backingFlow
+    val flow: Flow<Result<Query, Item>> = backingFlow
         .flatMapLatest { isOn ->
-            if (isOn) fetcher.invokeWithTimestamp(request)
+            val toggledAt = System.currentTimeMillis()
+            if (isOn) fetcher.invoke(request.query).map { item ->
+                Result.Data(
+                    query = request.query,
+                    tile = Tile(
+                        request = request,
+                        item = item,
+                        flowOnAt = toggledAt
+                    )
+                )
+            }
             else emptyFlow()
         }
-}
-
-private suspend fun <Query, Item> (
-suspend (Query) -> Flow<List<Item>>
-).invokeWithTimestamp(
-    request: TileRequest<Query>,
-): Flow<Tile<Query, Item>> {
-    val onAt = System.currentTimeMillis()
-    return invoke(request.query).map { items ->
-        Tile(
-            request = request,
-            items = items,
-            flowOnAt = onAt
-        )
-    }
 }
