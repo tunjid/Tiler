@@ -13,11 +13,10 @@ class FlattenKtTest {
                 .mapIndexed { index, int ->
                     index to Tile(
                         flowOnAt = index.toLong(),
-                        request = TileRequest.On(int),
+                        query = int,
                         item = int.testRange.toList()
                     )
                 }.toMap()
-
                 .sortAndFlatten(Int::compareTo)
                 .flatten()
                 .toList()
@@ -34,13 +33,13 @@ class FlattenKtTest {
             ((1..9).mapIndexed { index, int ->
                 index to Tile(
                     flowOnAt = index.toLong(),
-                    request = TileRequest.On(int),
+                    query = int,
                     item = int.testRange.toList()
                 )
             } + (6 downTo 4).mapIndexed { index, int ->
                 index to Tile(
                     flowOnAt = index.toLong() + 10L,
-                    request = TileRequest.On(int),
+                    query = int,
                     item = int.testRange.toList()
                 )
             })
@@ -63,7 +62,7 @@ private fun IntProgression.toTile(
 ) = mapIndexed { index, int ->
     index to Tile(
         flowOnAt = flowOnAt(index),
-        request = TileRequest.On(int),
+        query = TileRequest.On(int),
         item = int.testRange.toList()
     )
 }.toMap()

@@ -1,5 +1,6 @@
 package com.tunjid.tyler
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -12,7 +13,7 @@ import kotlinx.coroutines.flow.map
  */
 data class Tile<Query, Item : Any?>(
     val flowOnAt: Long,
-    val request: TileRequest<Query>,
+    val query: Query,
     val item: Item,
 )
 
@@ -34,6 +35,7 @@ internal data class Tiles<Query, Item>(
     val fetcher: suspend (Query) -> Flow<Item>
 ) {
 
+    @ExperimentalCoroutinesApi
     fun add(request: TileRequest<Query>): Tiles<Query, Item> = when (request) {
         is TileRequest.Eject -> {
             // Stop collecting from the Flow to free up resources
@@ -86,6 +88,7 @@ internal class FlowValve<Query, Item>(
 
     val toggle: (Boolean) -> Unit = backingFlow::value::set
 
+    @ExperimentalCoroutinesApi
     val flow: Flow<Result<Query, Item>> = backingFlow
         .flatMapLatest { isOn ->
             val toggledAt = System.currentTimeMillis()
@@ -93,7 +96,7 @@ internal class FlowValve<Query, Item>(
                 Result.Data(
                     query = request.query,
                     tile = Tile(
-                        request = request,
+                        query = request.query,
                         item = item,
                         flowOnAt = toggledAt
                     )

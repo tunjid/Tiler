@@ -20,7 +20,6 @@ fun <Query, Item> Map<Query, Tile<Query, Item>>.pivotSortAndFlatten(
 
     val mostRecentQuery: Query = values
         .maxByOrNull(Tile<Query, Item>::flowOnAt)
-        ?.request
         ?.query
         ?: return emptySequence()
 

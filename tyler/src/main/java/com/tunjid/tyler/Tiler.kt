@@ -1,5 +1,7 @@
 package com.tunjid.tyler
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.scan
@@ -16,6 +18,8 @@ sealed class TileRequest<Query> {
  * Converts a [Flow] of [Query] into a [Flow] of a [Map] of [Query] to tiles representing that
  * [Item]
  */
+@FlowPreview
+@ExperimentalCoroutinesApi
 fun <Query, Item> tiles(
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<TileRequest<Query>>) -> Flow<Map<Query, Tile<Query, Item>>> = { requests ->
