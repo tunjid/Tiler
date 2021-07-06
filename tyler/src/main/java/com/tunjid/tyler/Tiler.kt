@@ -1,31 +1,33 @@
 package com.tunjid.tyler
 
-
-internal data class Flatten<Query, Item>(
-    val itemOrder: TileRequest.ItemOrder<Query, Item> = TileRequest.ItemOrder.Unspecified(),
-    val queryToTiles: MutableMap<Query, Tile<Query, Item>> = mutableMapOf(),
+/**
+ * Flattens a [Map] of [Query] to [Item] to a [List]
+ */
+internal data class Tiler<Query, Item>(
+    val itemOrder: Tile.ItemOrder<Query, Item> = Tile.ItemOrder.Unspecified(),
+    val queryToTiles: MutableMap<Query, TileData<Query, Item>> = mutableMapOf(),
 ) {
 
-    fun add(result: Result<Query, Item>): Flatten<Query, Item> = when (result) {
-        is Result.Data -> copy().apply { queryToTiles[result.query] = result.tile }
-        is Result.None -> copy().apply { queryToTiles.remove(result.query) }.copy()
-        is Result.Order -> copy(itemOrder = result.itemOrder)
+    fun add(output: Output<Query, Item>): Tiler<Query, Item> = when (output) {
+        is Output.Data -> copy().apply { queryToTiles[output.query] = output.tile }
+        is Output.Evict -> copy().apply { queryToTiles.remove(output.query) }.copy()
+        is Output.Order -> copy(itemOrder = output.itemOrder)
     }
 
     fun items(): List<Item> {
         return when (itemOrder) {
-            is TileRequest.ItemOrder.Unspecified -> queryToTiles.keys
+            is Tile.ItemOrder.Unspecified -> queryToTiles.keys
                 .fold(mutableListOf()) { list, query ->
                     list.add(element = queryToTiles.getValue(query).item)
                     list
                 }
-            is TileRequest.ItemOrder.Sort -> queryToTiles.keys
+            is Tile.ItemOrder.Sort -> queryToTiles.keys
                 .sortedWith(itemOrder.comparator)
                 .foldWhile(mutableListOf(), itemOrder.limiter) { list, query ->
                     list.add(element = queryToTiles.getValue(query).item)
                     list
                 }
-            is TileRequest.ItemOrder.PivotedSort -> {
+            is Tile.ItemOrder.PivotedSort -> {
                 // Sort the keys, should be relatively cheap
                 val sorted = queryToTiles.keys
                     .sortedWith(itemOrder.comparator)

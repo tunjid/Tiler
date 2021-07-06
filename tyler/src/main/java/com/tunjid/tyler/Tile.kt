@@ -10,15 +10,15 @@ import kotlinx.coroutines.flow.scan
 /**
  * class holding meta data about a [Query] for an [Item], the [Item], and when the [Query] was sent
  */
-internal data class Tile<Query, Item : Any?>(
+internal data class TileData<Query, Item : Any?>(
     val flowOnAt: Long,
     val query: Query,
     val item: Item,
 )
 
-sealed class TileRequest<Query, Item> {
+sealed class Tile<Query, Item> {
 
-    sealed class Request<Query, Item> : TileRequest<Query, Item>() {
+    sealed class Request<Query, Item> : Tile<Query, Item>() {
         abstract val query: Query
 
         /**
@@ -41,7 +41,7 @@ sealed class TileRequest<Query, Item> {
         data class Evict<Query, Item>(override val query: Query) : Request<Query, Item>()
     }
 
-    sealed class ItemOrder<Query, Item> : TileRequest<Query, Item>() {
+    sealed class ItemOrder<Query, Item> : Tile<Query, Item>() {
         /**
          * Items will be returned in an unspecified order; the order is whatever the iteration
          * order of the backing map of [Query] to [Item] uses
@@ -61,7 +61,7 @@ sealed class TileRequest<Query, Item> {
 
         /**
          * Sort items with the specified [comparator] but pivoted around the last time a
-         * [TileRequest.Request.On] was sent. This allows for showing items that have more priority
+         * [Tile.Request.On] was sent. This allows for showing items that have more priority
          * over others in the current context
          * [limiter] can be used to select a subset of items instead of the whole set
          */
@@ -80,11 +80,11 @@ sealed class TileRequest<Query, Item> {
 @ExperimentalCoroutinesApi
 fun <Query, Item> tiles(
     fetcher: suspend (Query) -> Flow<Item>
-): (Flow<TileRequest<Query, Item>>) -> Flow<List<Item>> = { requests ->
+): (Flow<Tile<Query, Item>>) -> Flow<List<Item>> = { requests ->
     requests
         .scan(
-            initial = Tiles(fetcher = fetcher),
-            operation = Tiles<Query, Item>::add
+            initial = TileFactory(fetcher = fetcher),
+            operation = TileFactory<Query, Item>::add
         )
         // Collect each tile flow independently and merge the results
         .flatMapMerge(
@@ -92,16 +92,17 @@ fun <Query, Item> tiles(
             transform = { it.flow }
         )
         .scan(
-            // This is a Mutable map solely for performance reasons. It is exposed as an immutable map
-            initial = Flatten(),
-            operation = Flatten<Query, Item>::add
+            // This is a Mutable map solely for performance reasons.
+            // It is exposed as an immutable map
+            initial = Tiler(),
+            operation = Tiler<Query, Item>::add
         )
-        .map(Flatten<Query, Item>::items)
+        .map(Tiler<Query, Item>::items)
 }
 
 /**
- * Convenience method to convert a [Flow] of [TileRequest] to a [Flow] of [Tile]s
+ * Convenience method to convert a [Flow] of [Tile] to a [Flow] of [TileData]s
  */
-fun <Query, Item> Flow<TileRequest<Query, Item>>.tiles(
-    tiler: (Flow<TileRequest<Query, Item>>) -> Flow<List<Item>>
+fun <Query, Item> Flow<Tile<Query, Item>>.tiles(
+    tiler: (Flow<Tile<Query, Item>>) -> Flow<List<Item>>
 ) = tiler(this)

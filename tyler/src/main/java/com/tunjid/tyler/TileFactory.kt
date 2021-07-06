@@ -8,45 +8,45 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
-internal sealed class Result<Query, Item> {
+internal sealed class Output<Query, Item> {
     data class Data<Query, Item>(
         val query: Query,
-        val tile: Tile<Query, Item>
-    ) : Result<Query, Item>()
+        val tile: TileData<Query, Item>
+    ) : Output<Query, Item>()
 
-    data class Order<Query, Item>(val itemOrder: TileRequest.ItemOrder<Query, Item>) : Result<Query, Item>()
+    data class Order<Query, Item>(val itemOrder: Tile.ItemOrder<Query, Item>) : Output<Query, Item>()
 
-    data class None<Query, Item>(val query: Query) : Result<Query, Item>()
+    data class Evict<Query, Item>(val query: Query) : Output<Query, Item>()
 }
 
 /**
- * Book keeper for [Tile] fetching
+ * Book keeper for [TileData] fetching
  */
-internal data class Tiles<Query, Item>(
-    val flow: Flow<Result<Query, Item>> = emptyFlow(),
+internal data class TileFactory<Query, Item>(
+    val flow: Flow<Output<Query, Item>> = emptyFlow(),
     val queryFlowValveMap: Map<Query, FlowValve<Query, Item>> = mapOf(),
     val fetcher: suspend (Query) -> Flow<Item>
 ) {
 
     @ExperimentalCoroutinesApi
-    fun add(request: TileRequest<Query, Item>): Tiles<Query, Item> = when (request) {
-        is TileRequest.Request.Evict -> {
+    fun add(request: Tile<Query, Item>): TileFactory<Query, Item> = when (request) {
+        is Tile.Request.Evict -> {
             // Stop collecting from the Flow to free up resources
             queryFlowValveMap[request.query]?.toggle?.invoke(false)
             // Eject query
             copy(
-                flow = flowOf(Result.None(query = request.query)),
+                flow = flowOf(Output.Evict(query = request.query)),
                 queryFlowValveMap = queryFlowValveMap.minus(request.query)
             )
         }
-        is TileRequest.Request.Off -> {
+        is Tile.Request.Off -> {
             // Stop collecting from the Flow to free up resources
             queryFlowValveMap[request.query]?.toggle?.invoke(false)
             // No new valve was created, empty flows complete immediately,
             // so they don't count towards te concurrent count
             copy(flow = emptyFlow())
         }
-        is TileRequest.Request.On -> {
+        is Tile.Request.On -> {
             val existingValve = queryFlowValveMap[request.query]
             // Turn on the valve if it was previously shut off
             existingValve?.toggle?.invoke(true)
@@ -67,9 +67,7 @@ internal data class Tiles<Query, Item>(
                 }
             )
         }
-        is TileRequest.ItemOrder.PivotedSort -> copy(flow = flowOf(Result.Order(itemOrder = request)))
-        is TileRequest.ItemOrder.Sort -> copy(flow = flowOf(Result.Order(itemOrder = request)))
-        is TileRequest.ItemOrder.Unspecified -> copy(flow = flowOf(Result.Order(itemOrder = request)))
+        is Tile.ItemOrder -> copy(flow = flowOf(Output.Order(itemOrder = request)))
     }
 }
 
@@ -77,7 +75,7 @@ internal data class Tiles<Query, Item>(
  * Allows for turning on and off a Flow
  */
 internal class FlowValve<Query, Item>(
-    request: TileRequest.Request<Query,Item>,
+    request: Tile.Request<Query,Item>,
     fetcher: suspend (Query) -> Flow<Item>
 ) {
     private val backingFlow = MutableStateFlow(value = true)
@@ -85,13 +83,13 @@ internal class FlowValve<Query, Item>(
     val toggle: (Boolean) -> Unit = backingFlow::value::set
 
     @ExperimentalCoroutinesApi
-    val flow: Flow<Result<Query, Item>> = backingFlow
+    val flow: Flow<Output<Query, Item>> = backingFlow
         .flatMapLatest { isOn ->
             val toggledAt = System.currentTimeMillis()
             if (isOn) fetcher.invoke(request.query).map { item ->
-                Result.Data(
+                Output.Data(
                     query = request.query,
-                    tile = Tile(
+                    tile = TileData(
                         query = request.query,
                         item = item,
                         flowOnAt = toggledAt
