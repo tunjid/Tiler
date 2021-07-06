@@ -21,7 +21,7 @@ class FlattenKtTest {
                     )
                 }
                 .fold(
-                    initial = Flatten(get = TileRequest.Get.StrictOrder(comparator = Int::compareTo)),
+                    initial = Flatten(itemOrder = TileRequest.ItemOrder.Sort(comparator = Int::compareTo)),
                     operation = Flatten<Int, List<Int>>::add
                 )
                 .items()
@@ -57,7 +57,7 @@ class FlattenKtTest {
             })
                 .fold(
                     initial = Flatten(
-                        get = TileRequest.Get.Pivoted(
+                        itemOrder = TileRequest.ItemOrder.PivotedSort(
                             comparator = Int::compareTo,
                             limiter = { items -> items.fold(0) { count, list -> count + list.size } >= 50 }
                         )

@@ -8,22 +8,13 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
-/**
- * class holding meta data about a [Query] for an [Item], the [Item], and when the [Query] was sent
- */
-internal data class Tile<Query, Item : Any?>(
-    val flowOnAt: Long,
-    val query: Query,
-    val item: Item,
-)
-
 internal sealed class Result<Query, Item> {
     data class Data<Query, Item>(
         val query: Query,
         val tile: Tile<Query, Item>
     ) : Result<Query, Item>()
 
-    data class Order<Query, Item>(val get: TileRequest.Get<Query, Item>) : Result<Query, Item>()
+    data class Order<Query, Item>(val itemOrder: TileRequest.ItemOrder<Query, Item>) : Result<Query, Item>()
 
     data class None<Query, Item>(val query: Query) : Result<Query, Item>()
 }
@@ -39,7 +30,7 @@ internal data class Tiles<Query, Item>(
 
     @ExperimentalCoroutinesApi
     fun add(request: TileRequest<Query, Item>): Tiles<Query, Item> = when (request) {
-        is TileRequest.Request.Eject -> {
+        is TileRequest.Request.Evict -> {
             // Stop collecting from the Flow to free up resources
             queryFlowValveMap[request.query]?.toggle?.invoke(false)
             // Eject query
@@ -76,9 +67,9 @@ internal data class Tiles<Query, Item>(
                 }
             )
         }
-        is TileRequest.Get.Pivoted -> copy(flow = flowOf(Result.Order(get = request)))
-        is TileRequest.Get.StrictOrder -> copy(flow = flowOf(Result.Order(get = request)))
-        is TileRequest.Get.InsertionOrder -> copy(flow = flowOf(Result.Order(get = request)))
+        is TileRequest.ItemOrder.PivotedSort -> copy(flow = flowOf(Result.Order(itemOrder = request)))
+        is TileRequest.ItemOrder.Sort -> copy(flow = flowOf(Result.Order(itemOrder = request)))
+        is TileRequest.ItemOrder.Unspecified -> copy(flow = flowOf(Result.Order(itemOrder = request)))
     }
 }
 
