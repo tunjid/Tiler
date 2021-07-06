@@ -59,7 +59,7 @@ class FlattenKtTest {
                     initial = Flatten(
                         get = TileRequest.Get.Pivoted(
                             comparator = Int::compareTo,
-                            limiter = { items -> items.fold(0) { count, list -> count + list.size } > 50 }
+                            limiter = { items -> items.fold(0) { count, list -> count + list.size } >= 50 }
                         )
                     ),
                     operation = Flatten<Int, List<Int>>::add

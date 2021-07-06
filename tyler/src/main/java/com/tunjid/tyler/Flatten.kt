@@ -34,10 +34,10 @@ internal data class Flatten<Query, Item>(
                     .maxByOrNull { queryToTiles.getValue(it).flowOnAt }
                     ?: return emptyList()
 
-                val result = mutableListOf<Item>()
                 val startIndex = sorted.indexOf(mostRecentQuery)
                 var leftIndex = startIndex
                 var rightIndex = startIndex
+                val result = mutableListOf(queryToTiles.getValue(sorted[startIndex]).item)
 
                 while (!get.limiter(result) && (leftIndex >= 0 || rightIndex <= sorted.lastIndex)) {
                     if (--leftIndex >= 0) result.add(
@@ -53,16 +53,6 @@ internal data class Flatten<Query, Item>(
         }
     }
 }
-
-//while (result.size < maxCount && (leftIndex >= 0 || rightIndex <= sorted.lastIndex)) {
-//    if (--leftIndex >= 0) result.add(
-//        index = 0,
-//        element = queriesToTile.getValue(sorted[leftIndex]).item
-//    )
-//    if (++rightIndex <= sorted.lastIndex) result.add(
-//        element = queriesToTile.getValue(sorted[rightIndex]).item
-//    )
-//}
 
 private inline fun <T, R> Iterable<T>.foldWhile(
     initial: R,
