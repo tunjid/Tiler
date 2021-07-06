@@ -1,14 +1,9 @@
 package com.tunjid.tyler
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.take
-import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestCoroutineScope
 import kotlinx.coroutines.withTimeoutOrNull
@@ -17,18 +12,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
-
-private typealias IntTiles = Map<Int, Pair<Long, List<Int>>>
+import kotlin.collections.flatten
 
 @ExperimentalCoroutinesApi
-class TilerKtTest {
+class TileKtTest {
 
     private val testScope = TestCoroutineScope()
 
-    private lateinit var tiler: (Flow<TileRequest<Int>>) -> Flow<IntTiles>
+    private lateinit var tiler: (Flow<TileRequest<Int, List<Int>>>) -> Flow<List<List<Int>>>
     private lateinit var tileFlowMap: MutableMap<Int, MutableStateFlow<List<Int>>>
 
     @Before
+    @FlowPreview
     fun setUp() {
         tileFlowMap = mutableMapOf()
         tiler = tiles { page ->
@@ -43,16 +38,16 @@ class TilerKtTest {
 
     @Test
     fun `requesting 1 tile works`() = runBlocking {
-        val requests = listOf(
-            TileRequest.On(query = 1),
+        val requests = listOf<TileRequest.Request<Int, List<Int>>>(
+            TileRequest.Request.On(query = 1),
         )
 
         val emissions = requests
             .asFlow()
             .tiles(tiler)
-            .flattened()
             .take(requests.size + 1)
             .toList()
+            .map(List<List<Int>>::flatten)
 
         assertEquals(emptyList<Int>(), emissions[0])
         assertEquals(1.testRange.toList(), emissions[1])
@@ -60,17 +55,17 @@ class TilerKtTest {
 
     @Test
     fun `requesting multiple queries works`() = runBlocking {
-        val requests = listOf(
-            TileRequest.On(query = 1),
-            TileRequest.On(query = 3),
-            TileRequest.On(query = 8),
+        val requests = listOf<TileRequest.Request<Int, List<Int>>>(
+            TileRequest.Request.On(query = 1),
+            TileRequest.Request.On(query = 3),
+            TileRequest.Request.On(query = 8),
         )
         val emissions = requests
             .asFlow()
             .tiles(tiler)
-            .flattened()
             .take(requests.size + 1)
             .toList()
+            .map(List<List<Int>>::flatten)
 
         assertEquals(
             emptyList<Int>(),
@@ -92,21 +87,23 @@ class TilerKtTest {
 
     @Test
     fun `only requested queries have subscribers`() = runBlocking {
-        val requests = listOf(
-            TileRequest.On(query = 1),
-            TileRequest.On(query = 3),
-            TileRequest.On(query = 8),
+        val requests = listOf<TileRequest.Request<Int, List<Int>>>(
+            TileRequest.Request.On(query = 1),
+            TileRequest.Request.On(query = 3),
+            TileRequest.Request.On(query = 8),
         )
         val emissions = requests
             .asFlow()
             .tiles(tiler)
-            .flattened()
-            .withRequestIndex { requestIndex ->
-                val request = requests[requestIndex].query
+            .withIndex()
+            .onEach { (index, _) ->
+                val request = requests[index].query
                 assertEquals(1, tileFlowMap.getValue(request).subscriptionCount.value)
             }
+            .map { it.value }
             .take(requests.size + 1)
             .toList()
+            .map(List<List<Int>>::flatten)
 
         assertEquals(
             (1.testRange + 3.testRange + 8.testRange).toList(),
@@ -124,12 +121,12 @@ class TilerKtTest {
 
     @Test
     fun `Can turn off valve for query`() = runBlocking {
-        val requests = listOf(
-            TileRequest.On(query = 1),
-            TileRequest.On(query = 3),
-            TileRequest.On(query = 8),
-            TileRequest.Off(query = 3),
-            TileRequest.Off(query = 9),
+        val requests = listOf<TileRequest.Request<Int, List<Int>>>(
+            TileRequest.Request.On(query = 1),
+            TileRequest.Request.On(query = 3),
+            TileRequest.Request.On(query = 8),
+            TileRequest.Request.Off(query = 3),
+            TileRequest.Request.Off(query = 9),
         )
 
         // Make this hot and shared eagerly to assert subscriptions are still held
@@ -137,15 +134,17 @@ class TilerKtTest {
             .asFlow()
             .onEach { delay(100) }
             .tiles(tiler)
-            .flattened()
-            .withRequestIndex { requestIndex ->
+            .withIndex()
+            .onEach { (index, _) ->
                 assertEquals(
-                    if (requestIndex == 4) 0 else 1,
-                    tileFlowMap.getValue(requests[requestIndex].query).subscriptionCount.value
+                    if (index > 2) 0 else 1,
+                    tileFlowMap.getValue(requests[index].query).subscriptionCount.value
                 )
             }
-            .take(requests.filterIsInstance<TileRequest.On<Int>>().size + 1)
+            .map { it.value }
+            .take(requests.filterIsInstance<TileRequest.Request.On<Int, List<Int>>>().size + 1)
             .toList()
+            .map(List<List<Int>>::flatten)
 
         assertEquals(
             (1.testRange + 3.testRange + 8.testRange).toList(),
@@ -155,20 +154,20 @@ class TilerKtTest {
 
     @Test
     fun `queries are idempotent`() = runBlocking {
-        val requests = listOf(
-            TileRequest.On(query = 1),
-            TileRequest.On(query = 1),
-            TileRequest.On(query = 1),
-            TileRequest.On(query = 1),
+        val requests = listOf<TileRequest.Request<Int, List<Int>>>(
+            TileRequest.Request.On(query = 1),
+            TileRequest.Request.On(query = 1),
+            TileRequest.Request.On(query = 1),
+            TileRequest.Request.On(query = 1),
         )
 
         // Make this hot and shared eagerly to assert subscriptions are still held
         val emissions = requests
             .asFlow()
             .tiles(tiler)
-            .flattened()
             .take(2)
             .toList()
+            .map(List<List<Int>>::flatten)
 
         assertEquals(
             1.testRange.toList(),
@@ -179,19 +178,8 @@ class TilerKtTest {
             requests
                 .asFlow()
                 .tiles(tiler)
-                .map { it.sortAndFlatten(Int::compareTo) }
                 .take(3)
                 .toList()
         })
     }
 }
-
-private fun Flow<List<Int>>.withRequestIndex(block: (Int) -> Unit) = onEach { items ->
-    val requestIndex = items.size.div(1.testRange.toList().size) - 1
-    if (requestIndex > -1) block(requestIndex)
-}
-
-private fun Flow<IntTiles>.flattened() =
-    map { it.sortAndFlatten(Int::compareTo) }
-        .map { it.flatten() }
-        .map { it.toList() }

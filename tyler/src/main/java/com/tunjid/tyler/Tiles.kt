@@ -17,13 +17,13 @@ internal data class Tile<Query, Item : Any?>(
     val item: Item,
 )
 
-internal val <Query, Item : Any?> Tile<Query, Item>.toPair get() = flowOnAt to item
-
 internal sealed class Result<Query, Item> {
     data class Data<Query, Item>(
         val query: Query,
         val tile: Tile<Query, Item>
     ) : Result<Query, Item>()
+
+    data class Order<Query, Item>(val get: TileRequest.Get<Query, Item>) : Result<Query, Item>()
 
     data class None<Query, Item>(val query: Query) : Result<Query, Item>()
 }
@@ -38,8 +38,8 @@ internal data class Tiles<Query, Item>(
 ) {
 
     @ExperimentalCoroutinesApi
-    fun add(request: TileRequest<Query>): Tiles<Query, Item> = when (request) {
-        is TileRequest.Eject -> {
+    fun add(request: TileRequest<Query, Item>): Tiles<Query, Item> = when (request) {
+        is TileRequest.Request.Eject -> {
             // Stop collecting from the Flow to free up resources
             queryFlowValveMap[request.query]?.toggle?.invoke(false)
             // Eject query
@@ -48,14 +48,14 @@ internal data class Tiles<Query, Item>(
                 queryFlowValveMap = queryFlowValveMap.minus(request.query)
             )
         }
-        is TileRequest.Off -> {
+        is TileRequest.Request.Off -> {
             // Stop collecting from the Flow to free up resources
             queryFlowValveMap[request.query]?.toggle?.invoke(false)
             // No new valve was created, empty flows complete immediately,
             // so they don't count towards te concurrent count
             copy(flow = emptyFlow())
         }
-        is TileRequest.On -> {
+        is TileRequest.Request.On -> {
             val existingValve = queryFlowValveMap[request.query]
             // Turn on the valve if it was previously shut off
             existingValve?.toggle?.invoke(true)
@@ -76,6 +76,9 @@ internal data class Tiles<Query, Item>(
                 }
             )
         }
+        is TileRequest.Get.Pivoted -> copy(flow = flowOf(Result.Order(get = request)))
+        is TileRequest.Get.StrictOrder -> copy(flow = flowOf(Result.Order(get = request)))
+        is TileRequest.Get.InsertionOrder -> copy(flow = flowOf(Result.Order(get = request)))
     }
 }
 
@@ -83,7 +86,7 @@ internal data class Tiles<Query, Item>(
  * Allows for turning on and off a Flow
  */
 internal class FlowValve<Query, Item>(
-    request: TileRequest<Query>,
+    request: TileRequest.Request<Query,Item>,
     fetcher: suspend (Query) -> Flow<Item>
 ) {
     private val backingFlow = MutableStateFlow(value = true)

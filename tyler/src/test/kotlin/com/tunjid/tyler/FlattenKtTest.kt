@@ -8,50 +8,69 @@ class FlattenKtTest {
 
     @Test
     fun `maintains all items`() {
-        val flattened =
+        val tiled =
             (1..9)
                 .mapIndexed { index, int ->
-                    index to (index.toLong() to int.testRange.toList())
-                }.toMap()
-                .sortAndFlatten(Int::compareTo)
+                    Result.Data(
+                        query = int,
+                        tile = Tile(
+                            flowOnAt = index.toLong(),
+                            query = int,
+                            item = int.testRange.toList()
+                        )
+                    )
+                }
+                .fold(
+                    initial = Flatten(get = TileRequest.Get.StrictOrder(comparator = Int::compareTo)),
+                    operation = Flatten<Int, List<Int>>::add
+                )
+                .items()
                 .flatten()
-                .toList()
 
         assertEquals(
             (1..9).map { it.testRange }.flatten(),
-            flattened
+            tiled
         )
     }
 
     @Test
     fun `pivots around most recent when limit exists`() {
-        val flattened =
+        val tiles =
             ((1..9).mapIndexed { index, int ->
-                index to (index.toLong() to int.testRange.toList())
+                Result.Data(
+                    query = int,
+                    tile = Tile(
+                        flowOnAt = index.toLong(),
+                        query = int,
+                        item = int.testRange.toList()
+                    )
+                )
             } + (6 downTo 4).mapIndexed { index, int ->
-                index to (index.toLong() + 10L to int.testRange.toList())
+                Result.Data(
+                    query = int,
+                    tile = Tile(
+                        flowOnAt = index.toLong() + 10L,
+                        query = int,
+                        item = int.testRange.toList()
+                    )
+                )
             })
-                .toMap()
-                .pivotSortAndFlatten(Int::compareTo)
+                .fold(
+                    initial = Flatten(
+                        get = TileRequest.Get.Pivoted(
+                            comparator = Int::compareTo,
+                            limiter = { items -> items.fold(0) { count, list -> count + list.size } < 50 }
+                        )
+                    ),
+                    operation = Flatten<Int, List<Int>>::add
+                )
+                .items()
                 .flatten()
-                .take(50)
-                .toList()
 
         assertEquals(
             (2..6).map { it.testRange }.flatten(),
-            flattened
+            tiles
         )
     }
 
 }
-
-private fun IntProgression.toTile(
-    flowOnAt: (Int) -> Long,
-) = mapIndexed { index, int ->
-    index to Tile(
-        flowOnAt = flowOnAt(index),
-        query = TileRequest.On(int),
-        item = int.testRange.toList()
-    )
-}.toMap()
-
