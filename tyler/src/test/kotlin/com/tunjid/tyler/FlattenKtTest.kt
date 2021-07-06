@@ -28,7 +28,7 @@ class FlattenKtTest {
                 .flatten()
 
         assertEquals(
-            (1..9).map { it.testRange }.flatten(),
+            (1..9).map(Int::testRange).flatten(),
             tiled
         )
     }
@@ -59,7 +59,7 @@ class FlattenKtTest {
                     initial = Flatten(
                         get = TileRequest.Get.Pivoted(
                             comparator = Int::compareTo,
-                            limiter = { items -> items.fold(0) { count, list -> count + list.size } < 50 }
+                            limiter = { items -> items.fold(0) { count, list -> count + list.size } > 50 }
                         )
                     ),
                     operation = Flatten<Int, List<Int>>::add
@@ -68,7 +68,7 @@ class FlattenKtTest {
                 .flatten()
 
         assertEquals(
-            (2..6).map { it.testRange }.flatten(),
+            (2..6).map(Int::testRange).flatten(),
             tiles
         )
     }
