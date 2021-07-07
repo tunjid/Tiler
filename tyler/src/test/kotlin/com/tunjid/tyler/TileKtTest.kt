@@ -26,7 +26,7 @@ class TileKtTest {
     @FlowPreview
     fun setUp() {
         tileFlowMap = mutableMapOf()
-        tiler = tiles { page ->
+        tiler = tiler(itemOrder = Tile.ItemOrder.Sort(Int::compareTo)) { page ->
             tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }
         }
     }
@@ -44,7 +44,7 @@ class TileKtTest {
 
         val emissions = requests
             .asFlow()
-            .tiles(tiler)
+            .tiledWith(tiler)
             .drop(1) // First emission is an empty list
             .take(requests.size)
             .toList()
@@ -62,7 +62,7 @@ class TileKtTest {
         )
         val emissions = requests
             .asFlow()
-            .tiles(tiler)
+            .tiledWith(tiler)
             .drop(1) // First emission is an empty list
             .take(requests.size)
             .toList()
@@ -91,7 +91,7 @@ class TileKtTest {
         )
         val emissions = requests
             .asFlow()
-            .tiles(tiler)
+            .tiledWith(tiler)
             .drop(1) // First emission is an empty list
             .withIndex()
             .onEach { (index, _) ->
@@ -131,7 +131,7 @@ class TileKtTest {
         val emissions = requests
             .asFlow()
             .onEach { delay(100) }
-            .tiles(tiler)
+            .tiledWith(tiler)
             .drop(1) // First emission is an empty list
             .withIndex()
             .onEach { (index, _) ->
@@ -163,7 +163,7 @@ class TileKtTest {
         // Make this hot and shared eagerly to assert subscriptions are still held
         val emissions = requests
             .asFlow()
-            .tiles(tiler)
+            .tiledWith(tiler)
             .take(2)
             .toList()
             .map(List<List<Int>>::flatten)
@@ -176,9 +176,52 @@ class TileKtTest {
         assertNull(withTimeoutOrNull(200) {
             requests
                 .asFlow()
-                .tiles(tiler)
+                .tiledWith(tiler)
                 .take(3)
                 .toList()
         })
+    }
+
+    @Test
+    fun `queries can be evicted`() = runBlocking {
+        val requests = listOf<Tile.Request<Int, List<Int>>>(
+            Tile.Request.On(query = 1),
+            Tile.Request.Off(query = 1),
+            Tile.Request.On(query = 1),
+            Tile.Request.On(query = 3),
+            Tile.Request.Evict(query = 1),
+            Tile.Request.On(query = 1),
+        )
+
+        // Make this hot and shared eagerly to assert subscriptions are still held
+        val emissions = requests
+            .asFlow()
+            .onEach { delay(100) }
+            .tiledWith(tiler)
+            .drop(1) // First emission is an empty list
+            .take(count = requests.size - 1)
+            .toList()
+            .map(List<List<Int>>::flatten)
+
+        assertEquals(
+            1.testRange.toList(),
+            emissions[0]
+        )
+        assertEquals(
+            1.testRange.toList(),
+            emissions[1]
+        )
+        assertEquals(
+            (1.testRange + 3.testRange).toList(),
+            emissions[2]
+        )
+        assertEquals(
+            3.testRange.toList(),
+            emissions[3]
+        )
+        assertEquals(
+            (1.testRange + 3.testRange).toList(),
+            emissions[4]
+        )
     }
 }

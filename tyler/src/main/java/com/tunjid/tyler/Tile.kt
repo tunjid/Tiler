@@ -78,7 +78,8 @@ sealed class Tile<Query, Item> {
  */
 @FlowPreview
 @ExperimentalCoroutinesApi
-fun <Query, Item> tiles(
+fun <Query, Item> tiler(
+    itemOrder: Tile.ItemOrder<Query, Item> = Tile.ItemOrder.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile<Query, Item>>) -> Flow<List<Item>> = { requests ->
     requests
@@ -94,7 +95,7 @@ fun <Query, Item> tiles(
         .scan(
             // This is a Mutable map solely for performance reasons.
             // It is exposed as an immutable map
-            initial = Tiler(),
+            initial = Tiler(itemOrder = itemOrder),
             operation = Tiler<Query, Item>::add
         )
         .map(Tiler<Query, Item>::items)
@@ -103,6 +104,6 @@ fun <Query, Item> tiles(
 /**
  * Convenience method to convert a [Flow] of [Tile] to a [Flow] of [TileData]s
  */
-fun <Query, Item> Flow<Tile<Query, Item>>.tiles(
+fun <Query, Item> Flow<Tile<Query, Item>>.tiledWith(
     tiler: (Flow<Tile<Query, Item>>) -> Flow<List<Item>>
 ) = tiler(this)
