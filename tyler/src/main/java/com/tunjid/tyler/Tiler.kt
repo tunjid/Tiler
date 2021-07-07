@@ -5,6 +5,7 @@ package com.tunjid.tyler
  */
 internal data class Tiler<Query, Item>(
     val itemOrder: Tile.ItemOrder<Query, Item> = Tile.ItemOrder.Unspecified(),
+    // I'd rather this be immutable, electing against it for performance reasons
     val queryToTiles: MutableMap<Query, TileData<Query, Item>> = mutableMapOf(),
 ) {
 
