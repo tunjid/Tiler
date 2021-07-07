@@ -21,7 +21,7 @@ class TilerKtTest {
                     )
                 }
                 .fold(
-                    initial = Tiler(itemOrder = Tile.ItemOrder.Sort(comparator = Int::compareTo)),
+                    initial = Tiler(order = Tile.Order.Sorted(comparator = Int::compareTo)),
                     operation = Tiler<Int, List<Int>>::add
                 )
                 .items()
@@ -57,7 +57,7 @@ class TilerKtTest {
             })
                 .fold(
                     initial = Tiler(
-                        itemOrder = Tile.ItemOrder.PivotedSort(
+                        order = Tile.Order.PivotSorted(
                             comparator = Int::compareTo,
                             limiter = { items -> items.fold(0) { count, list -> count + list.size } >= 50 }
                         )

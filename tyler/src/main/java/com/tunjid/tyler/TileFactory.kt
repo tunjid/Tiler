@@ -9,7 +9,7 @@ internal sealed class Output<Query, Item> {
         val tile: TileData<Query, Item>
     ) : Output<Query, Item>()
 
-    data class Order<Query, Item>(val itemOrder: Tile.ItemOrder<Query, Item>) :
+    data class Order<Query, Item>(val order: Tile.Order<Query, Item>) :
         Output<Query, Item>()
 
     data class Evict<Query, Item>(val query: Query) : Output<Query, Item>()
@@ -65,7 +65,7 @@ internal data class TileFactory<Query, Item>(
                 }
             )
         }
-        is Tile.ItemOrder -> copy(flow = flowOf(Output.Order(itemOrder = request)))
+        is Tile.Order -> copy(flow = flowOf(Output.Order(order = request)))
     }
 }
 

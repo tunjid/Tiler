@@ -4,7 +4,7 @@ package com.tunjid.tyler
  * Flattens a [Map] of [Query] to [Item] to a [List]
  */
 internal data class Tiler<Query, Item>(
-    val itemOrder: Tile.ItemOrder<Query, Item> = Tile.ItemOrder.Unspecified(),
+    val order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     // I'd rather this be immutable, electing against it for performance reasons
     val queryToTiles: MutableMap<Query, TileData<Query, Item>> = mutableMapOf(),
 ) {
@@ -12,26 +12,26 @@ internal data class Tiler<Query, Item>(
     fun add(output: Output<Query, Item>): Tiler<Query, Item> = when (output) {
         is Output.Data -> copy(queryToTiles = queryToTiles.apply { put(output.query, output.tile) })
         is Output.Evict -> copy(queryToTiles = queryToTiles.apply { remove(output.query) })
-        is Output.Order -> copy(itemOrder = output.itemOrder)
+        is Output.Order -> copy(order = output.order)
     }
 
     fun items(): List<Item> {
-        return when (itemOrder) {
-            is Tile.ItemOrder.Unspecified -> queryToTiles.keys
+        return when (order) {
+            is Tile.Order.Unspecified -> queryToTiles.keys
                 .fold(mutableListOf()) { list, query ->
                     list.add(element = queryToTiles.getValue(query).item)
                     list
                 }
-            is Tile.ItemOrder.Sort -> queryToTiles.keys
-                .sortedWith(itemOrder.comparator)
-                .foldWhile(mutableListOf(), itemOrder.limiter) { list, query ->
+            is Tile.Order.Sorted -> queryToTiles.keys
+                .sortedWith(order.comparator)
+                .foldWhile(mutableListOf(), order.limiter) { list, query ->
                     list.add(element = queryToTiles.getValue(query).item)
                     list
                 }
-            is Tile.ItemOrder.PivotedSort -> {
+            is Tile.Order.PivotSorted -> {
                 // Sort the keys, should be relatively cheap
                 val sorted = queryToTiles.keys
-                    .sortedWith(itemOrder.comparator)
+                    .sortedWith(order.comparator)
 
                 val mostRecentQuery: Query = queryToTiles.keys
                     .maxByOrNull { queryToTiles.getValue(it).flowOnAt }
@@ -42,7 +42,7 @@ internal data class Tiler<Query, Item>(
                 var rightIndex = startIndex
                 val result = mutableListOf(queryToTiles.getValue(sorted[startIndex]).item)
 
-                while (!itemOrder.limiter(result) && (leftIndex >= 0 || rightIndex <= sorted.lastIndex)) {
+                while (!order.limiter(result) && (leftIndex >= 0 || rightIndex <= sorted.lastIndex)) {
                     if (--leftIndex >= 0) result.add(
                         index = 0,
                         element = queryToTiles.getValue(sorted[leftIndex]).item

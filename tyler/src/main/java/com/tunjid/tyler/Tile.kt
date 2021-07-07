@@ -41,23 +41,23 @@ sealed class Tile<Query, Item> {
         data class Evict<Query, Item>(override val query: Query) : Request<Query, Item>()
     }
 
-    sealed class ItemOrder<Query, Item> : Tile<Query, Item>() {
+    sealed class Order<Query, Item> : Tile<Query, Item>() {
         /**
          * Items will be returned in an unspecified order; the order is whatever the iteration
          * order of the backing map of [Query] to [Item] uses
          */
         data class Unspecified<Query, Item>(
             private val id: String = "",
-        ) : ItemOrder<Query, Item>()
+        ) : Order<Query, Item>()
 
         /**
          * Sort items with the specified query [comparator].
          * [limiter] can be used to select a subset of items instead of the whole set
          */
-        data class Sort<Query, Item>(
+        data class Sorted<Query, Item>(
             val comparator: Comparator<Query>,
             val limiter: (List<Item>) -> Boolean = { false },
-        ) : ItemOrder<Query, Item>()
+        ) : Order<Query, Item>()
 
         /**
          * Sort items with the specified [comparator] but pivoted around the last time a
@@ -65,10 +65,12 @@ sealed class Tile<Query, Item> {
          * over others in the current context
          * [limiter] can be used to select a subset of items instead of the whole set
          */
-        data class PivotedSort<Query, Item>(
+        data class PivotSorted<Query, Item>(
             val comparator: Comparator<Query>,
             val limiter: (List<Item>) -> Boolean = { false },
-        ) : ItemOrder<Query, Item>()
+        ) : Order<Query, Item>()
+
+        // TODO: Add custom order
     }
 }
 
@@ -79,7 +81,7 @@ sealed class Tile<Query, Item> {
 @FlowPreview
 @ExperimentalCoroutinesApi
 fun <Query, Item> tiler(
-    itemOrder: Tile.ItemOrder<Query, Item> = Tile.ItemOrder.Unspecified(),
+    order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile<Query, Item>>) -> Flow<List<Item>> = { requests ->
     requests
@@ -93,7 +95,7 @@ fun <Query, Item> tiler(
             transform = { it.flow }
         )
         .scan(
-            initial = Tiler(itemOrder = itemOrder),
+            initial = Tiler(order = order),
             operation = Tiler<Query, Item>::add
         )
         .map(Tiler<Query, Item>::items)
