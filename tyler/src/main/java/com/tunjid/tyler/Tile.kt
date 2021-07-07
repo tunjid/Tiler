@@ -70,7 +70,12 @@ import kotlinx.coroutines.flow.scan
             val limiter: (List<Item>) -> Boolean = { false },
         ) : Order<Query, Item>()
 
-        // TODO: Add custom order
+        /**
+         * Flattens tiled items produced whichever way you desire
+         */
+        data class Custom<Query, Item>(
+            val transform: (Map<Query, Tile<Query, Item>>) -> List<Item>,
+        ) : Order<Query, Item>()
     }
 
 

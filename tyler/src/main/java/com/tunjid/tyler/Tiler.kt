@@ -53,6 +53,7 @@ internal data class Tiler<Query, Item>(
                 }
                 result
             }
+            is Tile.Order.Custom -> order.transform(queryToTiles)
         }
     }
 }
