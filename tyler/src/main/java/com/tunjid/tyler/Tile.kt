@@ -93,8 +93,6 @@ fun <Query, Item> tiler(
             transform = { it.flow }
         )
         .scan(
-            // This is a Mutable map solely for performance reasons.
-            // It is exposed as an immutable map
             initial = Tiler(itemOrder = itemOrder),
             operation = Tiler<Query, Item>::add
         )

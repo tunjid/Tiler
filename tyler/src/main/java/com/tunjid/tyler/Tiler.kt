@@ -9,8 +9,8 @@ internal data class Tiler<Query, Item>(
 ) {
 
     fun add(output: Output<Query, Item>): Tiler<Query, Item> = when (output) {
-        is Output.Data -> copy().apply { queryToTiles[output.query] = output.tile }
-        is Output.Evict -> copy().apply { queryToTiles.remove(output.query) }.copy()
+        is Output.Data -> copy(queryToTiles = queryToTiles.apply { put(output.query, output.tile) })
+        is Output.Evict -> copy(queryToTiles = queryToTiles.apply { remove(output.query) })
         is Output.Order -> copy(itemOrder = output.itemOrder)
     }
 
