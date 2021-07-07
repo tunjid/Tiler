@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.scan
 /**
  * class holding meta data about a [Query] for an [Item], the [Item], and when the [Query] was sent
  */
- data class Tile<Query, Item : Any?>(
+data class Tile<Query, Item : Any?>(
     val flowOnAt: Long,
     val query: Query,
     val item: Item,
@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.scan
          * Requesting this is idempotent; multiple requests have no side effects.
          */
         data class On<Query, Item>(override val query: Query) : Request<Query, Item>()
+
         /**
          * Stops collecting from the backing [Flow] for the specified [query].
          * The items previously fetched by this query are still kept in memory and will be
@@ -33,6 +34,7 @@ import kotlinx.coroutines.flow.scan
          * Requesting this is idempotent; multiple requests have no side effects.
          */
         data class Off<Query, Item>(override val query: Query) : Request<Query, Item>()
+
         /**
          * Stops collecting from the backing [Flow] for the specified [query] and also evicts
          * the items previously fetched by the [query] from memory.
@@ -41,7 +43,8 @@ import kotlinx.coroutines.flow.scan
         data class Evict<Query, Item>(override val query: Query) : Request<Query, Item>()
     }
 
-    sealed class Order<Query, Item> : Input<Query, Item> {
+    sealed class Order<Query, Item> : Input<Query, Item>,
+            (Map<Query, Tile<Query, Item>>) -> List<Item> {
         /**
          * Items will be returned in an unspecified order; the order is whatever the iteration
          * order of the backing map of [Query] to [Item] uses
@@ -76,6 +79,9 @@ import kotlinx.coroutines.flow.scan
         data class Custom<Query, Item>(
             val transform: (Map<Query, Tile<Query, Item>>) -> List<Item>,
         ) : Order<Query, Item>()
+
+        override fun invoke(queryToTiles: Map<Query, Tile<Query, Item>>): List<Item> =
+            flatten(queryToTiles)
     }
 
 
