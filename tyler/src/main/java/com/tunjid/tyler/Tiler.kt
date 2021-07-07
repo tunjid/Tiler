@@ -6,13 +6,13 @@ package com.tunjid.tyler
 internal data class Tiler<Query, Item>(
     val order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     // I'd rather this be immutable, electing against it for performance reasons
-    val queryToTiles: MutableMap<Query, TileData<Query, Item>> = mutableMapOf(),
+    val queryToTiles: MutableMap<Query, Tile<Query, Item>> = mutableMapOf(),
 ) {
 
-    fun add(output: Output<Query, Item>): Tiler<Query, Item> = when (output) {
-        is Output.Data -> copy(queryToTiles = queryToTiles.apply { put(output.query, output.tile) })
-        is Output.Evict -> copy(queryToTiles = queryToTiles.apply { remove(output.query) })
-        is Output.Order -> copy(order = output.order)
+    fun add(output: Tile.Output<Query, Item>): Tiler<Query, Item> = when (output) {
+        is Tile.Output.Data -> copy(queryToTiles = queryToTiles.apply { put(output.query, output.tile) })
+        is Tile.Output.Evict -> copy(queryToTiles = queryToTiles.apply { remove(output.query) })
+        is Tile.Output.Order -> copy(order = output.order)
     }
 
     fun items(): List<Item> {

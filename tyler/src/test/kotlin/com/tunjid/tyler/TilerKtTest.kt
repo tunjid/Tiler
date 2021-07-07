@@ -11,9 +11,9 @@ class TilerKtTest {
         val tiled =
             (1..9)
                 .mapIndexed { index, int ->
-                    Output.Data(
+                    Tile.Output.Data(
                         query = int,
-                        tile = TileData(
+                        tile = Tile(
                             flowOnAt = index.toLong(),
                             query = int,
                             item = int.testRange.toList()
@@ -37,18 +37,18 @@ class TilerKtTest {
     fun `pivots around most recent when limit exists`() {
         val tiles =
             ((1..9).mapIndexed { index, int ->
-                Output.Data(
+                Tile.Output.Data(
                     query = int,
-                    tile = TileData(
+                    tile = Tile(
                         flowOnAt = index.toLong(),
                         query = int,
                         item = int.testRange.toList()
                     )
                 )
             } + (6 downTo 4).mapIndexed { index, int ->
-                Output.Data(
+                Tile.Output.Data(
                     query = int,
-                    tile = TileData(
+                    tile = Tile(
                         flowOnAt = index.toLong() + 10L,
                         query = int,
                         item = int.testRange.toList()

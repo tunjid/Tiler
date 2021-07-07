@@ -3,29 +3,17 @@ package com.tunjid.tyler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 
-internal sealed class Output<Query, Item> {
-    data class Data<Query, Item>(
-        val query: Query,
-        val tile: TileData<Query, Item>
-    ) : Output<Query, Item>()
-
-    data class Order<Query, Item>(val order: Tile.Order<Query, Item>) :
-        Output<Query, Item>()
-
-    data class Evict<Query, Item>(val query: Query) : Output<Query, Item>()
-}
-
 /**
- * Book keeper for [TileData] fetching
+ * Book keeper for [Tile] fetching
  */
 internal data class TileFactory<Query, Item>(
-    val flow: Flow<Output<Query, Item>> = emptyFlow(),
+    val flow: Flow<Tile.Output<Query, Item>> = emptyFlow(),
     val queryFlowValveMap: Map<Query, FlowValve<Query, Item>> = mapOf(),
     val fetcher: suspend (Query) -> Flow<Item>
 ) {
 
     @ExperimentalCoroutinesApi
-    fun add(request: Tile<Query, Item>): TileFactory<Query, Item> = when (request) {
+    fun add(request: Tile.Input<Query, Item>): TileFactory<Query, Item> = when (request) {
         is Tile.Request.Evict -> {
             val existingValve = queryFlowValveMap[request.query]
             copy(
@@ -65,7 +53,7 @@ internal data class TileFactory<Query, Item>(
                 }
             )
         }
-        is Tile.Order -> copy(flow = flowOf(Output.Order(order = request)))
+        is Tile.Order -> copy(flow = flowOf(Tile.Output.Order(order = request)))
     }
 }
 
@@ -82,18 +70,18 @@ internal class FlowValve<Query, Item>(
     val toggle: suspend (Tile.Request<Query, Item>) -> Unit = backingFlow::emit
 
     @ExperimentalCoroutinesApi
-    val flow: Flow<Output<Query, Item>> = backingFlow
+    val flow: Flow<Tile.Output<Query, Item>> = backingFlow
         .onSubscription { emit(Tile.Request.On(query = query)) }
         .distinctUntilChanged()
         .flatMapLatest { toggle ->
             val toggledAt = System.currentTimeMillis()
             when (toggle) {
-                is Tile.Request.Evict -> flowOf(Output.Evict<Query, Item>(query = query))
+                is Tile.Request.Evict -> flowOf(Tile.Output.Evict<Query, Item>(query = query))
                 is Tile.Request.Off<Query, Item> -> emptyFlow()
                 is Tile.Request.On<Query, Item> -> fetcher.invoke(query).map { item ->
-                    Output.Data(
+                    Tile.Output.Data(
                         query = query,
-                        tile = TileData(
+                        tile = Tile(
                             query = query,
                             item = item,
                             flowOnAt = toggledAt
@@ -102,8 +90,8 @@ internal class FlowValve<Query, Item>(
                 }
             }
         }
-        .transformWhile { toggle: Output<Query, Item> ->
+        .transformWhile { toggle: Tile.Output<Query, Item> ->
             emit(toggle)
-            toggle !is Output.Evict<Query, Item>
+            toggle !is Tile.Output.Evict<Query, Item>
         }
 }

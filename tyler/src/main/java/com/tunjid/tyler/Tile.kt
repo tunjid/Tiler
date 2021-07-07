@@ -10,15 +10,15 @@ import kotlinx.coroutines.flow.scan
 /**
  * class holding meta data about a [Query] for an [Item], the [Item], and when the [Query] was sent
  */
-internal data class TileData<Query, Item : Any?>(
+ data class Tile<Query, Item : Any?>(
     val flowOnAt: Long,
     val query: Query,
     val item: Item,
-)
+) {
 
-sealed class Tile<Query, Item> {
+    sealed interface Input<Query, Item>
 
-    sealed class Request<Query, Item> : Tile<Query, Item>() {
+    sealed class Request<Query, Item> : Input<Query, Item> {
         abstract val query: Query
 
         /**
@@ -41,7 +41,7 @@ sealed class Tile<Query, Item> {
         data class Evict<Query, Item>(override val query: Query) : Request<Query, Item>()
     }
 
-    sealed class Order<Query, Item> : Tile<Query, Item>() {
+    sealed class Order<Query, Item> : Input<Query, Item> {
         /**
          * Items will be returned in an unspecified order; the order is whatever the iteration
          * order of the backing map of [Query] to [Item] uses
@@ -72,6 +72,19 @@ sealed class Tile<Query, Item> {
 
         // TODO: Add custom order
     }
+
+
+    internal sealed class Output<Query, Item> {
+        data class Data<Query, Item>(
+            val query: Query,
+            val tile: Tile<Query, Item>
+        ) : Output<Query, Item>()
+
+        data class Order<Query, Item>(val order: Tile.Order<Query, Item>) :
+            Output<Query, Item>()
+
+        data class Evict<Query, Item>(val query: Query) : Output<Query, Item>()
+    }
 }
 
 /**
@@ -83,7 +96,7 @@ sealed class Tile<Query, Item> {
 fun <Query, Item> tiler(
     order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
-): (Flow<Tile<Query, Item>>) -> Flow<List<Item>> = { requests ->
+): (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>> = { requests ->
     requests
         .scan(
             initial = TileFactory(fetcher = fetcher),
@@ -102,8 +115,8 @@ fun <Query, Item> tiler(
 }
 
 /**
- * Convenience method to convert a [Flow] of [Tile] to a [Flow] of [TileData]s
+ * Convenience method to convert a [Flow] of [Tile] to a [Flow] of [Tile]s
  */
-fun <Query, Item> Flow<Tile<Query, Item>>.tiledWith(
-    tiler: (Flow<Tile<Query, Item>>) -> Flow<List<Item>>
+fun <Query, Item> Flow<Tile.Input<Query, Item>>.tiledWith(
+    tiler: (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>>
 ) = tiler(this)

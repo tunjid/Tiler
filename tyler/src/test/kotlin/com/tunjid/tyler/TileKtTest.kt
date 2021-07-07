@@ -19,7 +19,7 @@ class TileKtTest {
 
     private val testScope = TestCoroutineScope()
 
-    private lateinit var tiler: (Flow<Tile<Int, List<Int>>>) -> Flow<List<List<Int>>>
+    private lateinit var tiler: (Flow<Tile.Input<Int, List<Int>>>) -> Flow<List<List<Int>>>
     private lateinit var tileFlowMap: MutableMap<Int, MutableStateFlow<List<Int>>>
 
     @Before
