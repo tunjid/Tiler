@@ -104,10 +104,45 @@ data class Tile<Query, Item : Any?>(
  */
 @FlowPreview
 @ExperimentalCoroutinesApi
+fun <Query, Item> tiles(
+    fetcher: suspend (Query) -> Flow<Item>
+): (Flow<Tile.Input<Query, Item>>) -> Flow<Map<Query, Tile<Query,Item>>> = { requests ->
+    rawTiler(fetcher = fetcher)
+        .invoke(requests)
+        .map { it.queryToTiles }
+}
+
+@FlowPreview
+@ExperimentalCoroutinesApi
 fun <Query, Item> tiler(
     order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>> = { requests ->
+    rawTiler(order = order, fetcher = fetcher)
+        .invoke(requests)
+        .map(Tiler<Query, Item>::items)
+}
+
+/**
+ * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [List] of [Item]s
+ */
+fun <Query, Item> Flow<Tile.Input<Query, Item>>.flattenWith(
+    tiler: (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>>
+) = tiler(this)
+
+/**
+ * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [Map] of [Query] to [Item]s
+ */
+fun <Query, Item> Flow<Tile.Input<Query, Item>>.tiledWith(
+    tiles: (Flow<Tile.Input<Query, Item>>) -> Flow<Map<Query, Tile<Query,Item>>>
+) = tiles(this)
+
+@FlowPreview
+@ExperimentalCoroutinesApi
+internal fun <Query, Item> rawTiler(
+    order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
+    fetcher: suspend (Query) -> Flow<Item>
+): (Flow<Tile.Input<Query, Item>>) -> Flow<Tiler<Query, Item>> = { requests ->
     requests
         .scan(
             initial = TileFactory(fetcher = fetcher),
@@ -122,12 +157,4 @@ fun <Query, Item> tiler(
             initial = Tiler(order = order),
             operation = Tiler<Query, Item>::add
         )
-        .map(Tiler<Query, Item>::items)
 }
-
-/**
- * Convenience method to convert a [Flow] of [Tile] to a [Flow] of [Tile]s
- */
-fun <Query, Item> Flow<Tile.Input<Query, Item>>.tiledWith(
-    tiler: (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>>
-) = tiler(this)

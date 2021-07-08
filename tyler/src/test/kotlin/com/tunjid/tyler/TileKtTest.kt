@@ -37,6 +37,26 @@ class TileKtTest {
     }
 
     @Test
+    @FlowPreview
+    fun `requesting raw tiles works`() = runBlocking {
+        val requests = listOf<Tile.Request<Int, List<Int>>>(
+            Tile.Request.On(query = 1),
+        )
+
+        val emissions = requests
+            .asFlow()
+            .tiledWith(tiles { page -> flowOf(page.testRange.toList()) })
+            .drop(1) // First emission is an empty list
+            .take(requests.size)
+            .toList()
+
+        assertEquals(
+            1.testRange.toList(),
+            emissions[0][1]!!.item
+        )
+    }
+
+    @Test
     fun `requesting 1 tile works`() = runBlocking {
         val requests = listOf<Tile.Request<Int, List<Int>>>(
             Tile.Request.On(query = 1),
@@ -44,7 +64,7 @@ class TileKtTest {
 
         val emissions = requests
             .asFlow()
-            .tiledWith(tiler)
+            .flattenWith(tiler)
             .drop(1) // First emission is an empty list
             .take(requests.size)
             .toList()
@@ -62,7 +82,7 @@ class TileKtTest {
         )
         val emissions = requests
             .asFlow()
-            .tiledWith(tiler)
+            .flattenWith(tiler)
             .drop(1) // First emission is an empty list
             .take(requests.size)
             .toList()
@@ -91,7 +111,7 @@ class TileKtTest {
         )
         val emissions = requests
             .asFlow()
-            .tiledWith(tiler)
+            .flattenWith(tiler)
             .drop(1) // First emission is an empty list
             .withIndex()
             .onEach { (index, _) ->
@@ -131,7 +151,7 @@ class TileKtTest {
         val emissions = requests
             .asFlow()
             .onEach { delay(100) }
-            .tiledWith(tiler)
+            .flattenWith(tiler)
             .drop(1) // First emission is an empty list
             .withIndex()
             .onEach { (index, _) ->
@@ -163,7 +183,7 @@ class TileKtTest {
         // Make this hot and shared eagerly to assert subscriptions are still held
         val emissions = requests
             .asFlow()
-            .tiledWith(tiler)
+            .flattenWith(tiler)
             .take(2)
             .toList()
             .map(List<List<Int>>::flatten)
@@ -176,7 +196,7 @@ class TileKtTest {
         assertNull(withTimeoutOrNull(200) {
             requests
                 .asFlow()
-                .tiledWith(tiler)
+                .flattenWith(tiler)
                 .take(3)
                 .toList()
         })
@@ -197,7 +217,7 @@ class TileKtTest {
         val emissions = requests
             .asFlow()
             .onEach { delay(100) }
-            .tiledWith(tiler)
+            .flattenWith(tiler)
             .drop(1) // First emission is an empty list
             .take(count = requests.size - 1)
             .toList()
