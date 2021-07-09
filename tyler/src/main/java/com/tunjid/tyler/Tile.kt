@@ -148,7 +148,7 @@ internal fun <Query, Item> rawTiler(
     requests
         .scan(
             initial = TileFactory(fetcher = fetcher),
-            operation = TileFactory<Query, Item>::add
+            operation = TileFactory<Query, Item>::process
         )
         // Collect each tile flow independently and merge the results
         .flatMapMerge(

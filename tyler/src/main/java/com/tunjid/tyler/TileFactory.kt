@@ -4,7 +4,14 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 
 /**
- * Book keeper for [Tile] fetching
+ * Effectively a function of [Tile.Input] to [Flow] [Tile.Output].
+ * It keeps track of concurrent [Query]s allowing to pause, resume or discard of them at will.
+ *
+ * Each [Tile.Input] creates a new instance of the [TileFactory] with a new [flow] to collect.
+ * This [Flow] is either:
+ * * A new [Flow] for a [Query] produced by [fetcher]
+ * * A [Flow] to control an existing [FlowValve] for the [Query] but does not emit
+ * * An empty [Flow] as nothing needs to be done
  */
 internal data class TileFactory<Query, Item>(
     val flow: Flow<Tile.Output<Query, Item>> = emptyFlow(),
@@ -13,13 +20,13 @@ internal data class TileFactory<Query, Item>(
 ) {
 
     @ExperimentalCoroutinesApi
-    fun add(request: Tile.Input<Query, Item>): TileFactory<Query, Item> = when (request) {
+    fun process(request: Tile.Input<Query, Item>): TileFactory<Query, Item> = when (request) {
         is Tile.Request.Evict -> {
             val existingValve = queryFlowValveMap[request.query]
             copy(
                 flow = when (existingValve) {
                     null -> emptyFlow()
-                    else -> flow { existingValve.toggle(request) }
+                    else -> flow { existingValve.process(request) }
                 },
                 // Eject query
                 queryFlowValveMap = queryFlowValveMap.minus(request.query)
@@ -30,7 +37,7 @@ internal data class TileFactory<Query, Item>(
             copy(
                 flow = when (existingValve) {
                     null -> emptyFlow()
-                    else -> flow { existingValve.toggle(request) }
+                    else -> flow { existingValve.process(request) }
                 }
             )
         }
@@ -41,10 +48,10 @@ internal data class TileFactory<Query, Item>(
                 fetcher = fetcher
             )
             copy(
-                // Don't accidentally duplicate calling a flow for the same query
+                // Don't accidentally recreate a flow for an existing query
                 flow = when (existingValve) {
                     null -> valve.flow
-                    else -> flow { valve.toggle(request) }
+                    else -> flow { valve.process(request) }
                 },
                 // Only add a valve if it didn't exist prior
                 queryFlowValveMap = when (existingValve) {
@@ -67,7 +74,7 @@ internal class FlowValve<Query, Item>(
 
     private val backingFlow = MutableSharedFlow<Tile.Request<Query, Item>>()
 
-    val toggle: suspend (Tile.Request<Query, Item>) -> Unit = backingFlow::emit
+    val process: suspend (Tile.Request<Query, Item>) -> Unit = backingFlow::emit
 
     @ExperimentalCoroutinesApi
     val flow: Flow<Tile.Output<Query, Item>> = backingFlow
@@ -76,8 +83,11 @@ internal class FlowValve<Query, Item>(
         .flatMapLatest { toggle ->
             val toggledAt = System.currentTimeMillis()
             when (toggle) {
+                // Eject the query downstream
                 is Tile.Request.Evict -> flowOf(Tile.Output.Evict<Query, Item>(query = query))
+                // Stop collecting from the fetcher
                 is Tile.Request.Off<Query, Item> -> emptyFlow()
+                // Start collecting from the fetcher, keeping track of when the flow was turned on
                 is Tile.Request.On<Query, Item> -> fetcher.invoke(query).map { item ->
                     Tile.Output.Data(
                         query = query,
@@ -92,6 +102,7 @@ internal class FlowValve<Query, Item>(
         }
         .transformWhile { toggle: Tile.Output<Query, Item> ->
             emit(toggle)
+            // Terminate this flow entirely when the eviction signal is sent
             toggle !is Tile.Output.Evict<Query, Item>
         }
 }
