@@ -40,10 +40,13 @@ internal fun <Query, Item> Tile.Order<Query, Item>.flatten(
                 list
             }
         is Tile.Order.PivotSorted -> {
-            // Sort the keys, should be relatively cheap
+            // Sort the keys, should be relatively cheap.
+            // TODO: Amortize this, it's unnecessary to sort everytime there is an emission if
+            //  the queries have not changed
             val sorted = queryToTiles.keys
                 .sortedWith(order.comparator)
 
+            // TODO: Amortize this as well.
             val mostRecentQuery: Query = queryToTiles.keys
                 .maxByOrNull { queryToTiles.getValue(it).flowOnAt }
                 ?: return emptyList()
