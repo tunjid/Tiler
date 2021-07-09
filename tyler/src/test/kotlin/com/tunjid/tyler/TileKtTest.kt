@@ -26,7 +26,7 @@ class TileKtTest {
     @FlowPreview
     fun setUp() {
         tileFlowMap = mutableMapOf()
-        tiler = tiler(order = Tile.Order.Sorted(Int::compareTo)) { page ->
+        tiler = flattenedTiles(order = Tile.Order.Sorted(Int::compareTo)) { page ->
             tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }
         }
     }
@@ -45,7 +45,7 @@ class TileKtTest {
 
         val emissions = requests
             .asFlow()
-            .tiledWith(tiles { page -> flowOf(page.testRange.toList()) })
+            .tileWith(tiles { page -> flowOf(page.testRange.toList()) })
             .drop(1) // First emission is an empty list
             .take(requests.size)
             .toList()

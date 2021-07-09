@@ -1,7 +1,7 @@
 package com.tunjid.tyler
 
 /**
- * Flattens a [Map] of [Query] to [Item] to a [List]
+ * Flattens a [Map] of [Query] to [Item] to a [List] of [Item]
  */
 internal data class Tiler<Query, Item>(
     val order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),

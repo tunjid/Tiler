@@ -99,8 +99,7 @@ data class Tile<Query, Item : Any?>(
 }
 
 /**
- * Converts a [Flow] of [Query] into a [Flow] of a [Map] of [Query] to tiles representing that
- * [Item] and when it was requested
+ * Converts a [Flow] of [Query] into a [Flow] of a [Map] of [Query] to [Tile]
  */
 @FlowPreview
 @ExperimentalCoroutinesApi
@@ -112,9 +111,12 @@ fun <Query, Item> tiles(
         .map { it.queryToTiles }
 }
 
+/**
+ * Converts a [Flow] of [Query] into a [Flow] of [List] [Item]
+ */
 @FlowPreview
 @ExperimentalCoroutinesApi
-fun <Query, Item> tiler(
+fun <Query, Item> flattenedTiles(
     order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>> = { requests ->
@@ -133,7 +135,7 @@ fun <Query, Item> Flow<Tile.Input<Query, Item>>.flattenWith(
 /**
  * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [Map] of [Query] to [Item]s
  */
-fun <Query, Item> Flow<Tile.Input<Query, Item>>.tiledWith(
+fun <Query, Item> Flow<Tile.Input<Query, Item>>.tileWith(
     tiles: (Flow<Tile.Input<Query, Item>>) -> Flow<Map<Query, Tile<Query,Item>>>
 ) = tiles(this)
 
