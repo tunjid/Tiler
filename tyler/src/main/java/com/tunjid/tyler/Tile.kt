@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.scan
  */
 data class Tile<Query, Item : Any?>(
     val flowOnAt: Long,
-    val query: Query,
     val item: Item,
 ) {
 
@@ -91,10 +90,13 @@ data class Tile<Query, Item : Any?>(
             val tile: Tile<Query, Item>
         ) : Output<Query, Item>()
 
-        data class Order<Query, Item>(val order: Tile.Order<Query, Item>) :
-            Output<Query, Item>()
+        data class Flattener<Query, Item>(
+            val order: Order<Query, Item>
+        ) : Output<Query, Item>()
 
-        data class Evict<Query, Item>(val query: Query) : Output<Query, Item>()
+        data class Eviction<Query, Item>(
+            val query: Query
+        ) : Output<Query, Item>()
     }
 }
 
@@ -105,7 +107,7 @@ data class Tile<Query, Item : Any?>(
 @ExperimentalCoroutinesApi
 fun <Query, Item> tiles(
     fetcher: suspend (Query) -> Flow<Item>
-): (Flow<Tile.Input<Query, Item>>) -> Flow<Map<Query, Tile<Query,Item>>> = { requests ->
+): (Flow<Tile.Input<Query, Item>>) -> Flow<Map<Query, Tile<Query, Item>>> = { requests ->
     rawTiler(fetcher = fetcher)
         .invoke(requests)
         .map { it.queryToTiles }
@@ -136,7 +138,7 @@ fun <Query, Item> Flow<Tile.Input<Query, Item>>.flattenWith(
  * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [Map] of [Query] to [Item]s
  */
 fun <Query, Item> Flow<Tile.Input<Query, Item>>.tileWith(
-    tiles: (Flow<Tile.Input<Query, Item>>) -> Flow<Map<Query, Tile<Query,Item>>>
+    tiles: (Flow<Tile.Input<Query, Item>>) -> Flow<Map<Query, Tile<Query, Item>>>
 ) = tiles(this)
 
 @FlowPreview

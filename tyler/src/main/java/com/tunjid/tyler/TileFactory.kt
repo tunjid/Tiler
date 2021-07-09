@@ -1,7 +1,16 @@
 package com.tunjid.tyler
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onSubscription
+import kotlinx.coroutines.flow.transformWhile
 
 /**
  * Effectively a function of [Tile.Input] to [Flow] [Tile.Output].
@@ -9,6 +18,7 @@ import kotlinx.coroutines.flow.*
  *
  * Each [Tile.Input] creates a new instance of the [TileFactory] with a new [flow] to collect.
  * This [Flow] is either:
+ *
  * * A new [Flow] for a [Query] produced by [fetcher]
  * * A [Flow] to control an existing [FlowValve] for the [Query] but does not emit
  * * An empty [Flow] as nothing needs to be done
@@ -60,7 +70,7 @@ internal data class TileFactory<Query, Item>(
                 }
             )
         }
-        is Tile.Order -> copy(flow = flowOf(Tile.Output.Order(order = request)))
+        is Tile.Order -> copy(flow = flowOf(Tile.Output.Flattener(order = request)))
     }
 }
 
@@ -84,18 +94,14 @@ internal class FlowValve<Query, Item>(
             val toggledAt = System.currentTimeMillis()
             when (toggle) {
                 // Eject the query downstream
-                is Tile.Request.Evict -> flowOf(Tile.Output.Evict<Query, Item>(query = query))
+                is Tile.Request.Evict -> flowOf(Tile.Output.Eviction<Query, Item>(query = query))
                 // Stop collecting from the fetcher
                 is Tile.Request.Off<Query, Item> -> emptyFlow()
                 // Start collecting from the fetcher, keeping track of when the flow was turned on
                 is Tile.Request.On<Query, Item> -> fetcher.invoke(query).map { item ->
                     Tile.Output.Data(
                         query = query,
-                        tile = Tile(
-                            query = query,
-                            item = item,
-                            flowOnAt = toggledAt
-                        )
+                        tile = Tile(item = item, flowOnAt = toggledAt)
                     )
                 }
             }
@@ -103,6 +109,6 @@ internal class FlowValve<Query, Item>(
         .transformWhile { toggle: Tile.Output<Query, Item> ->
             emit(toggle)
             // Terminate this flow entirely when the eviction signal is sent
-            toggle !is Tile.Output.Evict<Query, Item>
+            toggle !is Tile.Output.Eviction<Query, Item>
         }
 }

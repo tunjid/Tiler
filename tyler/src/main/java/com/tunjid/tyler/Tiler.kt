@@ -13,10 +13,10 @@ internal data class Tiler<Query, Item>(
         is Tile.Output.Data -> copy(
             queryToTiles = queryToTiles.apply { put(output.query, output.tile) }
         )
-        is Tile.Output.Evict -> copy(
+        is Tile.Output.Eviction -> copy(
             queryToTiles = queryToTiles.apply { remove(output.query) }
         )
-        is Tile.Output.Order -> copy(
+        is Tile.Output.Flattener -> copy(
             order = output.order
         )
     }

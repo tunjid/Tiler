@@ -15,7 +15,6 @@ class TilerKtTest {
                         query = int,
                         tile = Tile(
                             flowOnAt = index.toLong(),
-                            query = int,
                             item = int.testRange.toList()
                         )
                     )
@@ -41,7 +40,6 @@ class TilerKtTest {
                     query = int,
                     tile = Tile(
                         flowOnAt = index.toLong(),
-                        query = int,
                         item = int.testRange.toList()
                     )
                 )
@@ -50,7 +48,6 @@ class TilerKtTest {
                     query = int,
                     tile = Tile(
                         flowOnAt = index.toLong() + 10L,
-                        query = int,
                         item = int.testRange.toList()
                     )
                 )
