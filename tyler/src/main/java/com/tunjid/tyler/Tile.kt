@@ -44,20 +44,23 @@ data class Tile<Query, Item : Any?>(
 
     sealed class Order<Query, Item> : Input<Query, Item>,
             (Map<Query, Tile<Query, Item>>) -> List<Item> {
+
+        abstract val comparator: Comparator<Query>
+
         /**
          * Items will be returned in an unspecified order; the order is whatever the iteration
          * order of the backing map of [Query] to [Item] uses
          */
         data class Unspecified<Query, Item>(
-            private val id: String = "",
-        ) : Order<Query, Item>()
+            override val comparator: Comparator<Query> = Comparator { _, _ ->  0 }
+            ) : Order<Query, Item>()
 
         /**
          * Sort items with the specified query [comparator].
          * [limiter] can be used to select a subset of items instead of the whole set
          */
         data class Sorted<Query, Item>(
-            val comparator: Comparator<Query>,
+            override val comparator: Comparator<Query>,
             val limiter: (List<Item>) -> Boolean = { false },
         ) : Order<Query, Item>()
 
@@ -68,7 +71,7 @@ data class Tile<Query, Item : Any?>(
          * [limiter] can be used to select a subset of items instead of the whole set
          */
         data class PivotSorted<Query, Item>(
-            val comparator: Comparator<Query>,
+            override val comparator: Comparator<Query>,
             val limiter: (List<Item>) -> Boolean = { false },
         ) : Order<Query, Item>()
 
@@ -76,6 +79,7 @@ data class Tile<Query, Item : Any?>(
          * Flattens tiled items produced whichever way you desire
          */
         data class Custom<Query, Item>(
+            override val comparator: Comparator<Query>,
             val transform: (Map<Query, Tile<Query, Item>>) -> List<Item>,
         ) : Order<Query, Item>()
 
