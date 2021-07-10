@@ -3,8 +3,10 @@ package com.tunjid.tyler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
 
 /**
@@ -46,13 +48,15 @@ data class Tile<Query, Item : Any?>(
             (Map<Query, Tile<Query, Item>>) -> List<Item> {
 
         abstract val comparator: Comparator<Query>
+        abstract val sortedQueries: List<Query>
 
         /**
          * Items will be returned in an unspecified order; the order is whatever the iteration
          * order of the backing map of [Query] to [Item] uses
          */
-        data class Unspecified<Query, Item>(
-            override val comparator: Comparator<Query> = Comparator { _, _ ->  0 }
+       internal data class Unspecified<Query, Item>(
+            override val comparator: Comparator<Query> = Comparator { _, _ ->  0 },
+            override val sortedQueries: List<Query> = listOf(),
             ) : Order<Query, Item>()
 
         /**
@@ -61,6 +65,7 @@ data class Tile<Query, Item : Any?>(
          */
         data class Sorted<Query, Item>(
             override val comparator: Comparator<Query>,
+            override val sortedQueries: List<Query> = listOf(),
             val limiter: (List<Item>) -> Boolean = { false },
         ) : Order<Query, Item>()
 
@@ -72,6 +77,7 @@ data class Tile<Query, Item : Any?>(
          */
         data class PivotSorted<Query, Item>(
             override val comparator: Comparator<Query>,
+            override val sortedQueries: List<Query> = listOf(),
             val limiter: (List<Item>) -> Boolean = { false },
         ) : Order<Query, Item>()
 
@@ -80,6 +86,7 @@ data class Tile<Query, Item : Any?>(
          */
         data class Custom<Query, Item>(
             override val comparator: Comparator<Query>,
+            override val sortedQueries: List<Query> = listOf(),
             val transform: (Map<Query, Tile<Query, Item>>) -> List<Item>,
         ) : Order<Query, Item>()
 
@@ -99,7 +106,11 @@ data class Tile<Query, Item : Any?>(
         ) : Output<Query, Item>()
 
         data class Eviction<Query, Item>(
-            val query: Query
+            val query: Query,
+        ) : Output<Query, Item>()
+
+        data class Started<Query, Item>(
+            val query: Query,
         ) : Output<Query, Item>()
     }
 }
@@ -165,4 +176,5 @@ internal fun <Query, Item> rawTiler(
             initial = Tiler(order = order),
             operation = Tiler<Query, Item>::add
         )
+        .filter { it.shouldEmit  }
 }

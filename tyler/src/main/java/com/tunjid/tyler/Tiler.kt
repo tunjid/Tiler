@@ -4,6 +4,7 @@ package com.tunjid.tyler
  * Flattens a [Map] of [Query] to [Item] to a [List] of [Item]
  */
 internal data class Tiler<Query, Item>(
+    val shouldEmit: Boolean = false,
     val order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     // I'd rather this be immutable, electing against it for performance reasons
     val queryToTiles: MutableMap<Query, Tile<Query, Item>> = mutableMapOf(),
@@ -11,17 +12,38 @@ internal data class Tiler<Query, Item>(
 
     fun add(output: Tile.Output<Query, Item>): Tiler<Query, Item> = when (output) {
         is Tile.Output.Data -> copy(
+            shouldEmit = true,
             queryToTiles = queryToTiles.apply { put(output.query, output.tile) }
         )
+        is Tile.Output.Started -> copy(
+            shouldEmit = false,
+            order = order.updateQueries(
+                order.sortedQueries
+                    .plus(output.query)
+                    .distinct()
+                    .sortedWith(order.comparator)
+            )
+        )
         is Tile.Output.Eviction -> copy(
+            shouldEmit = true,
+            order = order.updateQueries(order.sortedQueries - output.query),
             queryToTiles = queryToTiles.apply { remove(output.query) }
         )
         is Tile.Output.Flattener -> copy(
-            order = output.order
+            shouldEmit = true,
+            order = output.order.updateQueries(order.sortedQueries.sortedWith(output.order.comparator))
         )
     }
 
     fun items(): List<Item> = order(queryToTiles)
+
+    private fun Tile.Order<Query, Item>.updateQueries(queries: List<Query>) =
+        when (val order = this) {
+            is Tile.Order.Custom -> order.copy(sortedQueries = queries)
+            is Tile.Order.PivotSorted -> order.copy(sortedQueries = queries)
+            is Tile.Order.Sorted -> order.copy(sortedQueries = queries)
+            is Tile.Order.Unspecified -> order.copy(sortedQueries = queries)
+        }
 }
 
 internal fun <Query, Item> Tile.Order<Query, Item>.flatten(
@@ -40,11 +62,7 @@ internal fun <Query, Item> Tile.Order<Query, Item>.flatten(
                 list
             }
         is Tile.Order.PivotSorted -> {
-            // Sort the keys, should be relatively cheap.
-            // TODO: Amortize this, it's unnecessary to sort everytime there is an emission if
-            //  the queries have not changed
-            val sorted = queryToTiles.keys
-                .sortedWith(order.comparator)
+            val sorted = order.sortedQueries
 
             // TODO: Amortize this as well.
             val mostRecentQuery: Query = queryToTiles.keys

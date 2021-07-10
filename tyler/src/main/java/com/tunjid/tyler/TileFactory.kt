@@ -3,13 +3,18 @@ package com.tunjid.tyler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.onSubscription
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transformWhile
 
 /**
@@ -36,7 +41,7 @@ internal data class TileFactory<Query, Item>(
             copy(
                 flow = when (existingValve) {
                     null -> emptyFlow()
-                    else -> flow { existingValve.process(request) }
+                    else -> existingValve.process(request)
                 },
                 // Eject query
                 queryFlowValveMap = queryFlowValveMap.minus(request.query)
@@ -47,7 +52,7 @@ internal data class TileFactory<Query, Item>(
             copy(
                 flow = when (existingValve) {
                     null -> emptyFlow()
-                    else -> flow { existingValve.process(request) }
+                    else -> existingValve.process(request)
                 }
             )
         }
@@ -61,7 +66,7 @@ internal data class TileFactory<Query, Item>(
                 // Don't accidentally recreate a flow for an existing query
                 flow = when (existingValve) {
                     null -> valve.flow
-                    else -> flow { valve.process(request) }
+                    else -> existingValve.process(request)
                 },
                 // Only add a valve if it didn't exist prior
                 queryFlowValveMap = when (existingValve) {
@@ -84,11 +89,21 @@ internal class FlowValve<Query, Item>(
 
     private val backingFlow = MutableSharedFlow<Tile.Request<Query, Item>>()
 
-    val process: suspend (Tile.Request<Query, Item>) -> Unit = backingFlow::emit
+    val process: (Tile.Request<Query, Item>) -> Flow<Tile.Output<Query, Item>> = { request ->
+        flow {
+            backingFlow.subscriptionCount
+                .filter { it > 0 }.take(1)
+                .collect()
+            println("Emitting: $request")
+            backingFlow.emit(request)
+            println("Emitted: $request")
+        }
+    }
 
     @ExperimentalCoroutinesApi
     val flow: Flow<Tile.Output<Query, Item>> = backingFlow
         .onSubscription { emit(Tile.Request.On(query = query)) }
+        .onEach { println("In: $it") }
         .distinctUntilChanged()
         .flatMapLatest { toggle ->
             val toggledAt = System.currentTimeMillis()
@@ -106,6 +121,8 @@ internal class FlowValve<Query, Item>(
                 }
             }
         }
+        .onStart { emit(Tile.Output.Started(query = query)) }
+        .onEach { println("Out: $it") }
         .transformWhile { toggle: Tile.Output<Query, Item> ->
             emit(toggle)
             // Terminate this flow entirely when the eviction signal is sent
