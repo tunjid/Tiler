@@ -23,6 +23,7 @@ data class Tile<Query, Item : Any?>(
     data class Metadata<Query> internal constructor(
         val sortedQueries: List<Query> = listOf(),
         val mostRecentlyTurnedOn: Query? = null,
+        val mostRecentlyEmitted: Query? = null,
     )
 
     sealed interface Input<Query, Item>

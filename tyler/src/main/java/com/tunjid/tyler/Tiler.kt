@@ -15,12 +15,17 @@ internal data class Tiler<Query, Item>(
             shouldEmit = true,
             // Only sort queries when they output the first time to amortize the cost of sorting.
             flattener = when {
-                queryToTiles.contains(output.query) -> flattener
-                else -> flattener.updateQueries(
-                    flattener.metadata.sortedQueries
-                        .plus(output.query)
-                        .distinct()
-                        .sortedWith(flattener.comparator)
+                queryToTiles.contains(output.query) -> flattener.updateMetadata(
+                    updatedMetadata = flattener.metadata.copy(mostRecentlyEmitted = output.query)
+                )
+                else -> flattener.updateMetadata(
+                    updatedMetadata = flattener.metadata.copy(
+                        sortedQueries = flattener.metadata.sortedQueries
+                            .plus(output.query)
+                            .distinct()
+                            .sortedWith(flattener.comparator),
+                        mostRecentlyEmitted = output.query,
+                    )
                 )
             },
             queryToTiles = queryToTiles.apply { put(output.query, output.tile) }
@@ -28,16 +33,22 @@ internal data class Tiler<Query, Item>(
         is Tile.Output.TurnedOn -> copy(
             // Only emit if there is cached data
             shouldEmit = queryToTiles.contains(output.query),
-            flattener = flattener.updateMetadata(flattener.metadata.copy(mostRecentlyTurnedOn = output.query))
+            flattener = flattener.updateMetadata(
+                updatedMetadata = flattener.metadata.copy(mostRecentlyTurnedOn = output.query)
+            )
         )
         is Tile.Output.Eviction -> copy(
             shouldEmit = true,
-            flattener = flattener.updateQueries(flattener.metadata.sortedQueries - output.query),
+            flattener = flattener.updateQueries(
+                queries = flattener.metadata.sortedQueries - output.query
+            ),
             queryToTiles = queryToTiles.apply { remove(output.query) }
         )
         is Tile.Output.FlattenChange -> copy(
             shouldEmit = true,
-            flattener = output.flattener.updateQueries(flattener.metadata.sortedQueries.sortedWith(output.flattener.comparator))
+            flattener = output.flattener.updateQueries(
+                queries = flattener.metadata.sortedQueries.sortedWith(output.flattener.comparator)
+            )
         )
     }
 
