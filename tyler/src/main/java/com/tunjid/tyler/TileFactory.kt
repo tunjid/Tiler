@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flowOf
@@ -16,7 +17,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.scan
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transformWhile
 
 @FlowPreview
@@ -86,10 +86,7 @@ private class InputValve<Query, Item>(
 
     val push: suspend (Tile.Request<Query, Item>) -> Unit = { request ->
         // Suspend till the downstream is connected
-        mutableSharedFlow.subscriptionCount
-            .filter { it > 0 }
-            .take(1)
-            .collect()
+        mutableSharedFlow.subscriptionCount.first { it > 0 }
         mutableSharedFlow.emit(request)
     }
 
