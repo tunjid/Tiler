@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
 
 /**
@@ -163,14 +162,10 @@ internal fun <Query, Item> rawTiler(
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile.Input<Query, Item>>) -> Flow<Tiler<Query, Item>> = { requests ->
     requests
-        .scan(
-            initial = TileFactory(fetcher = fetcher),
-            operation = TileFactory<Query, Item>::process
-        )
-        // Collect each tile flow independently and merge the results
+        .groupByQuery(fetcher)
         .flatMapMerge(
             concurrency = Int.MAX_VALUE,
-            transform = { it.flow }
+            transform = { it }
         )
         .scan(
             initial = Tiler(order = order),
