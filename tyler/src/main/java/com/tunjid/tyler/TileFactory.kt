@@ -1,6 +1,7 @@
 package com.tunjid.tyler
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.channelFlow
@@ -9,12 +10,33 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.onSubscription
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transformWhile
+
+@FlowPreview
+@ExperimentalCoroutinesApi
+internal fun <Query, Item> tileFactory(
+    flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
+    fetcher: suspend (Query) -> Flow<Item>
+): (Flow<Tile.Input<Query, Item>>) -> Flow<Tiler<Query, Item>> = { requests ->
+    requests
+        .groupByQuery(fetcher)
+        .flatMapMerge(
+            concurrency = Int.MAX_VALUE,
+            transform = { it }
+        )
+        .scan(
+            initial = Tiler(flattener = flattener),
+            operation = Tiler<Query, Item>::add
+        )
+        .filter { it.shouldEmit }
+}
 
 /**
  * Effectively a function of [Flow] [Tile.Input] to [Flow] [Tile.Output].
@@ -24,7 +46,7 @@ import kotlinx.coroutines.flow.transformWhile
  * of the resultant [Flow].
  */
 @ExperimentalCoroutinesApi
-internal fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
+private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
     fetcher: suspend (Query) -> Flow<Item>
 ) = channelFlow<Flow<Tile.Output<Query, Item>>> channelFlow@{
     val queriesToValves = mutableMapOf<Query, InputValve<Query, Item>>()
@@ -55,7 +77,7 @@ internal fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
 /**
  * Allows for turning on and off a Flow
  */
-internal class InputValve<Query, Item>(
+private class InputValve<Query, Item>(
     query: Query,
     fetcher: suspend (Query) -> Flow<Item>
 ) {

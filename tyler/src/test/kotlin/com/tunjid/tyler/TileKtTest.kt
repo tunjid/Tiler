@@ -25,7 +25,7 @@ class TileKtTest {
     @FlowPreview
     fun setUp() {
         tileFlowMap = mutableMapOf()
-        tiler = flattenedTiles(flattener = Tile.Flattener.Sorted(Int::compareTo)) { page ->
+        tiler = tiledList(flattener = Tile.Flattener.Sorted(Int::compareTo)) { page ->
             tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }
         }
     }
@@ -33,25 +33,6 @@ class TileKtTest {
     @After
     fun tearDown() {
         testScope.cleanupTestCoroutines()
-    }
-
-    @Test
-    @FlowPreview
-    fun `requesting raw tiles works`() = runBlocking {
-        val requests = listOf<Tile.Request<Int, List<Int>>>(
-            Tile.Request.On(query = 1),
-        )
-
-        val emissions = requests
-            .asFlow()
-            .tileWith(tiles { page -> flowOf(page.testRange.toList()) })
-            .take(requests.size)
-            .toList()
-
-        assertEquals(
-            1.testRange.toList(),
-            emissions[0][1]!!.item
-        )
     }
 
     @Test

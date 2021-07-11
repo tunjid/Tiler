@@ -3,10 +3,7 @@ package com.tunjid.tyler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.scan
 
 /**
  * class holding meta data about a [Query] for an [Item], the [Item], and when the [Query] was sent
@@ -125,61 +122,22 @@ data class Tile<Query, Item : Any?>(
 }
 
 /**
- * Converts a [Flow] of [Query] into a [Flow] of a [Map] of [Query] to [Tile]
+ * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [List] of [Item]s
  */
-@FlowPreview
-@ExperimentalCoroutinesApi
-fun <Query, Item> tiles(
-    fetcher: suspend (Query) -> Flow<Item>
-): (Flow<Tile.Input<Query, Item>>) -> Flow<Map<Query, Tile<Query, Item>>> = { requests ->
-    rawTiler(fetcher = fetcher)
-        .invoke(requests)
-        .map { it.queryToTiles }
-}
+fun <Query, Item> Flow<Tile.Input<Query, Item>>.flattenWith(
+    tiler: (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>>
+): Flow<List<Item>> = tiler(this)
 
 /**
  * Converts a [Flow] of [Query] into a [Flow] of [List] [Item]
  */
 @FlowPreview
 @ExperimentalCoroutinesApi
-fun <Query, Item> flattenedTiles(
+fun <Query, Item> tiledList(
     flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>> = { requests ->
-    rawTiler(flattener = flattener, fetcher = fetcher)
+    tileFactory(flattener = flattener, fetcher = fetcher)
         .invoke(requests)
         .map(Tiler<Query, Item>::items)
-}
-
-/**
- * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [List] of [Item]s
- */
-fun <Query, Item> Flow<Tile.Input<Query, Item>>.flattenWith(
-    tiler: (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>>
-) = tiler(this)
-
-/**
- * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [Map] of [Query] to [Item]s
- */
-fun <Query, Item> Flow<Tile.Input<Query, Item>>.tileWith(
-    tiles: (Flow<Tile.Input<Query, Item>>) -> Flow<Map<Query, Tile<Query, Item>>>
-) = tiles(this)
-
-@FlowPreview
-@ExperimentalCoroutinesApi
-internal fun <Query, Item> rawTiler(
-    flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
-    fetcher: suspend (Query) -> Flow<Item>
-): (Flow<Tile.Input<Query, Item>>) -> Flow<Tiler<Query, Item>> = { requests ->
-    requests
-        .groupByQuery(fetcher)
-        .flatMapMerge(
-            concurrency = Int.MAX_VALUE,
-            transform = { it }
-        )
-        .scan(
-            initial = Tiler(flattener = flattener),
-            operation = Tiler<Query, Item>::add
-        )
-        .filter { it.shouldEmit }
 }
