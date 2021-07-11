@@ -125,8 +125,8 @@ data class Tile<Query, Item : Any?>(
  * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [List] of [Item]s
  */
 fun <Query, Item> Flow<Tile.Input<Query, Item>>.flattenWith(
-    tiler: (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>>
-): Flow<List<Item>> = tiler(this)
+    transform: (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>>
+): Flow<List<Item>> = transform(this)
 
 /**
  * Converts a [Flow] of [Query] into a [Flow] of [List] [Item]
