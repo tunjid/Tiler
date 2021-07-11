@@ -5,7 +5,7 @@ package com.tunjid.tyler
  */
 internal data class Tiler<Query, Item>(
     val shouldEmit: Boolean = false,
-    val order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
+    val flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
     // I'd rather this be immutable, electing against it for performance reasons
     val queryToTiles: MutableMap<Query, Tile<Query, Item>> = mutableMapOf(),
 ) {
@@ -14,56 +14,54 @@ internal data class Tiler<Query, Item>(
         is Tile.Output.Data -> copy(
             shouldEmit = true,
             // Only sort queries when they output the first time to amortize the cost of sorting.
-            order = when {
-                queryToTiles.contains(output.query) -> order
-                else -> order.updateQueries(
-                    order.metadata.sortedQueries
+            flattener = when {
+                queryToTiles.contains(output.query) -> flattener
+                else -> flattener.updateQueries(
+                    flattener.metadata.sortedQueries
                         .plus(output.query)
                         .distinct()
-                        .sortedWith(order.comparator)
+                        .sortedWith(flattener.comparator)
                 )
             },
             queryToTiles = queryToTiles.apply { put(output.query, output.tile) }
         )
-        is Tile.Output.Started -> copy(
-            shouldEmit = false,
+        is Tile.Output.TurnedOn -> copy(
+            // Only emit if there is cached data
+            shouldEmit = queryToTiles.contains(output.query),
+            flattener = flattener.updateMetadata(flattener.metadata.copy(mostRecentlyTurnedOn = output.query))
         )
         is Tile.Output.Eviction -> copy(
             shouldEmit = true,
-            order = order.updateQueries(order.metadata.sortedQueries - output.query),
+            flattener = flattener.updateQueries(flattener.metadata.sortedQueries - output.query),
             queryToTiles = queryToTiles.apply { remove(output.query) }
         )
-        is Tile.Output.Flattener -> copy(
+        is Tile.Output.FlattenChange -> copy(
             shouldEmit = true,
-            order = output.order.updateQueries(order.metadata.sortedQueries.sortedWith(output.order.comparator))
+            flattener = output.flattener.updateQueries(flattener.metadata.sortedQueries.sortedWith(output.flattener.comparator))
         )
     }
 
-    fun items(): List<Item> = order(queryToTiles)
+    fun items(): List<Item> = flattener(queryToTiles)
 }
 
-internal fun <Query, Item> Tile.Order<Query, Item>.flatten(
+internal fun <Query, Item> Tile.Flattener<Query, Item>.flatten(
     queryToTiles: Map<Query, Tile<Query, Item>>
 ): List<Item> {
     val sortedQueries = metadata.sortedQueries
 
     return when (val order = this) {
-        is Tile.Order.Unspecified -> queryToTiles.keys
+        is Tile.Flattener.Unspecified -> queryToTiles.keys
             .fold(mutableListOf()) { list, query ->
                 list.add(element = queryToTiles.getValue(query).item)
                 list
             }
-        is Tile.Order.Sorted -> sortedQueries
+        is Tile.Flattener.Sorted -> sortedQueries
             .foldWhile(mutableListOf(), order.limiter) { list, query ->
                 list.add(element = queryToTiles.getValue(query).item)
                 list
             }
-        is Tile.Order.PivotSorted -> {
-
-            // TODO: Amortize this as well.
-            val mostRecentQuery: Query = queryToTiles.keys
-                .maxByOrNull { queryToTiles.getValue(it).flowOnAt }
-                ?: return emptyList()
+        is Tile.Flattener.PivotSorted -> {
+            val mostRecentQuery: Query = metadata.mostRecentlyTurnedOn ?: return emptyList()
 
             val startIndex = sortedQueries.indexOf(mostRecentQuery)
             var leftIndex = startIndex
@@ -81,11 +79,24 @@ internal fun <Query, Item> Tile.Order<Query, Item>.flatten(
             }
             result
         }
-        is Tile.Order.Custom -> order.transform(queryToTiles)
+        is Tile.Flattener.Custom -> order.transform(order.metadata, queryToTiles)
     }
 }
 
-internal inline fun <T, R> Iterable<T>.foldWhile(
+private fun <Query, Item> Tile.Flattener<Query, Item>.updateQueries(
+    queries: List<Query>
+): Tile.Flattener<Query, Item> = updateMetadata(metadata.copy(sortedQueries = queries))
+
+private fun <Query, Item> Tile.Flattener<Query, Item>.updateMetadata(
+    updatedMetadata: Tile.Metadata<Query>
+): Tile.Flattener<Query, Item> = when (val order = this) {
+    is Tile.Flattener.Custom -> order.copy(metadata = updatedMetadata)
+    is Tile.Flattener.PivotSorted -> order.copy(metadata = updatedMetadata)
+    is Tile.Flattener.Sorted -> order.copy(metadata = updatedMetadata)
+    is Tile.Flattener.Unspecified -> order.copy(metadata = updatedMetadata)
+}
+
+private inline fun <T, R> Iterable<T>.foldWhile(
     initial: R,
     limiter: (R) -> Boolean,
     operation: (acc: R, T) -> R

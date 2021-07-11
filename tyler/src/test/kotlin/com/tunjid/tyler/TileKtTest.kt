@@ -25,7 +25,7 @@ class TileKtTest {
     @FlowPreview
     fun setUp() {
         tileFlowMap = mutableMapOf()
-        tiler = flattenedTiles(order = Tile.Order.Sorted(Int::compareTo)) { page ->
+        tiler = flattenedTiles(flattener = Tile.Flattener.Sorted(Int::compareTo)) { page ->
             tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }
         }
     }

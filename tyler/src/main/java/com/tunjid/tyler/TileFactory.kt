@@ -31,7 +31,7 @@ internal fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
 
     this@groupByQuery.collect { input ->
         when (input) {
-            is Tile.Order -> flowOf(Tile.Output.Flattener(order = input))
+            is Tile.Flattener -> flowOf(Tile.Output.FlattenChange(flattener = input))
             is Tile.Request.Evict -> {
                 queriesToValves[input.query]?.push?.invoke(input)
                 queriesToValves.remove(input.query)
@@ -83,15 +83,16 @@ internal class InputValve<Query, Item>(
                 // Stop collecting from the fetcher
                 is Tile.Request.Off<Query, Item> -> emptyFlow()
                 // Start collecting from the fetcher, keeping track of when the flow was turned on
-                is Tile.Request.On<Query, Item> -> fetcher.invoke(input.query).map { item ->
-                    Tile.Output.Data(
-                        query = input.query,
-                        tile = Tile(item = item, flowOnAt = toggledAt)
-                    )
-                }
+                is Tile.Request.On<Query, Item> -> fetcher.invoke(input.query)
+                    .map<Item, Tile.Output<Query, Item>> { item ->
+                        Tile.Output.Data(
+                            query = input.query,
+                            tile = Tile(item = item, flowOnAt = toggledAt)
+                        )
+                    }
+                    .onStart { emit(Tile.Output.TurnedOn(query = query)) }
             }
         }
-        .onStart { emit(Tile.Output.Started(query = query)) }
         .transformWhile { toggle: Tile.Output<Query, Item> ->
             emit(toggle)
             // Terminate this flow entirely when the eviction signal is sent
