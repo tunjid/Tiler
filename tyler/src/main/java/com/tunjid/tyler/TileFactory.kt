@@ -37,7 +37,7 @@ internal fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
                 queriesToValves.remove(input.query)
             }
             is Tile.Request.Off -> queriesToValves[input.query]?.push?.invoke(input)
-            is Tile.Request.On -> when (val existingCase = queriesToValves[input.query]) {
+            is Tile.Request.On -> when (val existingValve = queriesToValves[input.query]) {
                 null -> {
                     val valve = InputValve(
                         query = input.query,
@@ -46,7 +46,7 @@ internal fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
                     queriesToValves[input.query] = valve
                     this@channelFlow.channel.send(valve.flow)
                 }
-                else -> existingCase.push(input)
+                else -> existingValve.push(input)
             }
         }
     }

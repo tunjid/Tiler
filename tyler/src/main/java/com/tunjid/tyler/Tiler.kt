@@ -18,7 +18,7 @@ internal data class Tiler<Query, Item>(
         is Tile.Output.Started -> copy(
             shouldEmit = false,
             order = order.updateQueries(
-                order.sortedQueries
+                order.metadata.sortedQueries
                     .plus(output.query)
                     .distinct()
                     .sortedWith(order.comparator)
@@ -26,24 +26,16 @@ internal data class Tiler<Query, Item>(
         )
         is Tile.Output.Eviction -> copy(
             shouldEmit = true,
-            order = order.updateQueries(order.sortedQueries - output.query),
+            order = order.updateQueries(order.metadata.sortedQueries - output.query),
             queryToTiles = queryToTiles.apply { remove(output.query) }
         )
         is Tile.Output.Flattener -> copy(
             shouldEmit = true,
-            order = output.order.updateQueries(order.sortedQueries.sortedWith(output.order.comparator))
+            order = output.order.updateQueries(order.metadata.sortedQueries.sortedWith(output.order.comparator))
         )
     }
 
     fun items(): List<Item> = order(queryToTiles)
-
-    private fun Tile.Order<Query, Item>.updateQueries(queries: List<Query>) =
-        when (val order = this) {
-            is Tile.Order.Custom -> order.copy(sortedQueries = queries)
-            is Tile.Order.PivotSorted -> order.copy(sortedQueries = queries)
-            is Tile.Order.Sorted -> order.copy(sortedQueries = queries)
-            is Tile.Order.Unspecified -> order.copy(sortedQueries = queries)
-        }
 }
 
 internal fun <Query, Item> Tile.Order<Query, Item>.flatten(
@@ -62,7 +54,7 @@ internal fun <Query, Item> Tile.Order<Query, Item>.flatten(
                 list
             }
         is Tile.Order.PivotSorted -> {
-            val sorted = order.sortedQueries
+            val sorted = order.metadata.sortedQueries
 
             // TODO: Amortize this as well.
             val mostRecentQuery: Query = queryToTiles.keys
