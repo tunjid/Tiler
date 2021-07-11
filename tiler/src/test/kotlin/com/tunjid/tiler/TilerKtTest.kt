@@ -1,4 +1,4 @@
-package com.tunjid.tyler
+package com.tunjid.tiler
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -1,4 +1,4 @@
-package com.tunjid.tyler
+package com.tunjid.tiler
 
 /**
  * Flattens a [Map] of [Query] to [Item] to a [List] of [Item]
