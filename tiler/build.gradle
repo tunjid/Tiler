@@ -17,6 +17,8 @@
 plugins {
     id 'java-library'
     id 'kotlin'
+    id 'maven-publish'
+    id 'signing'
 }
 
 java {
@@ -30,4 +32,90 @@ dependencies {
 
     testImplementation "junit:junit:$junit_version"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_test_version"
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            lib(MavenPublication) {
+                version = "0.0.0-alpha01"
+                groupId "com.tunjid.tiler"
+                artifactId "tiler"
+
+                from components.java
+
+                afterEvaluate {
+                    artifact sourcesJar
+                    artifact javadocJar
+
+                    pom {
+                        name = project.name
+                        description = "An abstraction for a data type akin to a reactive map"
+                        url = 'https://github.com/tunjid/tiler'
+                        licenses {
+                            license {
+                                name = 'Apache License 2.0'
+                                url = 'https://github.com/tunjid/tiler/blob/main/LICENSE'
+                            }
+                        }
+                        developers {
+                            developer {
+                                id = 'tunjid'
+                                name = 'Adetunji Dahunsi'
+                                email = 'tjdah100@gmail.com'
+                            }
+                        }
+                        scm {
+                            connection = 'scm:git:github.com/tunjid/tiler.git'
+                            developerConnection = 'scm:git:ssh://github.com/tunjid/tiler.git'
+                            url = 'https://github.com/tunjid/tiler/tree/main'
+                        }
+                    }
+                }
+            }
+        }
+        repositories {
+            if (parent.ext.localProps.publishUrl) {
+                maven {
+                    name = parent.ext.localProps.repoName
+                    url = parent.ext.localProps.publishUrl
+                    credentials {
+                        username = parent.ext.localProps.username
+                        password = parent.ext.localProps.password
+                    }
+                }
+            }
+        }
+    }
+
+    signing {
+        if (parent.ext.localProps.signingKey && parent.ext.localProps.signingPassword) {
+            def signingKey = parent.ext.localProps.signingKey
+            def signingPassword = parent.ext.localProps.signingPassword
+            useInMemoryPgpKeys(signingKey, signingPassword)
+            sign publishing.publications
+        }
+    }
+}
+
+// Gradle task to generate sources after building a release aar
+task sourcesJar(type: Jar) {
+    archiveClassifier = 'sources'
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar) {
+    archiveClassifier = 'javadoc'
+    from javadoc
+}
+
+//signing {
+//    sign publishing.publications.mavenJava
+//}
+
+
+javadoc {
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
 }
