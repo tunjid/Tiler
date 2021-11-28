@@ -64,7 +64,7 @@ internal fun <Query, Item> tileFactory(
 @ExperimentalCoroutinesApi
 private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
     fetcher: suspend (Query) -> Flow<Item>
-) = channelFlow<Flow<Tile.Output<Query, Item>>> channelFlow@{
+): Flow<Flow<Tile.Output<Query, Item>>> = channelFlow channelFlow@{
     val queriesToValves = mutableMapOf<Query, InputValve<Query, Item>>()
 
     this@groupByQuery.collect { input ->

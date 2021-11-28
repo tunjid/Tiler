@@ -157,3 +157,18 @@ fun <Query, Item> tiledList(
         .invoke(requests)
         .map(Tiler<Query, Item>::items)
 }
+
+/**
+ * Converts a [Flow] of [Query] into a [Flow] of [List] [Item]
+ */
+@FlowPreview
+@ExperimentalCoroutinesApi
+fun <Query, Item> tiledMap(
+    fetcher: suspend (Query) -> Flow<Item>
+): (Flow<Tile.Request<Query, Item>>) -> Flow<Map<Query, Item>> = { requests ->
+    tileFactory(flattener = Tile.Flattener.Unspecified(), fetcher = fetcher)
+        .invoke(requests)
+        .map { tiler ->
+            tiler.queryToTiles.mapValues { it.value.item }
+        }
+}

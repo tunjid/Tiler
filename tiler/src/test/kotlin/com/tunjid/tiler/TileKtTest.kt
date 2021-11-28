@@ -224,4 +224,40 @@ class TileKtTest {
             emissions[3]
         )
     }
+
+    @Test
+    fun `items can be requested in a map`() = runBlocking {
+        val requests = listOf<Tile.Request<Int, List<Int>>>(
+            Tile.Request.On(query = 1),
+            Tile.Request.On(query = 3),
+            Tile.Request.On(query = 8),
+        )
+
+        val emissions = tiledMap<Int, List<Int>> {
+                page -> flowOf(page.testRange.toList())
+        }
+            .invoke(requests.asFlow())
+            .take(requests.size)
+            .toList()
+
+        assertEquals(
+            mapOf(1 to 1.testRange.toList()),
+            emissions[0]
+        )
+        assertEquals(
+            mapOf(
+                1 to 1.testRange.toList(),
+                3 to 3.testRange.toList()
+            ),
+            emissions[1]
+        )
+        assertEquals(
+            mapOf(
+                1 to 1.testRange.toList(),
+                3 to 3.testRange.toList(),
+                8 to 8.testRange.toList()
+            ),
+            emissions[2]
+        )
+    }
 }
