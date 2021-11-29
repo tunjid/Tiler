@@ -22,7 +22,7 @@ buildscript {
         targetSdkVersion = 30
         minSdkVersion = 21
 
-        kotlin_version = "1.5.20"
+        kotlin_version = "1.5.31"
         coroutines_version = "1.5.0"
 
         // Tests

@@ -25,6 +25,7 @@ import com.tunjid.tiler.Tile
 import com.tunjid.tiler.flattenWith
 import com.tunjid.tiler.tiledList
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -35,6 +36,8 @@ import kotlinx.coroutines.flow.scan
 data class State(
     val numbers: List<NumberTile> = listOf()
 )
+
+val State.chunkedTiles get() = numbers.chunked(3)
 
 sealed class Action {
     data class Load(val page: Int) : Action()
@@ -54,35 +57,17 @@ fun numberTilesMutator(
     transform = {
         it.toMutationStream {
             when (val type: Action = type()) {
-                is Action.Load -> {
-                    type.flow
-                        .map { (page) -> listOf(page - 1, page, page + 1) }
-                        .scan(listOf<Int>() to listOf<Int>()) { pair, new ->
-                            pair.copy(
-                                first = pair.second,
-                                second = new
-                            )
-                        }
-                        .flatMapLatest { (oldPages, newPages) ->
-                            oldPages
-                                .filterNot { newPages.contains(it) }
-                                .map { Tile.Request.Off<Int, List<NumberTile>>(it) }
-                                .plus(newPages.map { Tile.Request.On(it) })
-                                .asFlow()
-
-                        }
-                        .flattenWith(numberTiler())
-
-                        .map { items ->
-                            Mutation { copy(numbers = items.flatten()) }
-                        }
-                }
+                is Action.Load -> type.flow
+                    .toNumberedTiles()
+                    .map { items ->
+                        Mutation { copy(numbers = items.flatten()) }
+                    }
             }
         }
     }
 )
 
-fun numberTiler() = tiledList(
+private fun numberTiler() = tiledList(
     flattener = Tile.Flattener.PivotSorted(
         comparator = Int::compareTo,
         limiter = { pages -> pages.size > 4 }
@@ -101,3 +86,21 @@ fun numberTiler() = tiledList(
         )
     }
 )
+
+private fun Flow<Action.Load>.toNumberedTiles() =
+    map { (page) -> listOf(page - 1, page, page + 1) }
+        .scan(listOf<Int>() to listOf<Int>()) { pair, new ->
+            pair.copy(
+                first = pair.second,
+                second = new
+            )
+        }
+        .flatMapLatest { (oldPages, newPages) ->
+            oldPages
+                .filterNot { newPages.contains(it) }
+                .map { Tile.Request.Off<Int, List<NumberTile>>(it) }
+                .plus(newPages.map { Tile.Request.On(it) })
+                .asFlow()
+
+        }
+        .flattenWith(numberTiler())

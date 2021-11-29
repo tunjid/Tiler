@@ -19,12 +19,14 @@ package com.tunjid.tyler
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val mutator = numberTilesMutator(scope = lifecycleScope)
         setContent {
-
+            NumberedTileList(mutator = mutator)
         }
     }
 }
