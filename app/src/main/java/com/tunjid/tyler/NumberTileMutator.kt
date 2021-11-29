@@ -31,9 +31,12 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
 
 data class State(
+    val activePages: List<Int> = listOf(),
     val numbers: List<NumberTile> = listOf()
 )
 
@@ -57,11 +60,18 @@ fun numberTilesMutator(
     transform = {
         it.toMutationStream {
             when (val type: Action = type()) {
-                is Action.Load -> type.flow
-                    .toNumberedTiles()
-                    .map { items ->
-                        Mutation { copy(numbers = items.flatten()) }
-                    }
+                is Action.Load -> merge(
+                    type.flow
+                        .toNumberedTiles()
+                        .map { items ->
+                            Mutation { copy(numbers = items.flatten()) }
+                        },
+                    type.flow
+                        .pageChanges()
+                        .map { (_, activePages) ->
+                            Mutation { copy(activePages = activePages) }
+                        }
+                )
             }
         }
     }
@@ -87,20 +97,24 @@ private fun numberTiler() = tiledList(
     }
 )
 
-private fun Flow<Action.Load>.toNumberedTiles() =
-    map { (page) -> listOf(page - 1, page, page + 1) }
+private fun Flow<Action.Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
+    pageChanges()
+    .flatMapLatest { (oldPages, newPages) ->
+        oldPages
+            .filterNot { newPages.contains(it) }
+            .map { Tile.Request.Off<Int, List<NumberTile>>(it) }
+            .plus(newPages.map { Tile.Request.On(it) })
+            .asFlow()
+
+    }
+    .flattenWith(numberTiler())
+
+private fun Flow<Action.Load>.pageChanges(): Flow<Pair<List<Int>, List<Int>>> =
+    map { (page) -> listOf(page - 1, page, page + 1).filter { it >= 0 } }
         .scan(listOf<Int>() to listOf<Int>()) { pair, new ->
+            println(new)
             pair.copy(
                 first = pair.second,
                 second = new
             )
         }
-        .flatMapLatest { (oldPages, newPages) ->
-            oldPages
-                .filterNot { newPages.contains(it) }
-                .map { Tile.Request.Off<Int, List<NumberTile>>(it) }
-                .plus(newPages.map { Tile.Request.On(it) })
-                .asFlow()
-
-        }
-        .flattenWith(numberTiler())

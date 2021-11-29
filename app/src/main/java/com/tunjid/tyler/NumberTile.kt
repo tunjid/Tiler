@@ -26,22 +26,35 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Button
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
+import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.tunjid.mutator.Mutator
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -56,13 +69,25 @@ data class ScrollState(
 fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
     val state by mutator.state.collectAsState()
     val chunkedTiles = state.chunkedTiles
+    val activePulls: Flow<List<Int>> = remember {
+        mutator.state.map { it.activePages }.distinctUntilChanged()
+    }
 
+    val scaffoldState = rememberScaffoldState()
     val listState = rememberLazyListState()
-    LazyColumn(state = listState) {
-        items(
-            items = chunkedTiles,
-            itemContent = { ChunkedNumberTiles(tiles = it) }
-        )
+
+    Scaffold(scaffoldState = scaffoldState) {
+        LazyColumn(state = listState) {
+            items(
+                items = chunkedTiles,
+                key = { it.joinToString(separator = "-") { it.number.toString() } },
+                itemContent = { ChunkedNumberTiles(tiles = it) }
+            )
+        }
+    }
+
+    LaunchedEffect(true) {
+        mutator.accept(Action.Load(0))
     }
 
     LaunchedEffect(listState, chunkedTiles) {
@@ -88,6 +113,28 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
             .filter { abs(it.dy) > 4 }
             .distinctUntilChangedBy(ScrollState::page)
             .collect { mutator.accept(Action.Load(it.page)) }
+    }
+
+    // In the docs: https://developer.android.com/reference/kotlin/androidx/compose/material/SnackbarHostState
+    //
+    // `snackbarHostState.showSnackbar` is a suspending function that queues snack bars to be shown.
+    // If it is called multiple times, the showing snackbar is not dismissed,
+    // rather the new snackbar is added to the queue to be shown when the current one is dismissed.
+    //
+    // I however want to only have 1 snackbar in the queue at any one time, so I keep a ref
+    // to the prev job to manually cancel it.
+    val coroutineScope = rememberCoroutineScope()
+    var currentSnackbarJob by remember { mutableStateOf<Job?>(null) }
+    LaunchedEffect(activePulls, scaffoldState.snackbarHostState) {
+        activePulls
+            .collect {
+                currentSnackbarJob?.cancel()
+                currentSnackbarJob = coroutineScope.launch {
+                    scaffoldState.snackbarHostState.showSnackbar(
+                        message = "Active pulls: $it"
+                    )
+                }
+            }
     }
 }
 
@@ -123,7 +170,7 @@ private fun NumberTile(
 }
 
 private fun ScrollState.updateDirection(new: ScrollState) = new.copy(
-    page = page,
+    page = new.page,
     dy = new.offset - offset,
     isDownward = when {
         abs(new.offset - offset) > 10 -> isDownward
