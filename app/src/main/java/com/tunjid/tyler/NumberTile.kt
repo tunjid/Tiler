@@ -26,6 +26,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.ButtonDefaults.buttonColors
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.rememberScaffoldState
@@ -40,8 +42,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.tunjid.mutator.Mutator
 import kotlinx.coroutines.Job
@@ -52,7 +54,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -162,10 +163,13 @@ private fun NumberTile(
 ) {
     Button(
         modifier = modifier
-            .aspectRatio(1f),
+            .aspectRatio(1f)
+            .scale(0.9f),
+        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
         border = BorderStroke(width = 2.dp, color = Color(tile.color)),
+        colors = buttonColors(backgroundColor = Color.Transparent),
         onClick = { /*TODO*/ },
-        content = { Text(text = tile.number.toString()) }
+        content = { Text(text = tile.number.toString(), color = Color(tile.color)) }
     )
 }
 
