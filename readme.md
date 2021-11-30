@@ -50,7 +50,7 @@ Note that in the above, the list will grow indefinitely as more tiles are reques
 Much like a classic `Map` that supports update and remove methods, a Tiler offers analogous operations in the form of `Inputs`.
 
 ### `Input.Request`
-* On: Analogous to `put for a [Map`, this starts collecting from the backing `Flow` for the specified `query`.
+* On: Analogous to `put` for a  `Map`, this starts collecting from the backing `Flow` for the specified `query`.
 It is idempotent; multiple requests have no side effects
 
 * Off: Stops collecting from the backing `Flow` for the specified `query`.
@@ -74,7 +74,6 @@ A `limiter` can be used to select a subset of items requested instead of the who
 * PivotSorted: Sort items with the specified `comparator` but pivoted around the last query a
 `Tile.Request.On` was sent for. This allows for showing items that have more priority
 over others in the current context for example in a list being scrolled.
-
 A `limiter` can be used to select a subset of items instead of the whole set.
 
 * Custom: Flattens tiled items produced whichever way you desire
