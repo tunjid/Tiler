@@ -20,8 +20,8 @@ or
 
 Tilers are implemented as plain functions. Given a `Flow` of `Input`, you can either choose to get your data as:
 
-* A `Flow<Map<Key, Value>>` with `tiledList`
-* A flattened `Flow<List<Value>>` with `tiledMap`
+* A flattened `Flow<List<Item>>` with `tiledList`
+* A `Flow<Map<Query, Item>>` with `tiledMap`
 
 In the simplest case given a `MutableStateFlow<Tile.Request<Int, List<Int>>` one can write:
 
@@ -31,7 +31,11 @@ Class NumberFetcher {
 
     private val tiledList = tiledList(
         flattener = Tile.Flattener.Sorted(comparator = Int::compareTo)
-        fetcher = { page -> flowOf(page.until(page + 50).toList) }
+        fetcher = { page ->
+            val start = page * 50
+            val numbers = start.until(start + 50)
+            flowOf(numbers.toList())
+        }
     )
 
     val listItems: Flow<List<Int>> = tiledList.invoke(requests).map { it.flatten() }
@@ -42,16 +46,20 @@ Class NumberFetcher {
 }
 ```
 
-The above will return a full list of every item requested sorted in ascending order of the query.
+The above will return a full list of every item requested sorted in ascending order of the pages.
+
 Note that in the above, the list will grow indefinitely as more tiles are requested unless queries are evicted.
+This may be fine for small lists, but as the list size grows, some items may need to be evicted and
+only a small subset of items need to be presented to the UI. This sort of behavior can be achieved using
+the `Evict` `Request`, and the `PivotSorted` `Flattener` covered below.
 
 ### Managing requested data
 
 Much like a classic `Map` that supports update and remove methods, a Tiler offers analogous operations in the form of `Inputs`.
 
 ### `Input.Request`
-* On: Analogous to `put` for a  `Map`, this starts collecting from the backing `Flow` for the specified `query`.
-It is idempotent; multiple requests have no side effects
+* On: Analogous to `put` for a `Map`, this starts collecting from the backing `Flow` for the specified `query`.
+It is idempotent; multiple requests have no side effects for loading, i.e the same `Flow` will not be collect twice.
 
 * Off: Stops collecting from the backing `Flow` for the specified `query`.
 The items previously fetched by this query are still kept in memory and will be in the `List` of items returned.
@@ -61,10 +69,9 @@ Requesting this is idempotent; multiple requests have no side effects.
 the items previously fetched by the `query` from memory.
 Requesting this is idempotent; multiple requests have no side effects.
 
-
 ### `Input.Flattener`
 
-Defines the heuristic for flattening tiled items into a list.private
+Defines the heuristic for flattening tiled items into a list.
 
 * Unspecified: Items will be returned in an undefined order. This is the default.
 
@@ -73,8 +80,11 @@ A `limiter` can be used to select a subset of items requested instead of the who
 
 * PivotSorted: Sort items with the specified `comparator` but pivoted around the last query a
 `Tile.Request.On` was sent for. This allows for showing items that have more priority
-over others in the current context for example in a list being scrolled.
-A `limiter` can be used to select a subset of items instead of the whole set.
+over others in the current context for example in a list being scrolled. In other words assume tiles
+have been fetched for queries 1 - 10 but a user can see pages 5 and 6. The UI need only to be aware
+of pages 4, 5, 6, and 7. This allows for a rolling window of queries based on a user's scroll position.
+A `limiter` can be used to select a subset of items instead of the whole set as defined by the
+rolling window defined above.
 
 * Custom: Flattens tiled items produced whichever way you desire
 
