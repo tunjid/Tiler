@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.tunjid.tyler
+package com.tunjid.tyler.numbers
 
 import android.graphics.Color
 import com.tunjid.mutator.Mutation

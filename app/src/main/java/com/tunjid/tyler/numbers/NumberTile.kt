@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.tunjid.tyler
+package com.tunjid.tyler.numbers
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
