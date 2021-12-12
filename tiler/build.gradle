@@ -38,7 +38,7 @@ afterEvaluate {
     publishing {
         publications {
             lib(MavenPublication) {
-                version = "0.0.0-alpha01"
+                version = "0.0.0-alpha02"
                 groupId "com.tunjid.tiler"
                 artifactId "tiler"
 
