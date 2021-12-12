@@ -88,9 +88,13 @@ internal fun <Query, Item> Tile.Flattener<Query, Item>.flatten(
                 list
             }
         is Tile.Flattener.PivotSorted -> {
-            val mostRecentQuery: Query = metadata.mostRecentlyTurnedOn ?: return emptyList()
+            if (sortedQueries.isEmpty()) return emptyList()
 
-            val startIndex = sortedQueries.indexOf(mostRecentQuery)
+            val mostRecentQuery: Query = metadata.mostRecentlyTurnedOn ?: return emptyList()
+            val startIndex = sortedQueries.binarySearch(mostRecentQuery, comparator)
+
+            if (startIndex < 0) return emptyList()
+
             var leftIndex = startIndex
             var rightIndex = startIndex
             val result = mutableListOf(queryToTiles.getValue(sortedQueries[startIndex]).item)
