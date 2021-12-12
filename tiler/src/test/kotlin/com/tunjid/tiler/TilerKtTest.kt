@@ -52,22 +52,22 @@ class TilerKtTest {
     fun `pivots around most recent when limit exists`() {
         val tiles =
             ((1..9).mapIndexed { index, int ->
-                Tile.Output.Data(
-                    query = int,
-                    tile = Tile(
-                        flowOnAt = index.toLong(),
-                        item = int.testRange.toList()
+                listOf(
+                    Tile.Output.Data(
+                        query = int,
+                        tile = Tile(
+                            flowOnAt = index.toLong(),
+                            item = int.testRange.toList()
+                        )
+                    ),
+                    Tile.Output.TurnedOn(
+                        query = int
                     )
                 )
-            } + (6 downTo 4).mapIndexed { index, int ->
-                Tile.Output.Data(
-                    query = int,
-                    tile = Tile(
-                        flowOnAt = index.toLong() + 10L,
-                        item = int.testRange.toList()
-                    )
+            }
+                .flatten()
+                + listOf(Tile.Output.TurnedOn(query = 4))
                 )
-            })
                 .fold(
                     initial = Tiler(
                         flattener = Tile.Flattener.PivotSorted(
