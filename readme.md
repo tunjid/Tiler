@@ -87,7 +87,7 @@ of pages 4, 5, 6, and 7. This allows for a rolling window of queries based on a 
 A `limiter` can be used to select a subset of items instead of the whole set as defined by the
 rolling window defined above.
 
-* Custom: Flattens tiled items produced whichever way you desire
+* Custom: Flattens tiled items produced whichever way you desire.
 
 ### More complex uses
 
@@ -102,11 +102,11 @@ class ManagedNumberFetcher {
 
     val managedRequests = requests
         .map { (page) -> listOf(page - 1, page, page + 1).filter { it >= 0 } }
-        .scan(listOf<Int>() to listOf<Int>()) { oldRequestsToNewRequests, newRequest ->
+        .scan(listOf<Int>() to listOf<Int>()) { oldRequestsToNewRequests, newRequests ->
             // Keep track of what was last requested
             oldRequestsToNewRequests.copy(
                 first = oldRequestsToNewRequests.second,
-                second = newRequest
+                second = newRequests
             )
         }
         .flatMapLatest { (oldRequests, newRequests) ->
