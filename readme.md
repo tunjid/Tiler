@@ -26,11 +26,12 @@ Tilers are implemented as plain functions. Given a `Flow` of `Input`, you can ei
 In the simplest case given a `MutableStateFlow<Tile.Request<Int, List<Int>>` one can write:
 
 ```kotlin
-Class NumberFetcher {
-    private val requests = MutableStateFlow<Tile.Request<Int, List<Int>>(Request.On(0))
+class NumberFetcher {
+    private val requests =
+        MutableStateFlow<Tile.Request<Int, List<Int>>>(Tile.Request.On(query = 0))
 
-    private val tiledList = tiledList(
-        flattener = Tile.Flattener.Sorted(comparator = Int::compareTo)
+    private val tiledList: (Flow<Tile.Input<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
+        flattener = Tile.Flattener.Sorted(comparator = Int::compareTo),
         fetcher = { page ->
             val start = page * 50
             val numbers = start.until(start + 50)
@@ -41,7 +42,7 @@ Class NumberFetcher {
     val listItems: Flow<List<Int>> = tiledList.invoke(requests).map { it.flatten() }
 
     fun fetchPage(page: Int) {
-        request.value = Request.On(page)
+        requests.value = Tile.Request.On(page)
     }
 }
 ```
@@ -87,6 +88,71 @@ A `limiter` can be used to select a subset of items instead of the whole set as 
 rolling window defined above.
 
 * Custom: Flattens tiled items produced whichever way you desire
+
+### More complex uses
+
+To deal with the issue of the tiled data set becoming arbitrarily large, one create a pipeline
+where requests backing only the items visible on the screen active, and automatically ejecting
+those further than a certain page count away.
+
+```kotlin
+class ManagedNumberFetcher {
+    private val requests =
+        MutableStateFlow<Tile.Request.On<Int, List<Int>>>(Tile.Request.On(query = 0))
+
+    val managedRequests = requests
+        .map { (page) -> listOf(page - 1, page, page + 1).filter { it >= 0 } }
+        .scan(listOf<Int>() to listOf<Int>()) { oldRequestsToNewRequests, newRequest ->
+            // Keep track of what was last requested
+            oldRequestsToNewRequests.copy(
+                first = oldRequestsToNewRequests.second,
+                second = newRequest
+            )
+        }
+        .flatMapLatest { (oldRequests, newRequests) ->
+            // Evict all items 10 pages behind the smallest page in the new request.
+            // Their backing flows will stop being collected, and their existing values will be
+            // evicted from memory
+            val toEvict: List<Tile.Request.Evict<Int, List<Int>>> = (newRequests.minOrNull()
+                ?.minus(10)
+                ?.downTo(0)
+                ?: listOf())
+                .map { Tile.Request.Evict(it) }
+
+            // Turn off the flows for all old requests that are not in the new request batch
+            // The existing emitted values will be kept in memory, but their backing flows
+            // will stop being collected
+            val toTurnOff: List<Tile.Request.Off<Int, List<Int>>> = oldRequests
+                .filterNot(newRequests::contains)
+                .map { Tile.Request.Off(it) }
+
+            val toTurnOn: List<Tile.Request.On<Int, List<Int>>> = newRequests
+                .map { Tile.Request.On(it) }
+
+            (toEvict + toTurnOff + toTurnOn).asFlow()
+        }
+
+    private val tiledList: (Flow<Tile.Input<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
+        flattener = Tile.Flattener.Sorted(comparator = Int::compareTo),
+        fetcher = { page ->
+            val start = page * 50
+            val numbers = start.until(start + 50)
+            flowOf(numbers.toList())
+        }
+    )
+
+    val listItems: Flow<List<Int>> = tiledList.invoke(managedRequests).map { it.flatten() }
+
+    fun fetchPage(page: Int) {
+        requests.value = Tile.Request.On(page)
+    }
+}
+```
+
+In the above, a moving window of pages are kept to manage requests. If for example page 19 is
+requested, `Flows` for pages 18, 19, and 20 are kept active and any emissions for pages 0 - 9 are
+evicted from memory. If emissions exist for pages 10 - 17, they will be kept in memory but their
+`Flows` will be inactive.
 
 ### Use cases
 

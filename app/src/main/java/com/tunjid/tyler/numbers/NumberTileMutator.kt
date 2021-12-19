@@ -102,12 +102,28 @@ private fun numberTiler() = tiledList(
 private fun Flow<Action.Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
     pageChanges()
         .flatMapLatest { (oldPages, newPages) ->
-            oldPages
-                .filterNot { newPages.contains(it) }
-                .map { Tile.Request.Off<Int, List<NumberTile>>(it) }
-                .plus(newPages.map { Tile.Request.On(it) })
-                .asFlow()
+            // Evict all items 10 pages behind the smallest page in the new request.
+            // Their backing flows will stop being collected, and their existing values will be
+            // evicted from memory
+            val toEvict: List<Tile.Request.Evict<Int, List<NumberTile>>> = (newPages.minOrNull()
+                ?.minus(10)
+                ?.downTo(0)
+                ?.take(10)
+                ?: listOf())
+                .map { Tile.Request.Evict(it) }
 
+            // Turn off the flows for all old requests that are not in the new request batch
+            // The existing emitted values will be kept in memory, but their backing flows
+            // will stop being collected
+            val toTurnOff: List<Tile.Request.Off<Int, List<NumberTile>>> = oldPages
+                .filterNot(newPages::contains)
+                .map { Tile.Request.Off(it) }
+
+            // Turn on flows for the requested pages
+            val toTurnOn: List<Tile.Request.On<Int, List<NumberTile>>> = newPages
+                .map { Tile.Request.On(it) }
+
+            (toEvict + toTurnOff + toTurnOn).asFlow()
         }
         .flattenWith(numberTiler())
 
