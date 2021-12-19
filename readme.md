@@ -116,6 +116,7 @@ class ManagedNumberFetcher {
             val toEvict: List<Tile.Request.Evict<Int, List<Int>>> = (newRequests.minOrNull()
                 ?.minus(10)
                 ?.downTo(0)
+                ?.take(10)
                 ?: listOf())
                 .map { Tile.Request.Evict(it) }
 
