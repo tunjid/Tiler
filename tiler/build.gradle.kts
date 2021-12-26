@@ -1,0 +1,127 @@
+import org.jetbrains.kotlin.konan.properties.hasProperty
+
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+    id("java-library")
+    id("kotlin")
+    id("maven-publish")
+    id("signing")
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+dependencies {
+    implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(libs.junit4)
+    testImplementation(libs.kotlinx.coroutines.test)
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            register("lib", MavenPublication::class) {
+                version = "0.0.0-alpha02"
+                groupId = "com.tunjid.tiler"
+                artifactId = "tiler"
+
+                from(components["java"])
+
+                afterEvaluate {
+                    artifact(sourcesJar.get())
+//                    artifact(javadocJar.get())
+
+                    pom {
+                        name.set(project.name)
+                        description.set("An abstraction for a data type akin to a reactive map")
+                        url.set("https://github.com/tunjid/tiler")
+                        licenses {
+                            license {
+                                name.set("Apache License 2.0")
+                                url.set("https://github.com/tunjid/tiler/blob/main/LICENSE")
+                            }
+                        }
+                        developers {
+                            developer {
+                                id.set("tunjid")
+                                name.set("Adetunji Dahunsi")
+                                email.set("tjdah100@gmail.com")
+                            }
+                        }
+                        scm {
+                            connection.set("scm:git:github.com/tunjid/tiler.git")
+                            developerConnection.set("scm:git:ssh://github.com/tunjid/tiler.git")
+                            url.set("https://github.com/tunjid/tiler/tree/main")
+                        }
+                    }
+                }
+            }
+        }
+        repositories {
+            val localProperties = parent?.ext?.get("localProps") as? java.util.Properties
+                ?: return@repositories
+
+            val publishUrl = localProperties.getProperty("publishUrl")
+            if (publishUrl != null) {
+                maven {
+                    name = localProperties.getProperty("repoName")
+//                    url = uri(localProperties.getProperty("publishUrl"))
+                    credentials {
+                        username = localProperties.getProperty("username")
+                        password = localProperties.getProperty("password")
+                    }
+                }
+            }
+        }
+    }
+
+    signing {
+        val localProperties = parent?.ext?.get("localProps") as? java.util.Properties
+            ?: return@signing
+
+        if (localProperties.hasProperty("signingKey") && localProperties.hasProperty("signingPassword")) {
+            val signingKey = localProperties.getProperty("signingKey")
+            val signingPassword = localProperties.getProperty("signingPassword")
+            useInMemoryPgpKeys(signingKey, signingPassword)
+//            sign publishing.publications
+            sign(publishing.publications)
+//            sign(publishing.publications["mavenJava"])
+        }
+    }
+}
+
+val sourcesJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("sources")
+//    classifier = "sources"
+    from(sourceSets.main.get().allSource)
+}
+
+
+//signing {
+//    sign publishing.publications.mavenJava
+//}
+
+
+//javadoc {
+//    if (JavaVersion.current().isJava9Compatible()) {
+//        options.addBooleanOption("html5", true)
+//    }
+//}
