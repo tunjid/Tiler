@@ -63,8 +63,8 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.4.0")
 
     implementation("androidx.activity:activity-compose:1.4.0")
-    implementation("androidx.compose.material:material:1.0.5")
-    implementation("androidx.compose.animation:animation:1.0.5")
+    implementation(libs.compose.material)
+    implementation(libs.compose.animation)
     implementation("com.google.android.material:material:1.4.0")
 
     implementation("com.tunjid.mutator:core:0.0.0-alpha01")

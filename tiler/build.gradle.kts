@@ -17,22 +17,47 @@ import org.jetbrains.kotlin.konan.properties.hasProperty
  */
 
 plugins {
-    id("java-library")
-    id("kotlin")
+    id("org.jetbrains.kotlin.multiplatform")
     id("maven-publish")
     id("signing")
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
+kotlin {
+    jvm {
+        compilations.all {
+            kotlinOptions.jvmTarget = "1.8"
+        }
+        withJava()
+        testRuns["test"].executionTask.configure {
+            useJUnit()
+        }
+    }
+    val hostOs = System.getProperty("os.name")
+    val isMingwX64 = hostOs.startsWith("Windows")
+    val nativeTarget = when {
+        hostOs == "Mac OS X" -> macosX64("native")
+        hostOs == "Linux" -> linuxX64("native")
+        isMingwX64 -> mingwX64("native")
+        else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
+    }
 
-dependencies {
-    implementation(libs.kotlinx.coroutines.core)
-
-    testImplementation(libs.junit4)
-    testImplementation(libs.kotlinx.coroutines.test)
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.core)
+            }
+        }
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinx.coroutines.test)
+            }
+        }
+        val jvmMain by getting
+        val jvmTest by getting
+        val nativeMain by getting
+        val nativeTest by getting
+    }
 }
 
 afterEvaluate {
@@ -46,7 +71,7 @@ afterEvaluate {
                 from(components["java"])
 
                 afterEvaluate {
-                    artifact(sourcesJar.get())
+//                    artifact(sourcesJar.get())
 //                    artifact(javadocJar.get())
 
                     pom {
@@ -83,7 +108,7 @@ afterEvaluate {
             if (publishUrl != null) {
                 maven {
                     name = localProperties.getProperty("repoName")
-//                    url = uri(localProperties.getProperty("publishUrl"))
+                    url = uri(localProperties.getProperty("publishUrl"))
                     credentials {
                         username = localProperties.getProperty("username")
                         password = localProperties.getProperty("password")
@@ -108,11 +133,11 @@ afterEvaluate {
     }
 }
 
-val sourcesJar by tasks.registering(Jar::class) {
-    archiveClassifier.set("sources")
-//    classifier = "sources"
-    from(sourceSets.main.get().allSource)
-}
+//val sourcesJar by tasks.registering(Jar::class) {
+//    archiveClassifier.set("sources")
+////    classifier = "sources"
+//    from(sourceSets.main.get().allSource)
+//}
 
 
 //signing {

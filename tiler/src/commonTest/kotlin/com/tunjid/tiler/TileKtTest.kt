@@ -19,25 +19,18 @@ package com.tunjid.tiler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineScope
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Before
-import org.junit.Test
 import kotlin.collections.flatten
+import kotlin.test.*
 
 @ExperimentalCoroutinesApi
 class TileKtTest {
 
-    private val testScope = TestCoroutineScope()
-
     private lateinit var tiler: (Flow<Tile.Input<Int, List<Int>>>) -> Flow<List<List<Int>>>
     private lateinit var tileFlowMap: MutableMap<Int, MutableStateFlow<List<Int>>>
 
-    @Before
+    @BeforeTest
     @FlowPreview
     fun setUp() {
         tileFlowMap = mutableMapOf()
@@ -46,13 +39,8 @@ class TileKtTest {
         }
     }
 
-    @After
-    fun tearDown() {
-        testScope.cleanupTestCoroutines()
-    }
-
     @Test
-    fun `requesting 1 tile works`() = runBlocking {
+    fun `requesting 1 tile works`() = runTest {
         val requests = listOf<Tile.Request<Int, List<Int>>>(
             Tile.Request.On(query = 1),
         )
@@ -68,7 +56,7 @@ class TileKtTest {
     }
 
     @Test
-    fun `requesting multiple queries works`() = runBlocking {
+    fun `requesting multiple queries works`() = runTest {
         val requests = listOf<Tile.Request<Int, List<Int>>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 3),
@@ -96,7 +84,7 @@ class TileKtTest {
     }
 
     @Test
-    fun `only requested queries have subscribers`() = runBlocking {
+    fun `only requested queries have subscribers`() = runTest {
         val requests = listOf<Tile.Request<Int, List<Int>>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 3),
@@ -130,7 +118,7 @@ class TileKtTest {
     }
 
     @Test
-    fun `Can turn off valve for query`() = runBlocking {
+    fun `Can turn off valve for query`() = runTest {
         val requests = listOf<Tile.Request<Int, List<Int>>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 3),
@@ -162,7 +150,7 @@ class TileKtTest {
     }
 
     @Test
-    fun `queries are idempotent`() = runBlocking {
+    fun `queries are idempotent`() = runTest {
         val requests = listOf<Tile.Request<Int, List<Int>>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 1),
@@ -192,7 +180,7 @@ class TileKtTest {
     }
 
     @Test
-    fun `queries can be evicted`() = runBlocking {
+    fun `queries can be evicted`() = runTest {
         val requests = listOf<Tile.Request<Int, List<Int>>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 3),
@@ -226,7 +214,7 @@ class TileKtTest {
     }
 
     @Test
-    fun `items can be requested in a map`() = runBlocking {
+    fun `items can be requested in a map`() = runTest {
         val requests = listOf<Tile.Request<Int, List<Int>>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 3),
