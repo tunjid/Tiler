@@ -22,6 +22,9 @@ plugins {
     signing
 }
 
+group = "com.tunjid.tiler"
+version = "0.0.0-alpha02"
+
 kotlin {
     jvm {
         compilations.all {
@@ -63,11 +66,6 @@ kotlin {
 publishing {
     publications {
         withType<MavenPublication> {
-            version = "0.0.0-alpha02"
-            groupId = "com.tunjid.tiler"
-            artifactId = "tiler"
-
-            afterEvaluate {
                 pom {
                     name.set(project.name)
                     description.set("An abstraction for a data type akin to a reactive map")
@@ -91,7 +89,7 @@ publishing {
                         url.set("https://github.com/tunjid/tiler/tree/main")
                     }
                 }
-            }
+
         }
     }
     repositories {
