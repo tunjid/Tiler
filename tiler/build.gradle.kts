@@ -60,70 +60,69 @@ kotlin {
     }
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            register("tiler", MavenPublication::class) {
-                version = "0.0.0-alpha02"
-                groupId = "com.tunjid.tiler"
-                artifactId = "tiler"
+publishing {
+    publications {
+        withType<MavenPublication> {
+            version = "0.0.0-alpha02"
+            groupId = "com.tunjid.tiler"
+            artifactId = "tiler"
 
-                afterEvaluate {
-                    pom {
-                        name.set(project.name)
-                        description.set("An abstraction for a data type akin to a reactive map")
-                        url.set("https://github.com/tunjid/tiler")
-                        licenses {
-                            license {
-                                name.set("Apache License 2.0")
-                                url.set("https://github.com/tunjid/tiler/blob/main/LICENSE")
-                            }
-                        }
-                        developers {
-                            developer {
-                                id.set("tunjid")
-                                name.set("Adetunji Dahunsi")
-                                email.set("tjdah100@gmail.com")
-                            }
-                        }
-                        scm {
-                            connection.set("scm:git:github.com/tunjid/tiler.git")
-                            developerConnection.set("scm:git:ssh://github.com/tunjid/tiler.git")
-                            url.set("https://github.com/tunjid/tiler/tree/main")
+            afterEvaluate {
+                pom {
+                    name.set(project.name)
+                    description.set("An abstraction for a data type akin to a reactive map")
+                    url.set("https://github.com/tunjid/tiler")
+                    licenses {
+                        license {
+                            name.set("Apache License 2.0")
+                            url.set("https://github.com/tunjid/tiler/blob/main/LICENSE")
                         }
                     }
-                }
-            }
-        }
-        repositories {
-            val localProperties = parent?.ext?.get("localProps") as? java.util.Properties
-                ?: return@repositories
-
-            val publishUrl = localProperties.getProperty("publishUrl")
-            if (publishUrl != null) {
-                maven {
-                    name = localProperties.getProperty("repoName")
-                    url = uri(localProperties.getProperty("publishUrl"))
-                    credentials {
-                        username = localProperties.getProperty("username")
-                        password = localProperties.getProperty("password")
+                    developers {
+                        developer {
+                            id.set("tunjid")
+                            name.set("Adetunji Dahunsi")
+                            email.set("tjdah100@gmail.com")
+                        }
+                    }
+                    scm {
+                        connection.set("scm:git:github.com/tunjid/tiler.git")
+                        developerConnection.set("scm:git:ssh://github.com/tunjid/tiler.git")
+                        url.set("https://github.com/tunjid/tiler/tree/main")
                     }
                 }
             }
         }
     }
-
-    signing {
+    repositories {
         val localProperties = parent?.ext?.get("localProps") as? java.util.Properties
-            ?: return@signing
+            ?: return@repositories
 
-        if (localProperties.hasProperty("signingKey") && localProperties.hasProperty("signingPassword")) {
-            val signingKey = localProperties.getProperty("signingKey")
-            val signingPassword = localProperties.getProperty("signingPassword")
-            useInMemoryPgpKeys(signingKey, signingPassword)
-//            sign publishing.publications
-            sign(publishing.publications)
-//            sign(publishing.publications["mavenJava"])
+        val publishUrl = localProperties.getProperty("publishUrl")
+        if (publishUrl != null) {
+            maven {
+                name = localProperties.getProperty("repoName")
+                url = uri(localProperties.getProperty("publishUrl"))
+                credentials {
+                    username = localProperties.getProperty("username")
+                    password = localProperties.getProperty("password")
+                }
+            }
         }
     }
 }
+
+signing {
+    val localProperties = parent?.ext?.get("localProps") as? java.util.Properties
+        ?: return@signing
+
+    if (localProperties.hasProperty("signingKey") && localProperties.hasProperty("signingPassword")) {
+        val signingKey = localProperties.getProperty("signingKey")
+        val signingPassword = localProperties.getProperty("signingPassword")
+        useInMemoryPgpKeys(signingKey, signingPassword)
+//            sign publishing.publications
+        sign(publishing.publications)
+//            sign(publishing.publications["mavenJava"])
+    }
+}
+
