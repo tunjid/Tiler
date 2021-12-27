@@ -17,9 +17,9 @@ import org.jetbrains.kotlin.konan.properties.hasProperty
  */
 
 plugins {
-    id("org.jetbrains.kotlin.multiplatform")
-    id("maven-publish")
-    id("signing")
+    kotlin("multiplatform")
+    `maven-publish`
+    signing
 }
 
 kotlin {
@@ -63,17 +63,12 @@ kotlin {
 afterEvaluate {
     publishing {
         publications {
-            register("lib", MavenPublication::class) {
+            register("tiler", MavenPublication::class) {
                 version = "0.0.0-alpha02"
                 groupId = "com.tunjid.tiler"
                 artifactId = "tiler"
 
-                from(components["java"])
-
                 afterEvaluate {
-//                    artifact(sourcesJar.get())
-//                    artifact(javadocJar.get())
-
                     pom {
                         name.set(project.name)
                         description.set("An abstraction for a data type akin to a reactive map")
@@ -132,21 +127,3 @@ afterEvaluate {
         }
     }
 }
-
-//val sourcesJar by tasks.registering(Jar::class) {
-//    archiveClassifier.set("sources")
-////    classifier = "sources"
-//    from(sourceSets.main.get().allSource)
-//}
-
-
-//signing {
-//    sign publishing.publications.mavenJava
-//}
-
-
-//javadoc {
-//    if (JavaVersion.current().isJava9Compatible()) {
-//        options.addBooleanOption("html5", true)
-//    }
-//}
