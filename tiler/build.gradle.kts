@@ -23,7 +23,7 @@ plugins {
 }
 
 group = "com.tunjid.tiler"
-version = "0.0.0-alpha02"
+version = "0.0.0-alpha03"
 
 kotlin {
     jvm {
