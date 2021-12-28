@@ -16,9 +16,7 @@
 
 package com.tunjid.tiler
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
-
+import kotlin.test.*
 
 class TilerKtTest {
 

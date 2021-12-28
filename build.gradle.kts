@@ -16,29 +16,23 @@
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
-    project.ext {
-        buildToolsVersion = "30.0.2"
-        compileSdkVersion = 30
-        targetSdkVersion = 30
-        minSdkVersion = 21
-
-        kotlin_version = "1.5.31"
-        coroutines_version = "1.5.0"
-
-        // Tests
-        junit_version = "4.13.2"
-        coroutines_test_version = "1.5.0"
-
-        localProps = new Properties()
-        localProps.load(new FileInputStream(file("local.properties")))
+    extra.apply {
+        set("buildToolsVersion", "30.0.2")
+        set("compileSdkVersion", 30)
+        set("targetSdkVersion", 30)
+        set("minSdkVersion", 21)
+        set("localProps", java.util.Properties().apply {
+            load(java.io.FileInputStream(file("local.properties")))
+        })
     }
+
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.0.3'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath("com.android.tools.build:gradle:7.0.4")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10")
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -52,6 +46,6 @@ allprojects {
     }
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
+tasks.register("clean", Delete::class) {
+    delete(rootProject.buildDir)
 }
