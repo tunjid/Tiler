@@ -6,6 +6,7 @@ androidxCore = "1.7.0"
 androidxTest = "1.4.0"
 androidxTestExt = "1.1.2"
 compose = "1.0.5"
+dokka = "1.6.10"
 junit4 = "4.13.2"
 kotlin = "1.6.10"
 kotlinxCoroutines = "1.6.0"
@@ -26,6 +27,7 @@ compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", versi
 compose-ui-util = { group = "androidx.compose.ui", name = "ui-util", version.ref = "compose" }
 google-material = { group = "com.google.android.material", name = "material", version.ref = "googleMaterial" }
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
+dokka-gradlePlugin = { group = "org.jetbrains.dokka", name = "dokka-gradle-plugin", version.ref = "dokka" }
 kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }

@@ -20,6 +20,7 @@ plugins {
     kotlin("multiplatform")
     `maven-publish`
     signing
+    id("org.jetbrains.dokka")
 }
 
 group = "com.tunjid.tiler"
@@ -63,10 +64,19 @@ kotlin {
     }
 }
 
+val dokkaHtml by tasks.getting(org.jetbrains.dokka.gradle.DokkaTask::class)
+
+val javadocJar: TaskProvider<Jar> by tasks.registering(Jar::class) {
+    dependsOn(dokkaHtml)
+    archiveClassifier.set("javadoc")
+    from(dokkaHtml.outputDirectory)
+}
+
 publishing {
     publications {
         withType<MavenPublication> {
-                pom {
+            artifact(javadocJar)
+            pom {
                     name.set(project.name)
                     description.set("An abstraction for a data type akin to a reactive map")
                     url.set("https://github.com/tunjid/tiler")

@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 /**
- * class holding meta data about a [Query] for an [Item], the [Item], and when the [Query] was sent
+ * class holding metadata about a [Query] for an [Item], the [Item], and when the [Query] was sent
  */
 data class Tile<Query, Item : Any?>(
     val flowOnAt: Long,
