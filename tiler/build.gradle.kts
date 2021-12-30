@@ -124,13 +124,12 @@ signing {
     val localProperties = parent?.ext?.get("localProps") as? java.util.Properties
         ?: return@signing
 
-    if (localProperties.hasProperty("signingKey") && localProperties.hasProperty("signingPassword")) {
-        val signingKey = localProperties.getProperty("signingKey")
-        val signingPassword = localProperties.getProperty("signingPassword")
+    val signingKey = localProperties.getProperty("signingKey")
+    val signingPassword = localProperties.getProperty("signingPassword")
+
+    if (signingKey != null && signingPassword != null) {
         useInMemoryPgpKeys(signingKey, signingPassword)
-//            sign publishing.publications
         sign(publishing.publications)
-//            sign(publishing.publications["mavenJava"])
     }
 }
 
