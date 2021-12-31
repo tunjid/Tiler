@@ -22,7 +22,9 @@ buildscript {
         set("targetSdkVersion", 30)
         set("minSdkVersion", 21)
         set("localProps", java.util.Properties().apply {
-            load(java.io.FileInputStream(file("local.properties")))
+            file("local.properties").let { file ->
+                if (file.exists()) load(java.io.FileInputStream(file))
+            }
         })
     }
 
