@@ -1,6 +1,6 @@
 # Tiler
 
-![JVM Tests](https://github.com/tunjid/Tiler/workflows/tests/badge.svg)
+[![JVM Tests](https://github.com/tunjid/Tiler/actions/workflows/tests.yml/badge.svg)](https://github.com/tunjid/Tiler/actions/workflows/tests.yml)
 ![Tiler](https://img.shields.io/maven-central/v/com.tunjid.tiler/tiler?label=tiler)
 
 Please note, this is not an official Google repository. It is a Kotlin multiplatform experiment

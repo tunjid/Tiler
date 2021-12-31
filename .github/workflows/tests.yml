@@ -1,4 +1,4 @@
-name: Core Tests
+name: JVM Tests
 
 on:
   push:
