@@ -1,5 +1,12 @@
 # Tiler
 
+![JVM Tests](https://github.com/tunjid/Tiler/workflows/tests/badge.svg)
+![Tiler](https://img.shields.io/maven-central/v/com.tunjid.tiler/tiler?label=tiler)
+
+Please note, this is not an official Google repository. It is a Kotlin multiplatform experiment
+that makes no guarantees about API stability or long term support. None of the works presented here
+are production tested, and should not be taken as anything more than its face value.
+
 ## Introduction
 
 A Tiler is a pure function with an API most similar to a reactive `Map` where:
