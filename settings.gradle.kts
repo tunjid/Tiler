@@ -16,4 +16,4 @@
 enableFeaturePreview("VERSION_CATALOGS")
 
 rootProject.name = "Tiler"
-include(":app", ":tiler")
+include(":android", ":tiler")
