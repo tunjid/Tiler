@@ -39,9 +39,18 @@ data class Tile<Query, Item : Any?>(
         val mostRecentlyEmitted: Query? = null,
     )
 
-    sealed interface Input<Query, Item>
+    sealed interface Input<Query, Item> {
+        interface List<Query, Item> : Input<Query, Item>
+        interface Map<Query, Item> : Input<Query, Item>
+        interface Agnostic<Query, Item> : List<Query, Item>, Map<Query, Item>
+    }
 
-    sealed class Request<Query, Item> : Input<Query, Item> {
+//    sealed class Format<Item> {
+//        data class List<Item>(val limiter: (List<Item>) -> Boolean): Format<Item>()
+//        data class Map<Query, Item>(val limiter: (Map<Query, Item>) -> Boolean): Format<Item>()
+//    }
+
+    sealed class Request<Query, Item> : Input.Agnostic<Query, Item> {
         abstract val query: Query
 
         /**
@@ -152,7 +161,7 @@ fun <Query, Item> Flow<Tile.Input<Query, Item>>.flattenWith(
 fun <Query, Item> tiledList(
     flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
-): (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>> = { requests ->
+): (Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>> = { requests ->
     tileFactory(flattener = flattener, fetcher = fetcher)
         .invoke(requests)
         .map(Tiler<Query, Item>::items)
