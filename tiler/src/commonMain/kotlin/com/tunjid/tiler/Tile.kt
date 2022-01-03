@@ -212,7 +212,7 @@ fun <Query, Item> tiledMap(
     limiter: Tile.Limiter.Map<Query, Item> = Tile.Limiter.Map { false },
     flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
-): (Flow<Tile.Request<Query, Item>>) -> Flow<Map<Query, Item>> = { requests ->
+): (Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>> = { requests ->
     tileFactory(
         limiter = limiter,
         flattener = flattener,
