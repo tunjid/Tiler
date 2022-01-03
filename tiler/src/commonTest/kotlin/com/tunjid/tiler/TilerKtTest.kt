@@ -34,10 +34,13 @@ class TilerKtTest {
                     )
                 }
                 .fold(
-                    initial = Tiler(flattener = Tile.Flattener.Sorted(comparator = Int::compareTo)),
-                    operation = Tiler<Int, List<Int>>::add
+                    initial = Tiler(
+                        limiter = Tile.Limiter.List { false },
+                        flattener = Tile.Flattener.Sorted(comparator = Int::compareTo)
+                    ),
+                    operation = Tiler<Int, List<Int>, List<List<Int>>>::add
                 )
-                .items()
+                .output()
                 .flatten()
 
         assertEquals(
@@ -64,18 +67,16 @@ class TilerKtTest {
                 )
             }
                 .flatten()
-                + listOf(Tile.Output.TurnedOn(query = 4))
-                )
+                    + listOf(Tile.Output.TurnedOn(query = 4))
+                    )
                 .fold(
                     initial = Tiler(
-                        flattener = Tile.Flattener.PivotSorted(
-                            comparator = Int::compareTo,
-                            limiter = { items -> items.fold(0) { count, list -> count + list.size } >= 50 }
-                        )
+                        limiter = Tile.Limiter.List { items -> items.fold(0) { count, list -> count + list.size } >= 50 },
+                        flattener = Tile.Flattener.PivotSorted(comparator = Int::compareTo)
                     ),
-                    operation = Tiler<Int, List<Int>>::add
+                    operation = Tiler<Int, List<Int>, List<List<Int>>>::add
                 )
-                .items()
+                .output()
                 .flatten()
 
         assertEquals(

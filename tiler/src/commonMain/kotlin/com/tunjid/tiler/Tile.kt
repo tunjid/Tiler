@@ -43,11 +43,23 @@ data class Tile<Query, Item : Any?>(
      * Defines input parameters for the tiling functions [tiledList] and [tiledMap]
      */
     sealed interface Input<Query, Item> {
-        interface List<Query, Item> : Input<Query, Item>
-        interface Map<Query, Item> : Input<Query, Item>
-        interface Agnostic<Query, Item> : List<Query, Item>, Map<Query, Item>
+        /**
+         * Inputs that can only be used with the [tiledList] function
+         */
+        sealed interface List<Query, Item> : Input<Query, Item>
+        /**
+         * Inputs that can only be used with the [tiledMap] function
+         */
+        sealed interface Map<Query, Item> : Input<Query, Item>
+        /**
+         * Inputs that can be used with either the [tiledList] or [tiledMap] functions
+         */
+        sealed interface Agnostic<Query, Item> : List<Query, Item>, Map<Query, Item>
     }
 
+    /**
+     * [Tile.Input] type for managing data in the [tiledList] or [tiledMap] functions
+     */
     sealed class Request<Query, Item> : Input.Agnostic<Query, Item> {
         abstract val query: Query
 
@@ -73,11 +85,12 @@ data class Tile<Query, Item : Any?>(
         data class Evict<Query, Item>(override val query: Query) : Request<Query, Item>()
     }
 
-    sealed class Flattener<Query, Item> : Input<Query, Item>,
-            (Map<Query, Tile<Query, Item>>) -> List<Item> {
+    /**
+     * Describes the order of output items from the tiling functions
+     */
+    sealed class Flattener<Query, Item> : Input<Query, Item> {
 
         abstract val comparator: Comparator<Query>
-        abstract val metadata: Metadata<Query>
 
         /**
          * Items will be returned in an unspecified order; the order is whatever the iteration
@@ -85,61 +98,61 @@ data class Tile<Query, Item : Any?>(
          */
         internal data class Unspecified<Query, Item>(
             override val comparator: Comparator<Query> = Comparator { _, _ -> 0 },
-            override val metadata: Metadata<Query> = Metadata(),
         ) : Flattener<Query, Item>(), Input.Agnostic<Query, Item>
 
         /**
          * Sort items with the specified query [comparator].
-         * [limiter] can be used to select a subset of items instead of the whole set
          */
         data class Sorted<Query, Item>(
             override val comparator: Comparator<Query>,
-            override val metadata: Metadata<Query> = Metadata(),
-            val limiter: (List<Item>) -> Boolean = { false },
         ) : Flattener<Query, Item>(), Input.Agnostic<Query, Item>
 
         /**
          * Sort items with the specified [comparator] but pivoted around the last query a
          * [Tile.Request.On] was sent for. This allows for showing items that have more priority
          * over others in the current context
-         * [limiter] can be used to select a subset of items instead of the whole set
          */
         data class PivotSorted<Query, Item>(
             override val comparator: Comparator<Query>,
-            override val metadata: Metadata<Query> = Metadata(),
-            val limiter: (List<Item>) -> Boolean = { false },
         ) : Flattener<Query, Item>(), Input.Agnostic<Query, Item>
 
         /**
-         * Flattens tiled items produced whichever way you desire
+         * Flattens tiled items produced in to a [List] whichever way you desire
          */
-        data class Custom<Query, Item>(
+        data class CustomList<Query, Item>(
             override val comparator: Comparator<Query>,
-            override val metadata: Metadata<Query> = Metadata(),
             val transform: Metadata<Query>.(Map<Query, Tile<Query, Item>>) -> List<Item>,
-        ) : Flattener<Query, Item>()
+        ) : Flattener<Query, Item>(), Input.List<Query, Item>
 
-        override fun invoke(queryToTiles: Map<Query, Tile<Query, Item>>): List<Item> =
-            flatten(queryToTiles)
+        /**
+         * Flattens tiled items produced in to a [Map] whichever way you desire
+         */
+        data class CustomMap<Query, Item>(
+            override val comparator: Comparator<Query>,
+            val transform: Metadata<Query>.(Map<Query, Tile<Query, Item>>) -> Map<Query, Item>,
+        ) : Flattener<Query, Item>(), Input.Map<Query, Item>
     }
 
     /**
-     * Limits the output of the tiling functions
+     * Limits the output of the [tiledList] or [tiledMap] functions
      */
-    sealed class Limiter<Query, Item> : Input<Query, Item> {
+    sealed class Limiter<Query, Item, Output> : Input<Query, Item> {
         data class List<Query, Item>(
-            val limiter: (
+            val check: (
                 kotlin.collections.List<Item>
             ) -> Boolean
-        ) : Limiter<Query, Item>(), Input.List<Query, Item>
+        ) : Limiter<Query, Item, kotlin.collections.List<Item>>(), Input.List<Query, Item>
 
         data class Map<Query, Item>(
-            val limiter: (
+            val check: (
                 kotlin.collections.Map<Query, Item>
             ) -> Boolean
-        ) : Limiter<Query, Item>(), Input.Map<Query, Item>
+        ) : Limiter<Query, Item, kotlin.collections.Map<Query, Item>>(), Input.Map<Query, Item>
     }
 
+    /**
+     * Summary of changes that can occur as a result of tiling
+     */
     internal sealed class Output<Query, Item> {
         data class Data<Query, Item>(
             val query: Query,
@@ -148,6 +161,10 @@ data class Tile<Query, Item : Any?>(
 
         data class FlattenChange<Query, Item>(
             val flattener: Flattener<Query, Item>
+        ) : Output<Query, Item>()
+
+        data class LimiterChange<Query, Item>(
+            val limiter: Limiter<Query, Item, *>
         ) : Output<Query, Item>()
 
         data class Eviction<Query, Item>(
@@ -173,25 +190,34 @@ fun <Query, Item> Flow<Tile.Input.List<Query, Item>>.flattenWith(
 @FlowPreview
 @ExperimentalCoroutinesApi
 fun <Query, Item> tiledList(
+    limiter: Tile.Limiter.List<Query, Item> = Tile.Limiter.List { false },
     flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>> = { requests ->
-    tileFactory(flattener = flattener, fetcher = fetcher)
+    tileFactory(
+        limiter = limiter,
+        flattener = flattener,
+        fetcher = fetcher
+    )
         .invoke(requests)
-        .map(Tiler<Query, Item>::items)
+        .map(Tiler<Query, Item, List<Item>>::output)
 }
 
 /**
- * Converts a [Flow] of [Query] into a [Flow] of [List] [Item]
+ * Converts a [Flow] of [Query] into a [Flow] of [Map] [Query] to [Item]
  */
 @FlowPreview
 @ExperimentalCoroutinesApi
 fun <Query, Item> tiledMap(
+    limiter: Tile.Limiter.Map<Query, Item> = Tile.Limiter.Map { false },
+    flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile.Request<Query, Item>>) -> Flow<Map<Query, Item>> = { requests ->
-    tileFactory(flattener = Tile.Flattener.Unspecified(), fetcher = fetcher)
+    tileFactory(
+        limiter = limiter,
+        flattener = flattener,
+        fetcher = fetcher
+    )
         .invoke(requests)
-        .map { tiler ->
-            tiler.queryToTiles.mapValues { it.value.item }
-        }
+        .map(Tiler<Query, Item, Map<Query, Item>>::output)
 }

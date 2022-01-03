@@ -27,14 +27,15 @@ import kotlin.test.*
 @ExperimentalCoroutinesApi
 class TileKtTest {
 
-    private lateinit var tiler: (Flow<Tile.Input<Int, List<Int>>>) -> Flow<List<List<Int>>>
+    private lateinit var tiler: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>>
     private lateinit var tileFlowMap: MutableMap<Int, MutableStateFlow<List<Int>>>
 
     @BeforeTest
     @FlowPreview
     fun setUp() {
         tileFlowMap = mutableMapOf()
-        tiler = tiledList(flattener = Tile.Flattener.Sorted(Int::compareTo)) { page ->
+        tiler = tiledList(
+            flattener = Tile.Flattener.Sorted(Int::compareTo)) { page ->
             tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }
         }
     }
