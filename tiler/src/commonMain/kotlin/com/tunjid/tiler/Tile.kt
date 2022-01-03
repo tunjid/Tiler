@@ -39,16 +39,14 @@ data class Tile<Query, Item : Any?>(
         val mostRecentlyEmitted: Query? = null,
     )
 
+    /**
+     * Defines input parameters for the tiling functions [tiledList] and [tiledMap]
+     */
     sealed interface Input<Query, Item> {
         interface List<Query, Item> : Input<Query, Item>
         interface Map<Query, Item> : Input<Query, Item>
         interface Agnostic<Query, Item> : List<Query, Item>, Map<Query, Item>
     }
-
-//    sealed class Format<Item> {
-//        data class List<Item>(val limiter: (List<Item>) -> Boolean): Format<Item>()
-//        data class Map<Query, Item>(val limiter: (Map<Query, Item>) -> Boolean): Format<Item>()
-//    }
 
     sealed class Request<Query, Item> : Input.Agnostic<Query, Item> {
         abstract val query: Query
@@ -88,7 +86,7 @@ data class Tile<Query, Item : Any?>(
         internal data class Unspecified<Query, Item>(
             override val comparator: Comparator<Query> = Comparator { _, _ -> 0 },
             override val metadata: Metadata<Query> = Metadata(),
-        ) : Flattener<Query, Item>()
+        ) : Flattener<Query, Item>(), Input.Agnostic<Query, Item>
 
         /**
          * Sort items with the specified query [comparator].
@@ -98,7 +96,7 @@ data class Tile<Query, Item : Any?>(
             override val comparator: Comparator<Query>,
             override val metadata: Metadata<Query> = Metadata(),
             val limiter: (List<Item>) -> Boolean = { false },
-        ) : Flattener<Query, Item>()
+        ) : Flattener<Query, Item>(), Input.Agnostic<Query, Item>
 
         /**
          * Sort items with the specified [comparator] but pivoted around the last query a
@@ -110,7 +108,7 @@ data class Tile<Query, Item : Any?>(
             override val comparator: Comparator<Query>,
             override val metadata: Metadata<Query> = Metadata(),
             val limiter: (List<Item>) -> Boolean = { false },
-        ) : Flattener<Query, Item>()
+        ) : Flattener<Query, Item>(), Input.Agnostic<Query, Item>
 
         /**
          * Flattens tiled items produced whichever way you desire
@@ -125,6 +123,22 @@ data class Tile<Query, Item : Any?>(
             flatten(queryToTiles)
     }
 
+    /**
+     * Limits the output of the tiling functions
+     */
+    sealed class Limiter<Query, Item> : Input<Query, Item> {
+        data class List<Query, Item>(
+            val limiter: (
+                kotlin.collections.List<Item>
+            ) -> Boolean
+        ) : Limiter<Query, Item>(), Input.List<Query, Item>
+
+        data class Map<Query, Item>(
+            val limiter: (
+                kotlin.collections.Map<Query, Item>
+            ) -> Boolean
+        ) : Limiter<Query, Item>(), Input.Map<Query, Item>
+    }
 
     internal sealed class Output<Query, Item> {
         data class Data<Query, Item>(
@@ -149,8 +163,8 @@ data class Tile<Query, Item : Any?>(
 /**
  * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [List] of [Item]s
  */
-fun <Query, Item> Flow<Tile.Input<Query, Item>>.flattenWith(
-    transform: (Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>>
+fun <Query, Item> Flow<Tile.Input.List<Query, Item>>.flattenWith(
+    transform: (Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>>
 ): Flow<List<Item>> = transform(this)
 
 /**
