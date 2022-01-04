@@ -16,7 +16,8 @@
 
 package com.tunjid.demo.common.ui.numbers
 
-import android.graphics.Color
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import com.tunjid.demo.common.ui.numbers.Action.Load
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.Mutator
@@ -193,14 +194,14 @@ private fun interpolateColors(fraction: Float, startValue: Int, endValue: Int): 
 }
 
 private val colors = listOf(
-    Color.BLACK,
-    Color.BLUE,
-    Color.CYAN,
-    Color.DKGRAY,
-    Color.GRAY,
-    Color.GREEN,
-    Color.LTGRAY,
-    Color.MAGENTA,
-    Color.RED,
-    Color.YELLOW,
-)
+    Color.Black,
+    Color.Blue,
+    Color.Cyan,
+    Color.DarkGray,
+    Color.Gray,
+    Color.Green,
+    Color.LightGray,
+    Color.Magenta,
+    Color.Red,
+    Color.Yellow,
+).map(Color::toArgb)

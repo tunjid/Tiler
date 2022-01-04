@@ -36,4 +36,9 @@ pluginManagement {
     }
 }
 rootProject.name = "Tiler"
-include(":android", ":common", ":tiler")
+include(
+    ":tiler",
+    ":common",
+    ":android",
+    ":desktop",
+)

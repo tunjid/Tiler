@@ -9,7 +9,10 @@ are production tested, and should not be taken as anything more than its face va
 
 ## Introduction
 
-A Tiler is a pure function with an API most similar to a reactive `Map` where:
+Tiling is a kotlin multiplatform experiment for loading chunks of structured data from reactive
+sources.
+
+Tiling is achieved with a Tiler; a pure function with an API most similar to a reactive `Map` where:
 
 * The keys are queries for data
 * The values are dynamic sets of data returned over time as the result of the query key.
