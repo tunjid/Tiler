@@ -24,8 +24,8 @@ import com.tunjid.mutator.Mutator
 import com.tunjid.mutator.coroutines.stateFlowMutator
 import com.tunjid.mutator.coroutines.toMutationStream
 import com.tunjid.tiler.Tile
-import com.tunjid.tiler.flattenWith
 import com.tunjid.tiler.tiledList
+import com.tunjid.tiler.toTiledList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -125,12 +125,11 @@ private fun Flow<Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
 
             (toEvict + toTurnOff + toTurnOn).asFlow()
         }
-        .flattenWith(numberTiler())
+        .toTiledList(numberTiler())
 
 private fun Flow<Load>.pageChanges(): Flow<Pair<List<Int>, List<Int>>> =
     map { (page) -> listOf(page - 1, page, page + 1).filter { it >= 0 } }
         .scan(listOf<Int>() to listOf<Int>()) { pair, new ->
-            println(new)
             pair.copy(
                 first = pair.second,
                 second = new

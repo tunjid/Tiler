@@ -48,7 +48,7 @@ class TileKtTest {
 
         val emissions = requests
             .asFlow()
-            .flattenWith(listTiler)
+            .toTiledList(listTiler)
             .take(requests.size)
             .toList()
             .map(List<List<Int>>::flatten)
@@ -65,7 +65,7 @@ class TileKtTest {
         )
         val emissions = requests
             .asFlow()
-            .flattenWith(listTiler)
+            .toTiledList(listTiler)
             .take(requests.size)
             .toList()
             .map(List<List<Int>>::flatten)
@@ -93,7 +93,7 @@ class TileKtTest {
         )
         val emissions = requests
             .asFlow()
-            .flattenWith(listTiler)
+            .toTiledList(listTiler)
             .withIndex()
             .onEach { (index, _) ->
                 val request = requests[index].query
@@ -131,7 +131,7 @@ class TileKtTest {
         // Make this hot and shared eagerly to assert subscriptions are still held
         val emissions = requests
             .asFlow()
-            .flattenWith(listTiler)
+            .toTiledList(listTiler)
             .withIndex()
             .onEach { (index, _) ->
                 assertEquals(
@@ -161,7 +161,7 @@ class TileKtTest {
 
         val emissions = requests
             .asFlow()
-            .flattenWith(listTiler)
+            .toTiledList(listTiler)
             .take(1)
             .toList()
             .map(List<List<Int>>::flatten)
@@ -174,7 +174,7 @@ class TileKtTest {
         assertNull(withTimeoutOrNull(200) {
             requests
                 .asFlow()
-                .flattenWith(listTiler)
+                .toTiledList(listTiler)
                 .take(2)
                 .toList()
         })
@@ -191,7 +191,7 @@ class TileKtTest {
 
         val emissions = requests
             .asFlow()
-            .flattenWith(listTiler)
+            .toTiledList(listTiler)
             .take(requests.size)
             .toList()
             .map(List<List<Int>>::flatten)

@@ -178,11 +178,19 @@ data class Tile<Query, Item : Any?>(
 }
 
 /**
- * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [List] of [Item]s
+ * Convenience method to convert a [Flow] of [Tile.Input.List] to a [Flow] of a [List] of [Item]s
  */
-fun <Query, Item> Flow<Tile.Input.List<Query, Item>>.flattenWith(
+fun <Query, Item> Flow<Tile.Input.List<Query, Item>>.toTiledList(
     transform: (Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>>
 ): Flow<List<Item>> = transform(this)
+
+/**
+ * Convenience method to convert a [Flow] of [Tile.Input.Map] to a [Flow] of a [Map] of [Query] to
+ * [Item]s
+ */
+fun <Query, Item> Flow<Tile.Input.Map<Query, Item>>.toTiledMap(
+    transform: (Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>>
+): Flow<Map<Query, Item>> = transform(this)
 
 /**
  * Converts a [Flow] of [Query] into a [Flow] of [List] [Item]
