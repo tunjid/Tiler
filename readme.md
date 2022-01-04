@@ -17,9 +17,9 @@ A Tiler is a pure function with an API most similar to a reactive `Map` where:
 The output of a Tiler is either a snapshot of the `Map<Key, Value>` or a flattened `List<Value>`
 making a `Tiler` either a:
 
-* `(Flow<Tile.Input<Query, Item>>) -> Flow<List<Item>>`
+* `(Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>>`
 or
-* `(Flow<Tile.Request<Query, Item>>) -> Flow<Map<Query, Item>>`
+* `(Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>>`
 
 ## API surface
 
@@ -79,22 +79,25 @@ Requesting this is idempotent; multiple requests have no side effects.
 
 ### `Input.Flattener`
 
-Defines the heuristic for flattening tiled items into a list.
+Defines the heuristic for selecting tiled items into the output container.
 
 * Unspecified: Items will be returned in an undefined order. This is the default.
 
 * Sorted: Sort items with a specified query `comparator`.
-A `limiter` can be used to select a subset of items requested instead of the whole set.
 
 * PivotSorted: Sort items with the specified `comparator` but pivoted around the last query a
 `Tile.Request.On` was sent for. This allows for showing items that have more priority
 over others in the current context for example in a list being scrolled. In other words assume tiles
 have been fetched for queries 1 - 10 but a user can see pages 5 and 6. The UI need only to be aware
 of pages 4, 5, 6, and 7. This allows for a rolling window of queries based on a user's scroll position.
-A `limiter` can be used to select a subset of items instead of the whole set as defined by the
-rolling window defined above.
 
 * Custom: Flattens tiled items produced whichever way you desire.
+
+### `Input.Limiter`
+
+Can be used to select a subset of items tiled instead of the whole set. For example, assuming 1000 items
+have been fetched. There's no need to send a 1000 items to  the UI for diffing/display when the UI can only
+show about 30 at once. The `Limiter` allows for selecting an arbitrary amount of items as the situation demands.
 
 ### More complex uses
 
