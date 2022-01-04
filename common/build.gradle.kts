@@ -21,6 +21,9 @@ kotlin {
                 implementation(libs.compose.foundation.layout)
 
                 implementation(libs.kotlinx.coroutines.core)
+
+                implementation(libs.tunjid.mutator.core.common)
+                implementation(libs.tunjid.mutator.coroutines.common)
             }
         }
         all {

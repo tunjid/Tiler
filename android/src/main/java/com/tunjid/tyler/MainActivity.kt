@@ -20,8 +20,8 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.tunjid.tyler.numbers.NumberedTileList
-import com.tunjid.tyler.numbers.numberTilesMutator
+import com.tunjid.demo.common.ui.numbers.NumberedTileList
+import com.tunjid.demo.common.ui.numbers.numberTilesMutator
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

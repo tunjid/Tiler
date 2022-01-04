@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.tunjid.tyler.numbers
+package com.tunjid.demo.common.ui.numbers
 
 import android.graphics.Color
+import com.tunjid.demo.common.ui.numbers.Action.Load
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.Mutator
 import com.tunjid.mutator.coroutines.stateFlowMutator
@@ -62,7 +63,7 @@ fun numberTilesMutator(
     transform = { actionFlow ->
         actionFlow.toMutationStream {
             when (val action: Action = type()) {
-                is Action.Load -> merge(
+                is Load -> merge(
                     action.flow
                         .toNumberedTiles()
                         .map { items ->
@@ -97,7 +98,7 @@ private fun numberTiler() = tiledList(
     }
 )
 
-private fun Flow<Action.Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
+private fun Flow<Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
     pageChanges()
         .flatMapLatest { (oldPages, newPages) ->
             // Evict all items 10 pages behind the smallest page in the new request.
@@ -125,7 +126,7 @@ private fun Flow<Action.Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
         }
         .flattenWith(numberTiler())
 
-private fun Flow<Action.Load>.pageChanges(): Flow<Pair<List<Int>, List<Int>>> =
+private fun Flow<Load>.pageChanges(): Flow<Pair<List<Int>, List<Int>>> =
     map { (page) -> listOf(page - 1, page, page + 1).filter { it >= 0 } }
         .scan(listOf<Int>() to listOf<Int>()) { pair, new ->
             println(new)
