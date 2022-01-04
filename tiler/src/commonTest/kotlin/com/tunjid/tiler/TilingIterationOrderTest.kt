@@ -81,45 +81,47 @@ class ListMapTilingSamenessTest {
 
         assertSameness(
             (1.testRange + 3.testRange + 8.testRange).toList(),
-            emissions[3]
+            emissions[2]
         )
 
         assertSameness(
             (3.testRange + 8.testRange + 9.testRange).toList(),
-            emissions[4]
+            emissions[3]
         )
 
         assertSameness(
-            (1.testRange + 3.testRange + 4.testRange).toList(),
-            emissions[5]
+            (3.testRange + 4.testRange + 8.testRange).toList(),
+            emissions[4]
         )
     }
 }
 
 private fun assertSameness(expected: List<Int>, pair: Pair<List<Int>, List<Int>>) {
-    assertEquals(expected, pair.first)
-    assertEquals(expected, pair.second)
+    assertEquals(expected, pair.first, "Testing list iteration order")
+    assertEquals(expected, pair.second, "Testing map iteration order")
 }
 
 private fun Flow<Tile.Request<Int, List<Int>>>.zipWith(
     flattenerFactory: () -> Tile.Flattener<Int, List<Int>>
-): Flow<Pair<List<Int>, List<Int>>> = tiledList(
-    // Take 3 flattened sets
-    limiter = Tile.Limiter.List { it.size >= 30 },
-    flattener = flattenerFactory(),
-    fetcher = { page ->
-        flowOf(page.testRange.toList())
-    }).invoke(this)
-    .map { it.flatten() }
-    .zip(
-        other = tiledMap(
-            // Take 3 sets
-            limiter = Tile.Limiter.Map { it.size >= 33 },
-            flattener = flattenerFactory(),
-            fetcher = { page ->
-                flowOf(page.testRange.toList())
-            })
-            .invoke(this)
-            .map { it.flatMap { (_, values) -> values } },
-        transform = ::Pair
-    )
+): Flow<Pair<List<Int>, List<Int>>> {
+    val listTiled = tiledList(
+        // Take 3 flattened sets
+        limiter = Tile.Limiter.List { it.size >= 3 },
+        flattener = flattenerFactory(),
+        fetcher = { page ->
+            flowOf(page.testRange.toList())
+        }).invoke(this)
+        .map { it.flatten() }
+
+    val mapTiled = tiledMap(
+        // Take 3 sets
+        limiter = Tile.Limiter.Map { it.size >= 3 },
+        flattener = flattenerFactory(),
+        fetcher = { page ->
+            flowOf(page.testRange.toList())
+        })
+        .invoke(this)
+        .map { it.flatMap { (_, values) -> values } }
+
+    return listTiled.zip(mapTiled, ::Pair)
+}

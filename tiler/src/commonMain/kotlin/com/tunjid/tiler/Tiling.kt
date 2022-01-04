@@ -118,18 +118,19 @@ private fun <Query, Item> Map<Query, Tile<Query, Item>>.mapTiling(
 
             var leftIndex = startIndex
             var rightIndex = startIndex
-            val iterationOrder = mutableListOf<Query>()
+            var query = sortedQueries[startIndex]
+            val iterationOrder = mutableListOf(query)
             val result = mutableMapOf<Query, Item>()
-            result[sortedQueries[startIndex]] = queryToTiles.getValue(sortedQueries[startIndex]).item
+            result[query] = queryToTiles.getValue(query).item
 
             while (!limiter.check(result) && (leftIndex >= 0 || rightIndex <= sortedQueries.lastIndex)) {
                 if (--leftIndex >= 0) {
-                    val query = sortedQueries[leftIndex]
+                    query = sortedQueries[leftIndex]
                     iterationOrder.add(0, query)
                     result[query] = queryToTiles.getValue(query).item
                 }
                 if (++rightIndex <= sortedQueries.lastIndex) {
-                    val query = sortedQueries[rightIndex]
+                    query = sortedQueries[rightIndex]
                     iterationOrder.add(query)
                     result[query] = queryToTiles.getValue(query).item
                 }
@@ -172,11 +173,16 @@ private class OrderedMap<K, V>(
     override val keys: Set<K> by lazy { orderedKeys.toSet() }
     override val entries: Set<Map.Entry<K, V>> by lazy {
         orderedKeys.fold(mutableSetOf()) { set, key ->
-            set.add(object : Map.Entry<K, V> {
-                override val key: K = key
-                override val value: V = backing.getValue(key)
-            })
+            set.add(Entry(
+                key = key,
+                value = backing.getValue(key)
+            ))
             set
         }
     }
 }
+
+private data class Entry<K, V>(
+    override val key: K,
+    override val value: V
+) : Map.Entry<K, V>
