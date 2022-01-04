@@ -15,5 +15,25 @@
  */
 enableFeaturePreview("VERSION_CATALOGS")
 
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        google()
+    }
+
+    plugins {
+        val kotlinVersion = "1.6.10"
+        val agpVersion = "7.0.4"
+        val composeVersion = "1.0.1"
+
+        kotlin("jvm").version(kotlinVersion)
+        kotlin("multiplatform").version(kotlinVersion)
+        kotlin("android").version(kotlinVersion)
+        id("com.android.application").version(agpVersion)
+        id("com.android.library").version(agpVersion)
+        id("org.jetbrains.compose").version(composeVersion)
+    }
+}
 rootProject.name = "Tiler"
-include(":android", ":tiler")
+include(":android", ":common", ":tiler")
