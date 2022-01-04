@@ -37,10 +37,11 @@ import kotlinx.coroutines.flow.transformWhile
 
 @FlowPreview
 @ExperimentalCoroutinesApi
-internal fun <Query, Item> tileFactory(
+internal fun <Query, Item, Output> tileFactory(
+    limiter: Tile.Limiter<Query, Item, Output>,
     flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
-): (Flow<Tile.Input<Query, Item>>) -> Flow<Tiler<Query, Item>> = { requests ->
+): (Flow<Tile.Input<Query, Item>>) -> Flow<Tiler<Query, Item, Output>> = { requests ->
     requests
         .groupByQuery(fetcher)
         .flatMapMerge(
@@ -48,8 +49,8 @@ internal fun <Query, Item> tileFactory(
             transform = { it }
         )
         .scan(
-            initial = Tiler(flattener = flattener),
-            operation = Tiler<Query, Item>::add
+            initial = Tiler(limiter =  limiter, flattener = flattener),
+            operation = Tiler<Query, Item, Output>::add
         )
         .filter { it.shouldEmit }
 }
@@ -86,6 +87,8 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
                 }
                 else -> existingValve.push(input)
             }
+            is Tile.Limiter.List -> flowOf(Tile.Output.LimiterChange(limiter = input))
+            is Tile.Limiter.Map -> flowOf(Tile.Output.LimiterChange(limiter = input))
         }
     }
 }

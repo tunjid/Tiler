@@ -27,14 +27,15 @@ import kotlin.test.*
 @ExperimentalCoroutinesApi
 class TileKtTest {
 
-    private lateinit var tiler: (Flow<Tile.Input<Int, List<Int>>>) -> Flow<List<List<Int>>>
+    private lateinit var listTiler: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>>
     private lateinit var tileFlowMap: MutableMap<Int, MutableStateFlow<List<Int>>>
 
     @BeforeTest
     @FlowPreview
     fun setUp() {
         tileFlowMap = mutableMapOf()
-        tiler = tiledList(flattener = Tile.Flattener.Sorted(Int::compareTo)) { page ->
+        listTiler = tiledList(
+            flattener = Tile.Flattener.Sorted(Int::compareTo)) { page ->
             tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }
         }
     }
@@ -47,7 +48,7 @@ class TileKtTest {
 
         val emissions = requests
             .asFlow()
-            .flattenWith(tiler)
+            .flattenWith(listTiler)
             .take(requests.size)
             .toList()
             .map(List<List<Int>>::flatten)
@@ -64,7 +65,7 @@ class TileKtTest {
         )
         val emissions = requests
             .asFlow()
-            .flattenWith(tiler)
+            .flattenWith(listTiler)
             .take(requests.size)
             .toList()
             .map(List<List<Int>>::flatten)
@@ -92,7 +93,7 @@ class TileKtTest {
         )
         val emissions = requests
             .asFlow()
-            .flattenWith(tiler)
+            .flattenWith(listTiler)
             .withIndex()
             .onEach { (index, _) ->
                 val request = requests[index].query
@@ -130,7 +131,7 @@ class TileKtTest {
         // Make this hot and shared eagerly to assert subscriptions are still held
         val emissions = requests
             .asFlow()
-            .flattenWith(tiler)
+            .flattenWith(listTiler)
             .withIndex()
             .onEach { (index, _) ->
                 assertEquals(
@@ -160,7 +161,7 @@ class TileKtTest {
 
         val emissions = requests
             .asFlow()
-            .flattenWith(tiler)
+            .flattenWith(listTiler)
             .take(1)
             .toList()
             .map(List<List<Int>>::flatten)
@@ -173,7 +174,7 @@ class TileKtTest {
         assertNull(withTimeoutOrNull(200) {
             requests
                 .asFlow()
-                .flattenWith(tiler)
+                .flattenWith(listTiler)
                 .take(2)
                 .toList()
         })
@@ -190,7 +191,7 @@ class TileKtTest {
 
         val emissions = requests
             .asFlow()
-            .flattenWith(tiler)
+            .flattenWith(listTiler)
             .take(requests.size)
             .toList()
             .map(List<List<Int>>::flatten)
