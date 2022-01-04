@@ -80,10 +80,8 @@ fun numberTilesMutator(
 )
 
 private fun numberTiler() = tiledList(
-    flattener = Tile.Flattener.PivotSorted(
-        comparator = Int::compareTo,
-        limiter = { pages -> pages.size > 4 }
-    ),
+    limiter = Tile.Limiter.List { pages -> pages.size > 4 },
+    flattener = Tile.Flattener.PivotSorted(comparator = Int::compareTo),
     fetcher = { page: Int ->
         val start = page * 50
         val numbers = start.until(start + 50)
