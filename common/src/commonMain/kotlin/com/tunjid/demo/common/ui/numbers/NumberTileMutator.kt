@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.scan
+import kotlin.math.abs
 
 const val GridSize = 5
 
@@ -43,7 +44,7 @@ sealed class Action {
 
 data class State(
     val firstVisibleIndex: Int = -1,
-    val activePages: List<Int> = listOf(),
+    val loadSummary: String = "",
     val chunkedItems: List<List<Item>> = listOf()
 )
 
@@ -115,7 +116,9 @@ private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
         },
     loadMetadata()
         .map {
-            Mutation { copy(activePages = it.currentQueries) }
+            Mutation {
+                copy(loadSummary = "Active pages: ${it.currentQueries}\nPages in memory: ${it.inMemory.sorted()}")
+            }
         }
 )
 
@@ -178,7 +181,7 @@ private fun Flow<Action.Load>.loadMetadata(): Flow<LoadMetadata> =
             val toEvict = when (val min = currentQueries.minOrNull()) {
                 null -> listOf()
                 // Evict items more than 5 offset pages behind the min current query
-                else -> currentlyInMemory.filter { min - it > 5 }
+                else -> currentlyInMemory.filter { abs(min - it) > 5 }
             }
             existingQueries.copy(
                 previousQueries = existingQueries.currentQueries,

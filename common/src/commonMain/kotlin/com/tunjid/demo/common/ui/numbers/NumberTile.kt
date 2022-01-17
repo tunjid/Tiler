@@ -73,8 +73,8 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
     val state by mutator.state.collectAsState()
     val chunkedItems = state.chunkedItems
     val stickyHeader = state.stickyHeader
-    val activePulls: Flow<List<Int>> = remember {
-        mutator.state.map { it.activePages }.distinctUntilChanged()
+    val loadSummary: Flow<String> = remember {
+        mutator.state.map { it.loadSummary }.distinctUntilChanged()
     }
 
     val scaffoldState = rememberScaffoldState()
@@ -148,13 +148,13 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
     // to the prev job to manually cancel it.
     val coroutineScope = rememberCoroutineScope()
     var currentSnackbarJob by remember { mutableStateOf<Job?>(null) }
-    LaunchedEffect(activePulls, scaffoldState.snackbarHostState) {
-        activePulls
+    LaunchedEffect(loadSummary, scaffoldState.snackbarHostState) {
+        loadSummary
             .collect {
                 currentSnackbarJob?.cancel()
                 currentSnackbarJob = coroutineScope.launch {
                     scaffoldState.snackbarHostState.showSnackbar(
-                        message = "Active pulls: $it"
+                        message = it
                     )
                 }
             }
