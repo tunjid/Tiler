@@ -39,12 +39,14 @@ import kotlinx.coroutines.flow.scan
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
+val GridSize = 5
+
 data class State(
     val activePages: List<Int> = listOf(),
     val numbers: List<NumberTile> = listOf()
 )
 
-val State.chunkedTiles get() = numbers.chunked(3)
+val State.chunkedTiles get() = numbers.chunked(GridSize)
 
 sealed class Action {
     data class Load(val page: Int) : Action()

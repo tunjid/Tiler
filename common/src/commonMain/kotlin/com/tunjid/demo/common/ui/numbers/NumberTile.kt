@@ -145,7 +145,7 @@ private fun ChunkedNumberTiles(tiles: List<NumberTile>) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        for (i in 0..2) when (val tile = tiles.getOrNull(i)) {
+        for (i in 0 until GridSize) when (val tile = tiles.getOrNull(i)) {
             null -> Spacer(modifier = Modifier.weight(1F))
             else -> NumberTile(
                 modifier = Modifier.weight(1F),
