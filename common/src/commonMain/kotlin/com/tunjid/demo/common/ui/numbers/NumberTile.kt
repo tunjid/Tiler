@@ -46,8 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.tunjid.demo.common.ui.numbers.Item.Header
-import com.tunjid.demo.common.ui.numbers.Item.Tile
 import com.tunjid.mutator.Mutator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -80,13 +78,24 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
     val listState = rememberLazyListState()
 
     Scaffold(scaffoldState = scaffoldState) {
-        LazyColumn(state = listState) {
-            items(
-                items = chunkedItems,
-                key = { it.minOf(Item::key) },
-                itemContent = { ChunkedNumberTiles(tiles = it) }
-            )
-        }
+        StickyHeaderContainer(
+            listState = listState,
+            headerMatcher = { key ->
+                key is String && key.contains("header")
+            },
+            stickyHeader = {
+                HeaderItem(Item.Header(262532))
+            },
+            content = {
+                LazyColumn(state = listState) {
+                    items(
+                        items = chunkedItems,
+                        key = { it.minOf(Item::key) },
+                        itemContent = { ChunkedNumberTiles(tiles = it) }
+                    )
+                }
+            }
+        )
     }
 
     LaunchedEffect(true) {
@@ -150,23 +159,27 @@ private fun ChunkedNumberTiles(tiles: List<Item>) {
     ) {
         for (i in 0 until GridSize) when (val item = tiles.getOrNull(i)) {
             null -> Spacer(modifier = Modifier.weight(1F))
-            else -> when(item) {
-                is Header -> Text(
-                    modifier = Modifier
-                        .padding(
-                            vertical = 4.dp,
-                            horizontal = 8.dp
-                        )
-                        .weight(1F),
-                    text = "Page ${item.page}"
-                )
-                is Tile -> NumberTile(
+            else -> when (item) {
+                is Item.Header -> HeaderItem(item)
+                is Item.Tile -> NumberTile(
                     modifier = Modifier.weight(1F),
                     tile = item.numberTile
                 )
             }
         }
     }
+}
+
+@Composable
+private fun HeaderItem(item: Item.Header) {
+    Text(
+        modifier = Modifier
+            .padding(
+                vertical = 4.dp,
+                horizontal = 8.dp
+            ),
+        text = "Page ${item.page}"
+    )
 }
 
 @Composable
