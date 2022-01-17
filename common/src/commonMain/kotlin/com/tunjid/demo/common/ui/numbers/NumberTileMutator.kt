@@ -36,6 +36,11 @@ import kotlinx.coroutines.flow.scan
 
 const val GridSize = 5
 
+sealed class Action {
+    data class Load(val page: Int) : Action()
+    data class FirstVisibleIndexChanged(val index: Int) : Action()
+}
+
 data class State(
     val firstVisibleIndex: Int = -1,
     val activePages: List<Int> = listOf(),
@@ -63,17 +68,22 @@ sealed class Item(open val page: Int) {
         }
 }
 
-val Any.isStickyHeaderKey get() =  this is String && this.contains("header")
-
-sealed class Action {
-    data class Load(val page: Int) : Action()
-    data class FirstVisibleIndexChanged(val index: Int) : Action()
-}
+val Any.isStickyHeaderKey get() = this is String && this.contains("header")
 
 data class NumberTile(
     val number: Int,
     val color: Int,
     val page: Int
+)
+
+/**
+ * A summary of the loading queries in the app
+ */
+private data class LoadMetadata(
+    val previousQueries: List<Int> = listOf(),
+    val currentQueries: List<Int> = listOf(),
+    val toEvict: List<Int> = listOf(),
+    val inMemory: List<Int> = listOf(),
 )
 
 fun numberTilesMutator(
@@ -103,9 +113,9 @@ private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
                 copy(chunkedItems = chunked)
             }
         },
-    pageChanges()
-        .map { (_, activePages) ->
-            Mutation { copy(activePages = activePages) }
+    loadMetadata()
+        .map {
+            Mutation { copy(activePages = it.currentQueries) }
         }
 )
 
@@ -135,39 +145,45 @@ private fun numberTiler(): (Flow<Input.Map<Int, List<NumberTile>>>) -> Flow<Map<
     )
 
 private fun Flow<Action.Load>.toNumberedTiles(): Flow<Map<Int, List<NumberTile>>> =
-    pageChanges()
-        .flatMapLatest { (oldPages, newPages) ->
-            // Evict all items 10 pages behind the smallest page in the new request.
-            // Their backing flows will stop being collected, and their existing values will be
-            // evicted from memory
-            val toEvict: List<Tile.Request.Evict<Int, List<NumberTile>>> = (newPages.minOrNull()
-                ?.minus(10)
-                ?.downTo(0)
-                ?.take(10)
-                ?: listOf())
-                .map { Tile.Request.Evict(it) }
+    loadMetadata()
+        .flatMapLatest { (previousQueries, currentQueries, evictions) ->
+            // Turn on flows for the requested pages
+            val toTurnOn = currentQueries
+                .map { Tile.Request.On<Int, List<NumberTile>>(it) }
 
             // Turn off the flows for all old requests that are not in the new request batch
             // The existing emitted values will be kept in memory, but their backing flows
             // will stop being collected
-            val toTurnOff: List<Tile.Request.Off<Int, List<NumberTile>>> = oldPages
-                .filterNot(newPages::contains)
-                .map { Tile.Request.Off(it) }
+            val toTurnOff = previousQueries
+                .filterNot { currentQueries.contains(it) }
+                .map { Tile.Request.Off<Int, List<NumberTile>>(it) }
 
-            // Turn on flows for the requested pages
-            val toTurnOn: List<Tile.Request.On<Int, List<NumberTile>>> = newPages
-                .map { Tile.Request.On(it) }
+            // Evict all items 10 pages behind the smallest page in the new request.
+            // Their backing flows will stop being collected, and their existing values will be
+            // evicted from memory
+            val toEvict = evictions
+                .map { Tile.Request.Evict<Int, List<NumberTile>>(it) }
 
-            (toEvict + toTurnOff + toTurnOn).asFlow()
+            (toTurnOn + toTurnOff + toEvict).asFlow()
         }
         .toTiledMap(numberTiler())
 
-private fun Flow<Action.Load>.pageChanges(): Flow<Pair<List<Int>, List<Int>>> =
-    map { (page) -> listOf(page - 1, page, page + 1).filter { it >= 0 } }
-        .scan(listOf<Int>() to listOf<Int>()) { pair, new ->
-            pair.copy(
-                first = pair.second,
-                second = new
+private fun Flow<Action.Load>.loadMetadata(): Flow<LoadMetadata> =
+    distinctUntilChanged()
+        .map { (page) ->
+            listOf(page - 1, page + 1, page).filter { it >= 0 }
+        }
+        .scan(LoadMetadata()) { existingQueries, currentQueries ->
+            val currentlyInMemory = (existingQueries.inMemory + currentQueries).distinct()
+            val toEvict = when (val min = currentQueries.minOrNull()) {
+                null -> listOf()
+                // Evict items more than 5 offset pages behind the min current query
+                else -> currentlyInMemory.filter { min - it > 5 }
+            }
+            existingQueries.copy(
+                previousQueries = existingQueries.currentQueries,
+                currentQueries = currentQueries,
+                inMemory = currentlyInMemory - toEvict.toSet(),
+                toEvict = toEvict
             )
         }
-
