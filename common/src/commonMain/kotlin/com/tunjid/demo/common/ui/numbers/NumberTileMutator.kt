@@ -16,8 +16,6 @@
 
 package com.tunjid.demo.common.ui.numbers
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import com.tunjid.demo.common.ui.numbers.Action.Load
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.Mutator
@@ -27,19 +25,15 @@ import com.tunjid.tiler.Tile
 import com.tunjid.tiler.tiledList
 import com.tunjid.tiler.toTiledList
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.scan
-import kotlin.math.pow
-import kotlin.math.roundToInt
 
-val GridSize = 5
+const val GridSize = 5
 
 data class State(
     val activePages: List<Int> = listOf(),
@@ -138,71 +132,3 @@ private fun Flow<Load>.pageChanges(): Flow<Pair<List<Int>, List<Int>>> =
             )
         }
 
-private fun argbFlow(): Flow<Int> = flow {
-    var fraction = 0f
-    var colorIndex = 0
-    val colorsSize = colors.size
-
-    while (true) {
-        fraction += 0.05f
-        if (fraction > 1f) {
-            fraction = 0f
-            colorIndex++
-        }
-
-        emit(
-            interpolateColors(
-                fraction = fraction,
-                startValue = colors[colorIndex % colorsSize],
-                endValue = colors[(colorIndex + 1) % colorsSize]
-            )
-        )
-        delay(100)
-    }
-}
-
-private fun interpolateColors(fraction: Float, startValue: Int, endValue: Int): Int {
-    val startA = (startValue shr 24 and 0xff) / 255.0f
-    var startR = (startValue shr 16 and 0xff) / 255.0f
-    var startG = (startValue shr 8 and 0xff) / 255.0f
-    var startB = (startValue and 0xff) / 255.0f
-    val endA = (endValue shr 24 and 0xff) / 255.0f
-    var endR = (endValue shr 16 and 0xff) / 255.0f
-    var endG = (endValue shr 8 and 0xff) / 255.0f
-    var endB = (endValue and 0xff) / 255.0f
-
-    // convert from sRGB to linear
-    startR = startR.toDouble().pow(2.2).toFloat()
-    startG = startG.toDouble().pow(2.2).toFloat()
-    startB = startB.toDouble().pow(2.2).toFloat()
-    endR = endR.toDouble().pow(2.2).toFloat()
-    endG = endG.toDouble().pow(2.2).toFloat()
-    endB = endB.toDouble().pow(2.2).toFloat()
-
-    // compute the interpolated color in linear space
-    var a = startA + fraction * (endA - startA)
-    var r = startR + fraction * (endR - startR)
-    var g = startG + fraction * (endG - startG)
-    var b = startB + fraction * (endB - startB)
-
-    // convert back to sRGB in the [0..255] range
-    a = a * 255.0f
-    r = r.toDouble().pow(1.0 / 2.2).toFloat() * 255.0f
-    g = g.toDouble().pow(1.0 / 2.2).toFloat() * 255.0f
-    b = b.toDouble().pow(1.0 / 2.2).toFloat() * 255.0f
-
-    return a.roundToInt() shl 24 or (r.roundToInt() shl 16) or (g.roundToInt() shl 8) or b.roundToInt()
-}
-
-private val colors = listOf(
-    Color.Black,
-    Color.Blue,
-    Color.Cyan,
-    Color.DarkGray,
-    Color.Gray,
-    Color.Green,
-    Color.LightGray,
-    Color.Magenta,
-    Color.Red,
-    Color.Yellow,
-).map(Color::toArgb)
