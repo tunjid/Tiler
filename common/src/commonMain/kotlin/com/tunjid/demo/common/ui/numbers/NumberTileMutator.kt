@@ -21,8 +21,9 @@ import com.tunjid.mutator.Mutator
 import com.tunjid.mutator.coroutines.stateFlowMutator
 import com.tunjid.mutator.coroutines.toMutationStream
 import com.tunjid.tiler.Tile
-import com.tunjid.tiler.tiledList
-import com.tunjid.tiler.toTiledList
+import com.tunjid.tiler.Tile.Input
+import com.tunjid.tiler.tiledMap
+import com.tunjid.tiler.toTiledMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,10 +37,18 @@ const val GridSize = 5
 
 data class State(
     val activePages: List<Int> = listOf(),
-    val numbers: List<NumberTile> = listOf()
+    val chunkedItems: List<List<Item>> = listOf()
 )
 
-val State.chunkedTiles get() = numbers.chunked(GridSize)
+sealed class Item(open val page: Int) {
+    data class Tile(val numberTile: NumberTile) : Item(numberTile.page)
+    data class Header(override val page: Int) : Item(page)
+
+    val key get() = when(this) {
+        is Tile -> "tile-${numberTile.number}"
+        is Header -> "header-$page"
+    }
+}
 
 sealed class Action {
     data class Load(val page: Int) : Action()
@@ -67,8 +76,14 @@ fun numberTilesMutator(
 
 private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
     toNumberedTiles()
-        .map { items ->
-            Mutation { copy(numbers = items.flatten()) }
+        .map { pagesToTiles ->
+            Mutation {
+                val chunked: List<List<Item>> = pagesToTiles.flatMap { (page, numberTiles) ->
+                    listOf(listOf(Item.Header(page = page))) + numberTiles.map(Item::Tile)
+                        .chunked(GridSize)
+                }
+                copy(chunkedItems = chunked)
+            }
         },
     pageChanges()
         .map { (_, activePages) ->
@@ -76,25 +91,26 @@ private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
         }
 )
 
-private fun numberTiler() = tiledList(
-    limiter = Tile.Limiter.List { pages -> pages.size > 4 },
-    flattener = Tile.Flattener.PivotSorted(comparator = Int::compareTo),
-    fetcher = { page: Int ->
-        val start = page * 50
-        val numbers = start.until(start + 50)
-        argbFlow().map { color ->
-            numbers.map { number ->
-                NumberTile(
-                    number = number,
-                    color = color,
-                    page = page
-                )
+private fun numberTiler(): (Flow<Input.Map<Int, List<NumberTile>>>) -> Flow<Map<Int, List<NumberTile>>> =
+    tiledMap(
+        limiter = Tile.Limiter.Map { pages -> pages.size > 4 },
+        flattener = Tile.Flattener.PivotSorted(comparator = Int::compareTo),
+        fetcher = { page: Int ->
+            val start = page * 50
+            val numbers = start.until(start + 50)
+            argbFlow().map { color ->
+                numbers.map { number ->
+                    NumberTile(
+                        number = number,
+                        color = color,
+                        page = page
+                    )
+                }
             }
         }
-    }
-)
+    )
 
-private fun Flow<Action.Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
+private fun Flow<Action.Load>.toNumberedTiles(): Flow<Map<Int, List<NumberTile>>> =
     pageChanges()
         .flatMapLatest { (oldPages, newPages) ->
             // Evict all items 10 pages behind the smallest page in the new request.
@@ -120,7 +136,7 @@ private fun Flow<Action.Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
 
             (toEvict + toTurnOff + toTurnOn).asFlow()
         }
-        .toTiledList(numberTiler())
+        .toTiledMap(numberTiler())
 
 private fun Flow<Action.Load>.pageChanges(): Flow<Pair<List<Int>, List<Int>>> =
     map { (page) -> listOf(page - 1, page, page + 1).filter { it >= 0 } }
