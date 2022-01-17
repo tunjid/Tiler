@@ -28,6 +28,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
@@ -36,9 +37,17 @@ import kotlinx.coroutines.flow.scan
 const val GridSize = 5
 
 data class State(
+    val firstVisibleIndex: Int = -1,
     val activePages: List<Int> = listOf(),
     val chunkedItems: List<List<Item>> = listOf()
 )
+
+val State.stickyHeader: Item.Header?
+    get() = when (val item = chunkedItems.getOrNull(firstVisibleIndex)?.firstOrNull()) {
+        is Item.Tile -> Item.Header(page = item.page, color = item.numberTile.color)
+        is Item.Header -> item
+        null -> null
+    }
 
 sealed class Item(open val page: Int) {
     data class Tile(val numberTile: NumberTile) : Item(numberTile.page)
@@ -54,8 +63,11 @@ sealed class Item(open val page: Int) {
         }
 }
 
+val Any.isStickyHeaderKey get() =  this is String && this.contains("header")
+
 sealed class Action {
     data class Load(val page: Int) : Action()
+    data class FirstVisibleIndexChanged(val index: Int) : Action()
 }
 
 data class NumberTile(
@@ -73,6 +85,7 @@ fun numberTilesMutator(
         actionFlow.toMutationStream {
             when (val action: Action = type()) {
                 is Action.Load -> action.flow.loadMutations()
+                is Action.FirstVisibleIndexChanged -> action.flow.stickyHeaderMutations()
             }
         }
     }
@@ -95,6 +108,12 @@ private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
             Mutation { copy(activePages = activePages) }
         }
 )
+
+private fun Flow<Action.FirstVisibleIndexChanged>.stickyHeaderMutations(): Flow<Mutation<State>> =
+    distinctUntilChanged()
+        .map { (firstVisibleIndex) ->
+            Mutation { copy(firstVisibleIndex = firstVisibleIndex) }
+        }
 
 private fun numberTiler(): (Flow<Input.Map<Int, List<NumberTile>>>) -> Flow<Map<Int, List<NumberTile>>> =
     tiledMap(

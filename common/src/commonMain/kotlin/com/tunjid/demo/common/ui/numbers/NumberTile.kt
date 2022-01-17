@@ -46,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.tunjid.mutator.Mutator
 import kotlinx.coroutines.Job
@@ -55,6 +54,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
@@ -72,6 +72,7 @@ data class ScrollState(
 fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
     val state by mutator.state.collectAsState()
     val chunkedItems = state.chunkedItems
+    val stickyHeader = state.stickyHeader
     val activePulls: Flow<List<Int>> = remember {
         mutator.state.map { it.activePages }.distinctUntilChanged()
     }
@@ -82,11 +83,9 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
     Scaffold(scaffoldState = scaffoldState) {
         StickyHeaderContainer(
             listState = listState,
-            headerMatcher = { key ->
-                key is String && key.contains("header")
-            },
+            headerMatcher = Any::isStickyHeaderKey,
             stickyHeader = {
-                HeaderItem(Item.Header(262532, color = Color.Blue.toArgb()))
+                if (stickyHeader != null) HeaderItem(stickyHeader)
             },
             content = {
                 LazyColumn(state = listState) {
@@ -100,10 +99,20 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
         )
     }
 
+    // Load when this Composable enters the composition
     LaunchedEffect(true) {
         mutator.accept(Action.Load(0))
     }
 
+    // Keep the sticky headers in sync
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.firstOrNull()?.index }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect { mutator.accept(Action.FirstVisibleIndexChanged(index = it)) }
+    }
+
+    // Endless scrolling
     LaunchedEffect(listState, chunkedItems) {
         snapshotFlow {
             ScrollState(
