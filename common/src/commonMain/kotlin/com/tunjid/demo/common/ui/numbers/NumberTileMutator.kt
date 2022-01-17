@@ -16,7 +16,6 @@
 
 package com.tunjid.demo.common.ui.numbers
 
-import com.tunjid.demo.common.ui.numbers.Action.Load
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.Mutator
 import com.tunjid.mutator.coroutines.stateFlowMutator
@@ -60,21 +59,21 @@ fun numberTilesMutator(
     transform = { actionFlow ->
         actionFlow.toMutationStream {
             when (val action: Action = type()) {
-                is Load -> merge(
-                    action.flow
-                        .toNumberedTiles()
-                        .map { items ->
-                            Mutation { copy(numbers = items.flatten()) }
-                        },
-                    action.flow
-                        .pageChanges()
-                        .map { (_, activePages) ->
-                            Mutation { copy(activePages = activePages) }
-                        }
-                )
+                is Action.Load -> action.flow.loadMutations()
             }
         }
     }
+)
+
+private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
+    toNumberedTiles()
+        .map { items ->
+            Mutation { copy(numbers = items.flatten()) }
+        },
+    pageChanges()
+        .map { (_, activePages) ->
+            Mutation { copy(activePages = activePages) }
+        }
 )
 
 private fun numberTiler() = tiledList(
@@ -95,7 +94,7 @@ private fun numberTiler() = tiledList(
     }
 )
 
-private fun Flow<Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
+private fun Flow<Action.Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
     pageChanges()
         .flatMapLatest { (oldPages, newPages) ->
             // Evict all items 10 pages behind the smallest page in the new request.
@@ -123,7 +122,7 @@ private fun Flow<Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
         }
         .toTiledList(numberTiler())
 
-private fun Flow<Load>.pageChanges(): Flow<Pair<List<Int>, List<Int>>> =
+private fun Flow<Action.Load>.pageChanges(): Flow<Pair<List<Int>, List<Int>>> =
     map { (page) -> listOf(page - 1, page, page + 1).filter { it >= 0 } }
         .scan(listOf<Int>() to listOf<Int>()) { pair, new ->
             pair.copy(
