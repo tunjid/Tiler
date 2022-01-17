@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.tunjid.demo.common.ui.AppTheme
 import com.tunjid.demo.common.ui.numbers.NumberedTileList
 import com.tunjid.demo.common.ui.numbers.numberTilesMutator
 
@@ -36,11 +37,13 @@ fun main() {
             state = windowState,
             title = "Tiling Demo"
         ) {
-            val scope = rememberCoroutineScope()
-            val mutator = remember {
-                numberTilesMutator(scope = scope)
+            AppTheme {
+                val scope = rememberCoroutineScope()
+                val mutator = remember {
+                    numberTilesMutator(scope = scope)
+                }
+                NumberedTileList(mutator = mutator)
             }
-            NumberedTileList(mutator = mutator)
         }
     }
 }

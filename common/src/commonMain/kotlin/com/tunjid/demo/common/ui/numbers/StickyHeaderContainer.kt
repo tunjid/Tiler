@@ -42,12 +42,12 @@ fun StickyHeaderContainer(
     val headerOffsetDp = with(LocalDensity.current) { headerOffset.toDp() }
 
     Box(modifier = modifier) {
+        content()
         Box(
             modifier = Modifier.offset(y = headerOffsetDp)
         ) {
             stickyHeader()
         }
-        content()
     }
     LaunchedEffect(listState) {
         snapshotFlow {

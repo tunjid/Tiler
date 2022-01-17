@@ -42,12 +42,16 @@ data class State(
 
 sealed class Item(open val page: Int) {
     data class Tile(val numberTile: NumberTile) : Item(numberTile.page)
-    data class Header(override val page: Int) : Item(page)
+    data class Header(
+        override val page: Int,
+        val color: Int,
+    ) : Item(page)
 
-    val key get() = when(this) {
-        is Tile -> "tile-${numberTile.number}"
-        is Header -> "header-$page"
-    }
+    val key
+        get() = when (this) {
+            is Tile -> "tile-${numberTile.number}"
+            is Header -> "header-$page"
+        }
 }
 
 sealed class Action {
@@ -79,8 +83,9 @@ private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
         .map { pagesToTiles ->
             Mutation {
                 val chunked: List<List<Item>> = pagesToTiles.flatMap { (page, numberTiles) ->
-                    listOf(listOf(Item.Header(page = page))) + numberTiles.map(Item::Tile)
-                        .chunked(GridSize)
+                    val color = numberTiles.first().color
+                    val header = Item.Header(page = page, color = color)
+                    listOf(listOf(header)) + numberTiles.map(Item::Tile).chunked(GridSize)
                 }
                 copy(chunkedItems = chunked)
             }

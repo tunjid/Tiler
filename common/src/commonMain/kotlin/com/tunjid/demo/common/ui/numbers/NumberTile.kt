@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ButtonDefaults.buttonColors
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.rememberScaffoldState
@@ -45,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.tunjid.mutator.Mutator
 import kotlinx.coroutines.Job
@@ -84,7 +86,7 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
                 key is String && key.contains("header")
             },
             stickyHeader = {
-                HeaderItem(Item.Header(262532))
+                HeaderItem(Item.Header(262532, color = Color.Blue.toArgb()))
             },
             content = {
                 LazyColumn(state = listState) {
@@ -172,13 +174,21 @@ private fun ChunkedNumberTiles(tiles: List<Item>) {
 
 @Composable
 private fun HeaderItem(item: Item.Header) {
-    Text(
-        modifier = Modifier
-            .padding(
-                vertical = 4.dp,
-                horizontal = 8.dp
-            ),
-        text = "Page ${item.page}"
+    Button(
+        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+        border = BorderStroke(width = 2.dp, color = Color(item.color)),
+        colors = buttonColors(backgroundColor = MaterialTheme.colors.surface),
+        onClick = { /*TODO*/ },
+        content = {
+            Text(
+                modifier = Modifier
+                    .padding(
+                        vertical = 4.dp,
+                        horizontal = 8.dp
+                    ),
+                text = "Page ${item.page}"
+            )
+        }
     )
 }
 
@@ -193,7 +203,7 @@ private fun NumberTile(
             .scale(0.9f),
         elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
         border = BorderStroke(width = 2.dp, color = Color(tile.color)),
-        colors = buttonColors(backgroundColor = Color.Transparent),
+        colors = buttonColors(backgroundColor = MaterialTheme.colors.surface),
         onClick = { /*TODO*/ },
         content = { Text(text = tile.number.toString(), color = Color(tile.color)) }
     )
