@@ -24,6 +24,13 @@ making a `Tiler` either a:
 or
 * `(Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>>`
 
+
+## Demo
+
+The demo app is cheekily implemented as a grid of tiles with dynamic colors:
+
+![Demo image](https://github.com/tunjid/tiler/blob/develop/misc/demo.gif)
+
 ## API surface
 
 ### Getting your data
