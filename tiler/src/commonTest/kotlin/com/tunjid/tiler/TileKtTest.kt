@@ -36,7 +36,7 @@ class TileKtTest {
     fun setUp() {
         tileFlowMap = mutableMapOf()
         listTiler = tiledList(
-            flattener = Tile.Flattener.Sorted(Int::compareTo)
+            order = Tile.Order.Sorted(Int::compareTo)
         ) { page ->
             tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }
         }
@@ -280,7 +280,7 @@ class TileKtTest {
             )
 
             // Reverse sort by page
-            requests.emit(Tile.Flattener.Sorted(comparator = Comparator<Int>(Int::compareTo).reversed()))
+            requests.emit(Tile.Order.Sorted(comparator = Comparator<Int>(Int::compareTo).reversed()))
             assertEquals(
                 (8.testRange + 3.testRange + 1.testRange).toList(),
                 awaitItem().flatten()
@@ -301,7 +301,7 @@ class TileKtTest {
             )
 
             // Sort ascending
-            requests.emit(Tile.Flattener.Sorted(comparator = Comparator(Int::compareTo)))
+            requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
             assertEquals(
                 (1.testRange + 3.testRange + 8.testRange).toList(),
                 awaitItem().flatten()
@@ -315,16 +315,16 @@ class TileKtTest {
             )
 
             // Sort ascending pivoted around most recently requested (4)
-            requests.emit(Tile.Flattener.PivotSorted(comparator = Comparator(Int::compareTo)))
+            requests.emit(Tile.Order.PivotSorted(comparator = Comparator(Int::compareTo)))
             assertEquals(
                 (3.testRange + 4.testRange + 8.testRange).toList(),
                 awaitItem().flatten()
             )
 
             // Sort ascending in absolute terms
-            requests.emit(Tile.Flattener.Sorted(comparator = Comparator(Int::compareTo)))
+            requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
             assertEquals(
-                (1.testRange + 3.testRange + 8.testRange).toList(),
+                (1.testRange + 3.testRange + 4.testRange).toList(),
                 awaitItem().flatten()
             )
 

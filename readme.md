@@ -37,7 +37,7 @@ The demo app is cheekily implemented as a grid of tiles with dynamic colors:
 
 Tilers are implemented as plain functions. Given a `Flow` of `Input`, you can either choose to get your data as:
 
-* A flattened `Flow<List<Item>>` with `tiledList`
+* A `Flow<List<Item>>` with `tiledList`
 * A `Flow<Map<Query, Item>>` with `tiledMap`
 
 In the simplest case given a `MutableStateFlow<Tile.Request<Int, List<Int>>` one can write:
@@ -45,10 +45,10 @@ In the simplest case given a `MutableStateFlow<Tile.Request<Int, List<Int>>` one
 ```kotlin
 class NumberFetcher {
     private val requests =
-        MutableStateFlow<Tile.Request<Int, List<Int>>>(Tile.Request.On(query = 0))
+        MutableStateFlow<Tile.Input.List<Int, List<Int>>>(Tile.Request.On(query = 0))
 
     private val tiledList: (Flow<Tile.Input<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
-        flattener = Tile.Flattener.Sorted(comparator = Int::compareTo),
+        order = Tile.Order.Sorted(comparator = Int::compareTo),
         fetcher = { page ->
             val start = page * 50
             val numbers = start.until(start + 50)
@@ -69,7 +69,7 @@ The above will return a full list of every item requested sorted in ascending or
 Note that in the above, the list will grow indefinitely as more tiles are requested unless queries are evicted.
 This may be fine for small lists, but as the list size grows, some items may need to be evicted and
 only a small subset of items need to be presented to the UI. This sort of behavior can be achieved using
-the `Evict` `Request`, and the `PivotSorted` `Flattener` covered below.
+the `Evict` `Request`, and the `PivotSorted` `Order` covered below.
 
 ### Managing requested data
 
@@ -87,7 +87,7 @@ Requesting this is idempotent; multiple requests have no side effects.
 the items previously fetched by the `query` from memory.
 Requesting this is idempotent; multiple requests have no side effects.
 
-### `Input.Flattener`
+### `Input.Order`
 
 Defines the heuristic for selecting tiled items into the output container.
 
@@ -118,7 +118,7 @@ those further than a certain page count away.
 ```kotlin
 class ManagedNumberFetcher {
     private val requests =
-        MutableStateFlow<Tile.Request.On<Int, List<Int>>>(Tile.Request.On(query = 0))
+        MutableStateFlow<Tile.Input.List<Int, List<Int>>>(Tile.Request.On(query = 0))
 
     val managedRequests = requests
         .map { (page) -> listOf(page - 1, page, page + 1).filter { it >= 0 } }
@@ -153,8 +153,8 @@ class ManagedNumberFetcher {
             (toEvict + toTurnOff + toTurnOn).asFlow()
         }
 
-    private val tiledList: (Flow<Tile.Input<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
-        flattener = Tile.Flattener.Sorted(comparator = Int::compareTo),
+    private val tiledList: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
+        order = Tile.Order.Sorted(comparator = Int::compareTo),
         fetcher = { page ->
             val start = page * 50
             val numbers = start.until(start + 50)

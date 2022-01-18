@@ -39,7 +39,7 @@ import kotlinx.coroutines.flow.transformWhile
 @ExperimentalCoroutinesApi
 internal fun <Query, Item, Output> tileFactory(
     limiter: Tile.Limiter<Query, Item, Output>,
-    flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
+    order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile.Input<Query, Item>>) -> Flow<Tiler<Query, Item, Output>> = { requests ->
     requests
@@ -49,7 +49,7 @@ internal fun <Query, Item, Output> tileFactory(
             transform = { it }
         )
         .scan(
-            initial = Tiler(limiter = limiter, flattener = flattener),
+            initial = Tiler(limiter = limiter, order = order),
             operation = Tiler<Query, Item, Output>::add
         )
         .filter { it.shouldEmit }
@@ -70,8 +70,8 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
 
     this@groupByQuery.collect { input ->
         when (input) {
-            is Tile.Flattener -> this@channelFlow.channel.send(
-                flowOf(Tile.Output.FlattenChange(flattener = input))
+            is Tile.Order -> this@channelFlow.channel.send(
+                flowOf(Tile.Output.FlattenChange(order = input))
             )
             is Tile.Request.Evict -> {
                 queriesToValves[input.query]?.push?.invoke(input)

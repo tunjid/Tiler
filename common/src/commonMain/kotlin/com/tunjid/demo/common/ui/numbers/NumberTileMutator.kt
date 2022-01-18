@@ -146,7 +146,7 @@ private fun Flow<Action.FirstVisibleIndexChanged>.stickyHeaderMutations(): Flow<
 private fun numberTiler(): (Flow<Input.Map<Int, List<NumberTile>>>) -> Flow<Map<Int, List<NumberTile>>> =
     tiledMap(
         limiter = Tile.Limiter.Map { pages -> pages.size > 4 },
-        flattener = Tile.Flattener.PivotSorted(comparator = ascendingPageComparator),
+        order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
         fetcher = { page: Int ->
             val start = page * 50
             val numbers = start.until(start + 50)
@@ -183,7 +183,7 @@ private fun Flow<Action.Load>.toNumberedTiles(): Flow<Map<Int, List<NumberTile>>
                 .map { Tile.Request.Evict<Int, List<NumberTile>>(it) }
 
             val comparison = listOfNotNull(
-                comparator?.let { Tile.Flattener.PivotSorted<Int, List<NumberTile>>(it) }
+                comparator?.let { Tile.Order.PivotSorted<Int, List<NumberTile>>(it) }
             )
 
             (toTurnOn + toTurnOff + toEvict + comparison).asFlow()

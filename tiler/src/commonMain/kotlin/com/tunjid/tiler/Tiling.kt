@@ -19,45 +19,45 @@ package com.tunjid.tiler
 @Suppress("UNCHECKED_CAST")
 internal fun <Query, Item, Output> Map<Query, Tile<Query, Item>>.tileWith(
     metadata: Tile.Metadata<Query>,
-    flattener: Tile.Flattener<Query, Item>,
+    order: Tile.Order<Query, Item>,
     limiter: Tile.Limiter<Query, Item, Output>
 ): Output = when (limiter) {
     is Tile.Limiter.List -> listTiling(
         metadata = metadata,
-        flattener = flattener,
+        order = order,
         limiter = limiter
     ) as Output
     is Tile.Limiter.Map -> mapTiling(
         metadata = metadata,
-        flattener = flattener,
+        order = order,
         limiter = limiter
     ) as Output
 }
 
 private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
     metadata: Tile.Metadata<Query>,
-    flattener: Tile.Flattener<Query, Item>,
+    order: Tile.Order<Query, Item>,
     limiter: Tile.Limiter.List<Query, Item>
 ): List<Item> {
     val queryToTiles = this
     val sortedQueries = metadata.sortedQueries
 
-    return when (flattener) {
-        is Tile.Flattener.Unspecified -> queryToTiles.keys
+    return when (order) {
+        is Tile.Order.Unspecified -> queryToTiles.keys
             .foldWhile(mutableListOf(), limiter.check) { list, query ->
                 list.add(element = queryToTiles.getValue(query).item)
                 list
             }
-        is Tile.Flattener.Sorted -> sortedQueries
+        is Tile.Order.Sorted -> sortedQueries
             .foldWhile(mutableListOf(), limiter.check) { list, query ->
                 list.add(element = queryToTiles.getValue(query).item)
                 list
             }
-        is Tile.Flattener.PivotSorted -> {
+        is Tile.Order.PivotSorted -> {
             if (sortedQueries.isEmpty()) return emptyList()
 
             val mostRecentQuery: Query = metadata.mostRecentlyTurnedOn ?: return emptyList()
-            val startIndex = sortedQueries.binarySearch(mostRecentQuery, flattener.comparator)
+            val startIndex = sortedQueries.binarySearch(mostRecentQuery, order.comparator)
 
             if (startIndex < 0) return emptyList()
 
@@ -76,9 +76,9 @@ private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
             }
             result
         }
-        is Tile.Flattener.CustomList -> flattener.transform(metadata, queryToTiles)
+        is Tile.Order.CustomList -> order.transform(metadata, queryToTiles)
         // This should be an impossible state to reach using the external API
-        is Tile.Flattener.CustomMap -> throw IllegalArgumentException(
+        is Tile.Order.CustomMap -> throw IllegalArgumentException(
             """
             Cannot flatten into a List using CustomMap. 
         """.trimIndent()
@@ -87,32 +87,32 @@ private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
 }
 
 /**
- * Produces a [Map] that adheres to the semantics of the specified [flattener]
+ * Produces a [Map] that adheres to the semantics of the specified [order]
  */
 private fun <Query, Item> Map<Query, Tile<Query, Item>>.mapTiling(
     metadata: Tile.Metadata<Query>,
-    flattener: Tile.Flattener<Query, Item>,
+    order: Tile.Order<Query, Item>,
     limiter: Tile.Limiter.Map<Query, Item>
 ): Map<Query, Item> {
     val queryToTiles = this
     val sortedQueries = metadata.sortedQueries
 
-    return when (flattener) {
-        is Tile.Flattener.Unspecified -> queryToTiles.keys
+    return when (order) {
+        is Tile.Order.Unspecified -> queryToTiles.keys
             .foldWhile(mutableMapOf(), limiter.check) { map, query ->
                 map[query] = queryToTiles.getValue(query).item
                 map
             }
-        is Tile.Flattener.Sorted -> sortedQueries
+        is Tile.Order.Sorted -> sortedQueries
             .foldWhile(mutableMapOf(), limiter.check) { map, query ->
                 map[query] = queryToTiles.getValue(query).item
                 map
             }
-        is Tile.Flattener.PivotSorted -> {
+        is Tile.Order.PivotSorted -> {
             if (sortedQueries.isEmpty()) return emptyMap()
 
             val mostRecentQuery: Query = metadata.mostRecentlyTurnedOn ?: return emptyMap()
-            val startIndex = sortedQueries.binarySearch(mostRecentQuery, flattener.comparator)
+            val startIndex = sortedQueries.binarySearch(mostRecentQuery, order.comparator)
 
             if (startIndex < 0) return emptyMap()
 
@@ -141,12 +141,12 @@ private fun <Query, Item> Map<Query, Tile<Query, Item>>.mapTiling(
             )
         }
         // This should be an impossible state to reach using the external API
-        is Tile.Flattener.CustomList -> throw IllegalArgumentException(
+        is Tile.Order.CustomList -> throw IllegalArgumentException(
             """
             Cannot flatten into a Map using CustomList. 
         """.trimIndent()
         )
-        is Tile.Flattener.CustomMap -> flattener.transform(metadata, queryToTiles)
+        is Tile.Order.CustomMap -> order.transform(metadata, queryToTiles)
     }
 }
 

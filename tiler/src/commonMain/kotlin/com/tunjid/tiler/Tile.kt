@@ -88,7 +88,7 @@ data class Tile<Query, Item : Any?>(
     /**
      * Describes the order of output items from the tiling functions
      */
-    sealed class Flattener<Query, Item> : Input<Query, Item> {
+    sealed class Order<Query, Item> : Input<Query, Item> {
 
         abstract val comparator: Comparator<Query>
 
@@ -98,14 +98,14 @@ data class Tile<Query, Item : Any?>(
          */
         internal data class Unspecified<Query, Item>(
             override val comparator: Comparator<Query> = Comparator { _, _ -> 0 },
-        ) : Flattener<Query, Item>(), Input.Agnostic<Query, Item>
+        ) : Order<Query, Item>(), Input.Agnostic<Query, Item>
 
         /**
          * Sort items with the specified query [comparator].
          */
         data class Sorted<Query, Item>(
             override val comparator: Comparator<Query>,
-        ) : Flattener<Query, Item>(), Input.Agnostic<Query, Item>
+        ) : Order<Query, Item>(), Input.Agnostic<Query, Item>
 
         /**
          * Sort items with the specified [comparator] but pivoted around the last query a
@@ -114,7 +114,7 @@ data class Tile<Query, Item : Any?>(
          */
         data class PivotSorted<Query, Item>(
             override val comparator: Comparator<Query>,
-        ) : Flattener<Query, Item>(), Input.Agnostic<Query, Item>
+        ) : Order<Query, Item>(), Input.Agnostic<Query, Item>
 
         /**
          * Flattens tiled items produced in to a [List] whichever way you desire
@@ -122,7 +122,7 @@ data class Tile<Query, Item : Any?>(
         data class CustomList<Query, Item>(
             override val comparator: Comparator<Query>,
             val transform: Metadata<Query>.(Map<Query, Tile<Query, Item>>) -> List<Item>,
-        ) : Flattener<Query, Item>(), Input.List<Query, Item>
+        ) : Order<Query, Item>(), Input.List<Query, Item>
 
         /**
          * Flattens tiled items produced in to a [Map] whichever way you desire
@@ -130,7 +130,7 @@ data class Tile<Query, Item : Any?>(
         data class CustomMap<Query, Item>(
             override val comparator: Comparator<Query>,
             val transform: Metadata<Query>.(Map<Query, Tile<Query, Item>>) -> Map<Query, Item>,
-        ) : Flattener<Query, Item>(), Input.Map<Query, Item>
+        ) : Order<Query, Item>(), Input.Map<Query, Item>
     }
 
     /**
@@ -160,7 +160,7 @@ data class Tile<Query, Item : Any?>(
         ) : Output<Query, Item>()
 
         data class FlattenChange<Query, Item>(
-            val flattener: Flattener<Query, Item>
+            val order: Order<Query, Item>
         ) : Output<Query, Item>()
 
         data class LimiterChange<Query, Item>(
@@ -199,12 +199,12 @@ fun <Query, Item> Flow<Tile.Input.Map<Query, Item>>.toTiledMap(
 @ExperimentalCoroutinesApi
 fun <Query, Item> tiledList(
     limiter: Tile.Limiter.List<Query, Item> = Tile.Limiter.List { false },
-    flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
+    order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>> = { requests ->
     tileFactory(
         limiter = limiter,
-        flattener = flattener,
+        order = order,
         fetcher = fetcher
     )
         .invoke(requests)
@@ -218,12 +218,12 @@ fun <Query, Item> tiledList(
 @ExperimentalCoroutinesApi
 fun <Query, Item> tiledMap(
     limiter: Tile.Limiter.Map<Query, Item> = Tile.Limiter.Map { false },
-    flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
+    order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>> = { requests ->
     tileFactory(
         limiter = limiter,
-        flattener = flattener,
+        order = order,
         fetcher = fetcher
     )
         .invoke(requests)
