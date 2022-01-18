@@ -16,6 +16,7 @@
 
 package com.tunjid.tiler
 
+import app.cash.turbine.test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -35,7 +36,8 @@ class TileKtTest {
     fun setUp() {
         tileFlowMap = mutableMapOf()
         listTiler = tiledList(
-            flattener = Tile.Flattener.Sorted(Int::compareTo)) { page ->
+            flattener = Tile.Flattener.Sorted(Int::compareTo)
+        ) { page ->
             tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }
         }
     }
@@ -222,8 +224,8 @@ class TileKtTest {
             Tile.Request.On(query = 8),
         )
 
-        val emissions = tiledMap<Int, List<Int>> {
-                page -> flowOf(page.testRange.toList())
+        val emissions = tiledMap<Int, List<Int>> { page ->
+            flowOf(page.testRange.toList())
         }
             .invoke(requests.asFlow())
             .take(requests.size)
@@ -248,5 +250,85 @@ class TileKtTest {
             ),
             emissions[2]
         )
+    }
+
+    @Test
+    fun `items limits and sorting can be changed on the fly`() = runTest {
+        val requests = MutableSharedFlow<Tile.Input.List<Int, List<Int>>>()
+        val items = requests.toTiledList(listTiler)
+
+        items.test {
+            // Request page 1
+            requests.emit(Tile.Request.On(query = 1))
+            assertEquals(
+                1.testRange.toList(),
+                awaitItem().flatten()
+            )
+
+            // Request page 3
+            requests.emit(Tile.Request.On(query = 3))
+            assertEquals(
+                (1.testRange + 3.testRange).toList(),
+                awaitItem().flatten()
+            )
+
+            // Request page 8
+            requests.emit(Tile.Request.On(query = 8))
+            assertEquals(
+                (1.testRange + 3.testRange + 8.testRange).toList(),
+                awaitItem().flatten()
+            )
+
+            // Reverse sort by page
+            requests.emit(Tile.Flattener.Sorted(comparator = Comparator<Int>(Int::compareTo).reversed()))
+            assertEquals(
+                (8.testRange + 3.testRange + 1.testRange).toList(),
+                awaitItem().flatten()
+            )
+
+            // Limit results to 2 pages
+            requests.emit(Tile.Limiter.List(check = { it.size >= 2 }))
+            assertEquals(
+                (8.testRange + 3.testRange).toList(),
+                awaitItem().flatten()
+            )
+
+            // Limit results to 3 pages
+            requests.emit(Tile.Limiter.List(check = { it.size >= 3 }))
+            assertEquals(
+                (8.testRange + 3.testRange + 1.testRange).toList(),
+                awaitItem().flatten()
+            )
+
+            // Sort ascending
+            requests.emit(Tile.Flattener.Sorted(comparator = Comparator(Int::compareTo)))
+            assertEquals(
+                (1.testRange + 3.testRange + 8.testRange).toList(),
+                awaitItem().flatten()
+            )
+
+            // Request 4
+            requests.emit(Tile.Request.On(query = 4))
+            assertEquals(
+                (1.testRange + 3.testRange + 4.testRange).toList(),
+                awaitItem().flatten()
+            )
+
+            // Sort ascending pivoted around most recently requested (4)
+            requests.emit(Tile.Flattener.PivotSorted(comparator = Comparator(Int::compareTo)))
+            assertEquals(
+                (3.testRange + 4.testRange + 8.testRange).toList(),
+                awaitItem().flatten()
+            )
+
+            // Sort ascending in absolute terms
+            requests.emit(Tile.Flattener.Sorted(comparator = Comparator(Int::compareTo)))
+            assertEquals(
+                (1.testRange + 3.testRange + 8.testRange).toList(),
+                awaitItem().flatten()
+            )
+
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

@@ -71,6 +71,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.cashapp.turbine)
             }
         }
         val jvmMain by getting
