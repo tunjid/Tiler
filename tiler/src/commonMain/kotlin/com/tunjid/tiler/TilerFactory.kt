@@ -17,8 +17,6 @@
 package com.tunjid.tiler
 
 import com.tunjid.utilities.epochMillis
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.channelFlow
@@ -35,9 +33,7 @@ import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.transformWhile
 
-@FlowPreview
-@ExperimentalCoroutinesApi
-internal fun <Query, Item, Output> tileFactory(
+internal fun <Query, Item, Output> tilerFactory(
     limiter: Tile.Limiter<Query, Item, Output>,
     order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
@@ -62,7 +58,6 @@ internal fun <Query, Item, Output> tileFactory(
  * Each [Tile.Input] is mapped to an instance of an [InputValve] which manages the lifecycle
  * of the resultant [Flow].
  */
-@ExperimentalCoroutinesApi
 private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
     fetcher: suspend (Query) -> Flow<Item>
 ): Flow<Flow<Tile.Output<Query, Item>>> = channelFlow channelFlow@{
@@ -115,7 +110,6 @@ private class InputValve<Query, Item>(
         mutableSharedFlow.emit(request)
     }
 
-    @ExperimentalCoroutinesApi
     val flow: Flow<Tile.Output<Query, Item>> = mutableSharedFlow
         .onSubscription { emit(Tile.Request.On(query = query)) }
         .distinctUntilChanged()

@@ -16,8 +16,6 @@
 
 package com.tunjid.tiler
 
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -195,14 +193,12 @@ fun <Query, Item> Flow<Tile.Input.Map<Query, Item>>.toTiledMap(
 /**
  * Converts a [Flow] of [Query] into a [Flow] of [List] [Item]
  */
-@FlowPreview
-@ExperimentalCoroutinesApi
 fun <Query, Item> tiledList(
     limiter: Tile.Limiter.List<Query, Item> = Tile.Limiter.List { false },
     order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>> = { requests ->
-    tileFactory(
+    tilerFactory(
         limiter = limiter,
         order = order,
         fetcher = fetcher
@@ -214,14 +210,12 @@ fun <Query, Item> tiledList(
 /**
  * Converts a [Flow] of [Query] into a [Flow] of [Map] [Query] to [Item]
  */
-@FlowPreview
-@ExperimentalCoroutinesApi
 fun <Query, Item> tiledMap(
     limiter: Tile.Limiter.Map<Query, Item> = Tile.Limiter.Map { false },
     order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
 ): (Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>> = { requests ->
-    tileFactory(
+    tilerFactory(
         limiter = limiter,
         order = order,
         fetcher = fetcher

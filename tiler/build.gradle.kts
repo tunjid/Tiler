@@ -78,6 +78,13 @@ kotlin {
         val jvmTest by getting
         val nativeMain by getting
         val nativeTest by getting
+
+        all {
+            languageSettings.apply {
+                optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
+                optIn("kotlinx.coroutines.FlowPreview")
+            }
+        }
     }
 }
 

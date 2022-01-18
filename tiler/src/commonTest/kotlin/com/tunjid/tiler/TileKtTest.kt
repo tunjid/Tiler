@@ -17,22 +17,18 @@
 package com.tunjid.tiler
 
 import app.cash.turbine.test
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.collections.flatten
 import kotlin.test.*
 
-@ExperimentalCoroutinesApi
 class TileKtTest {
 
     private lateinit var listTiler: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>>
     private lateinit var tileFlowMap: MutableMap<Int, MutableStateFlow<List<Int>>>
 
     @BeforeTest
-    @FlowPreview
     fun setUp() {
         tileFlowMap = mutableMapOf()
         listTiler = tiledList(
