@@ -23,7 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -37,8 +39,7 @@ fun StickyHeaderContainer(
     stickyHeader: @Composable () -> Unit,
     content: @Composable () -> Unit
 ) {
-    val state = remember { MutableStateFlow(0) }
-    val headerOffset by state.collectAsState()
+    var headerOffset by remember { mutableStateOf(0) }
     val headerOffsetDp = with(LocalDensity.current) { headerOffset.toDp() }
 
     Box(modifier = modifier) {
@@ -64,6 +65,8 @@ fun StickyHeaderContainer(
                     .let { difference -> if (difference < 0) 0 else -difference }
             }
         }
-            .collect(state::value::set)
+            .collect {
+                headerOffset = it
+            }
     }
 }
