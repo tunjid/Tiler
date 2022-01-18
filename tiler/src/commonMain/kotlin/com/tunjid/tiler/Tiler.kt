@@ -58,6 +58,7 @@ internal data class Tiler<Query, Item, Output>(
         )
         is Tile.Output.FlattenChange -> copy(
             shouldEmit = true,
+            flattener = output.flattener,
             metadata = metadata.copy(
                 sortedQueries = metadata.sortedQueries.sortedWith(output.flattener.comparator)
             )

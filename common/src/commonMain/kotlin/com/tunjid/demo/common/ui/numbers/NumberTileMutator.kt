@@ -36,13 +36,18 @@ import kotlinx.coroutines.flow.scan
 import kotlin.math.abs
 
 const val GridSize = 5
+private const val PageWindow = 3
+private val ascendingPageComparator = Comparator<Int>(Int::compareTo)
+private val descendingPageComparator = ascendingPageComparator.reversed()
 
 sealed class Action {
-    data class Load(val page: Int) : Action()
+    data class Load(val page: Int, val isAscending: Boolean) : Action()
     data class FirstVisibleIndexChanged(val index: Int) : Action()
 }
 
 data class State(
+    val isAscending: Boolean = true,
+    val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
     val loadSummary: String = "",
     val chunkedItems: List<List<Item>> = listOf()
@@ -85,6 +90,8 @@ private data class LoadMetadata(
     val currentQueries: List<Int> = listOf(),
     val toEvict: List<Int> = listOf(),
     val inMemory: List<Int> = listOf(),
+    val comparator: Comparator<Int>? = null,
+    val isAscending: Boolean = false,
 )
 
 fun numberTilesMutator(
@@ -109,7 +116,10 @@ private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
                 val chunked: List<List<Item>> = pagesToTiles.flatMap { (page, numberTiles) ->
                     val color = numberTiles.first().color
                     val header = Item.Header(page = page, color = color)
-                    listOf(listOf(header)) + numberTiles.map(Item::Tile).chunked(GridSize)
+                    listOf(listOf(header)) + when(isAscending){
+                        true -> numberTiles.map(Item::Tile)
+                        else -> numberTiles.map(Item::Tile).reversed()
+                    }.chunked(GridSize)
                 }
                 copy(chunkedItems = chunked)
             }
@@ -117,7 +127,12 @@ private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
     loadMetadata()
         .map {
             Mutation {
-                copy(loadSummary = "Active pages: ${it.currentQueries}\nPages in memory: ${it.inMemory.sorted()}")
+                copy(
+                    isAscending = it.isAscending,
+                    // 3 pages are fetched at once, the middle is the current page
+                    currentPage = it.currentQueries.startPage(),
+                    loadSummary = "Active pages: ${it.currentQueries}\nPages in memory: ${it.inMemory.sorted()}"
+                )
             }
         }
 )
@@ -131,7 +146,7 @@ private fun Flow<Action.FirstVisibleIndexChanged>.stickyHeaderMutations(): Flow<
 private fun numberTiler(): (Flow<Input.Map<Int, List<NumberTile>>>) -> Flow<Map<Int, List<NumberTile>>> =
     tiledMap(
         limiter = Tile.Limiter.Map { pages -> pages.size > 4 },
-        flattener = Tile.Flattener.PivotSorted(comparator = Int::compareTo),
+        flattener = Tile.Flattener.PivotSorted(comparator = ascendingPageComparator),
         fetcher = { page: Int ->
             val start = page * 50
             val numbers = start.until(start + 50)
@@ -149,7 +164,7 @@ private fun numberTiler(): (Flow<Input.Map<Int, List<NumberTile>>>) -> Flow<Map<
 
 private fun Flow<Action.Load>.toNumberedTiles(): Flow<Map<Int, List<NumberTile>>> =
     loadMetadata()
-        .flatMapLatest { (previousQueries, currentQueries, evictions) ->
+        .flatMapLatest { (previousQueries, currentQueries, evictions, _, comparator) ->
             // Turn on flows for the requested pages
             val toTurnOn = currentQueries
                 .map { Tile.Request.On<Int, List<NumberTile>>(it) }
@@ -167,26 +182,55 @@ private fun Flow<Action.Load>.toNumberedTiles(): Flow<Map<Int, List<NumberTile>>
             val toEvict = evictions
                 .map { Tile.Request.Evict<Int, List<NumberTile>>(it) }
 
-            (toTurnOn + toTurnOff + toEvict).asFlow()
+            val comparison = listOfNotNull(
+                comparator?.let { Tile.Flattener.PivotSorted<Int, List<NumberTile>>(it) }
+            )
+
+            (toTurnOn + toTurnOff + toEvict + comparison).asFlow()
         }
         .toTiledMap(numberTiler())
 
 private fun Flow<Action.Load>.loadMetadata(): Flow<LoadMetadata> =
     distinctUntilChanged()
-        .map { (page) ->
-            listOf(page - 1, page + 1, page).filter { it >= 0 }
-        }
-        .scan(LoadMetadata()) { existingQueries, currentQueries ->
-            val currentlyInMemory = (existingQueries.inMemory + currentQueries).distinct()
+        .map { (startPage, isAscending) -> isAscending to pagesToLoad(startPage = startPage) }
+        .scan(LoadMetadata()) { previousMetadata, (isAscending, currentQueries) ->
+            val currentlyInMemory = (previousMetadata.inMemory + currentQueries).distinct()
             val toEvict = when (val min = currentQueries.minOrNull()) {
                 null -> listOf()
                 // Evict items more than 5 offset pages behind the min current query
                 else -> currentlyInMemory.filter { abs(min - it) > 5 }
             }
-            existingQueries.copy(
-                previousQueries = existingQueries.currentQueries,
+            previousMetadata.copy(
+                isAscending = isAscending,
+                previousQueries = previousMetadata.currentQueries,
                 currentQueries = currentQueries,
                 inMemory = currentlyInMemory - toEvict.toSet(),
-                toEvict = toEvict
+                toEvict = toEvict,
+                comparator = when (isAscending) {
+                    previousMetadata.isAscending -> null
+                    else -> if (isAscending) ascendingPageComparator else descendingPageComparator
+                }
             )
         }
+
+private fun pagesToLoad(startPage: Int): List<Int> {
+    var i = 0
+    val result = mutableListOf(startPage)
+    while (result.size < PageWindow) {
+        i++
+        if (result.size < PageWindow && startPage - 1 >= 0) result.add(
+            index = 0,
+            element = startPage - i
+        )
+        if (result.size < PageWindow) result.add(
+            element = startPage + i
+        )
+    }
+    return result
+}
+
+private fun List<Int>.startPage(): Int {
+    val isOdd = PageWindow % 2 != 0
+    val index = if (isOdd) (PageWindow / 2) + 1 else PageWindow / 2
+    return getOrNull(index) ?: 0
+}

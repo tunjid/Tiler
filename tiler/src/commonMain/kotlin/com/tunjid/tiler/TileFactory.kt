@@ -49,7 +49,7 @@ internal fun <Query, Item, Output> tileFactory(
             transform = { it }
         )
         .scan(
-            initial = Tiler(limiter =  limiter, flattener = flattener),
+            initial = Tiler(limiter = limiter, flattener = flattener),
             operation = Tiler<Query, Item, Output>::add
         )
         .filter { it.shouldEmit }
@@ -70,7 +70,9 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
 
     this@groupByQuery.collect { input ->
         when (input) {
-            is Tile.Flattener -> flowOf(Tile.Output.FlattenChange(flattener = input))
+            is Tile.Flattener -> this@channelFlow.channel.send(
+                flowOf(Tile.Output.FlattenChange(flattener = input))
+            )
             is Tile.Request.Evict -> {
                 queriesToValves[input.query]?.push?.invoke(input)
                 queriesToValves.remove(input.query)
@@ -87,8 +89,12 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
                 }
                 else -> existingValve.push(input)
             }
-            is Tile.Limiter.List -> flowOf(Tile.Output.LimiterChange(limiter = input))
-            is Tile.Limiter.Map -> flowOf(Tile.Output.LimiterChange(limiter = input))
+            is Tile.Limiter.List -> this@channelFlow.channel.send(
+                flowOf(Tile.Output.LimiterChange(limiter = input))
+            )
+            is Tile.Limiter.Map -> this@channelFlow.channel.send(
+                flowOf(Tile.Output.LimiterChange(limiter = input))
+            )
         }
     }
 }

@@ -16,6 +16,7 @@
 
 package com.tunjid.demo.common.ui.numbers
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -24,14 +25,20 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ButtonDefaults.buttonColors
+import androidx.compose.material.FloatingActionButton
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -71,6 +78,8 @@ data class ScrollState(
 @Composable
 fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
     val state by mutator.state.collectAsState()
+    val currentPage = state.currentPage
+    val isAscending = state.isAscending
     val chunkedItems = state.chunkedItems
     val stickyHeader = state.stickyHeader
     val loadSummary: Flow<String> = remember {
@@ -80,7 +89,16 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
     val scaffoldState = rememberScaffoldState()
     val listState = rememberLazyListState()
 
-    Scaffold(scaffoldState = scaffoldState) {
+    Scaffold(
+        scaffoldState = scaffoldState,
+        floatingActionButton = {
+            Fab(
+                mutator = mutator,
+                currentPage = currentPage,
+                isAscending = isAscending
+            )
+        }
+    ) {
         StickyHeaderContainer(
             listState = listState,
             headerMatcher = Any::isStickyHeaderKey,
@@ -92,7 +110,12 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
                     items(
                         items = chunkedItems,
                         key = { it.minOf(Item::key) },
-                        itemContent = { ChunkedNumberTiles(tiles = it) }
+                        itemContent = {
+                            ChunkedNumberTiles(
+                                modifier = Modifier,
+                                tiles = it
+                            )
+                        }
                     )
                 }
             }
@@ -101,7 +124,7 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
 
     // Load when this Composable enters the composition
     LaunchedEffect(true) {
-        mutator.accept(Action.Load(0))
+        mutator.accept(Action.Load(page = 0, isAscending = isAscending))
     }
 
     // Keep the sticky headers in sync
@@ -117,25 +140,15 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
         snapshotFlow {
             ScrollState(
                 offset = listState.firstVisibleItemScrollOffset,
-                page = max(
-                    chunkedItems.getOrNull(listState.firstVisibleItemIndex)
-                        ?.firstOrNull()
-                        ?.page
-                        ?: 0,
-                    chunkedItems.getOrNull(
-                        listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                    )
-                        ?.firstOrNull()
-                        ?.page
-                        ?: 0
-                )
+                page = chunkedItems.maxAndMinPages(listState).let {
+                    max(it.first, it.second)
+                }
             )
-
         }
             .scan(ScrollState(), ScrollState::updateDirection)
             .filter { abs(it.dy) > 4 }
             .distinctUntilChangedBy(ScrollState::page)
-            .collect { mutator.accept(Action.Load(it.page)) }
+            .collect { mutator.accept(Action.Load(page = it.page, isAscending = isAscending)) }
     }
 
     // In the docs: https://developer.android.com/reference/kotlin/androidx/compose/material/SnackbarHostState
@@ -162,9 +175,50 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
 }
 
 @Composable
-private fun ChunkedNumberTiles(tiles: List<Item>) {
+private fun Fab(
+    mutator: Mutator<Action, StateFlow<State>>,
+    currentPage: Int,
+    isAscending: Boolean
+) {
+    FloatingActionButton(
+        onClick = {
+            mutator.accept(
+                Action.Load(
+                    page = currentPage,
+                    isAscending = !isAscending
+                )
+            )
+        },
+        content = {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .animateContentSize()
+            ) {
+                val text = if (isAscending) "Sort descending" else "Sort ascending"
+                Text(text)
+                when {
+                    isAscending -> Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = text
+                    )
+                    else -> Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = text
+                    )
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun ChunkedNumberTiles(
+    modifier: Modifier = Modifier,
+    tiles: List<Item>
+) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -217,6 +271,18 @@ private fun NumberTile(
         content = { Text(text = tile.number.toString(), color = Color(tile.color)) }
     )
 }
+
+private fun List<List<Item>>.maxAndMinPages(listState: LazyListState) =
+    Pair(
+        first = (getOrNull(listState.firstVisibleItemIndex)
+            ?.firstOrNull()
+            ?.page
+            ?: 0),
+        second = (getOrNull(listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0)
+            ?.firstOrNull()
+            ?.page
+            ?: 0)
+    )
 
 private fun ScrollState.updateDirection(new: ScrollState) = new.copy(
     page = new.page,
