@@ -40,7 +40,7 @@ plugins {
 }
 
 group = "com.tunjid.tiler"
-version = "0.0.0-alpha03"
+version = "0.0.1"
 
 kotlin {
     jvm {
