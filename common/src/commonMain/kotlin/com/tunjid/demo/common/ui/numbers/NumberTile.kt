@@ -28,18 +28,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.*
 import androidx.compose.material.ButtonDefaults.buttonColors
-import androidx.compose.material.FloatingActionButton
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -56,17 +49,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tunjid.mutator.Mutator
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlin.collections.List
+import kotlin.collections.firstOrNull
+import kotlin.collections.getOrNull
+import kotlin.collections.lastOrNull
+import kotlin.collections.minOf
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
 
 data class ScrollState(
     val offset: Int = 0,
@@ -141,7 +133,7 @@ fun NumberedTileList(mutator: Mutator<Action, StateFlow<State>>) {
             ScrollState(
                 offset = listState.firstVisibleItemScrollOffset,
                 page = chunkedItems.maxAndMinPages(listState).let {
-                    max(it.first, it.second)
+                    if (isAscending) max(it.first, it.second) else min(it.first, it.second)
                 }
             )
         }

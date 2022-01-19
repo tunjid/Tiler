@@ -182,6 +182,13 @@ This can range from common cases like endless scrolling of lists whose individua
 to niche cases like crosswords that alert users if their solving attempts are correct. Please
 take a look at the sample app for concrete examples.
 
+### Experiment with me!
+
+`Tiler` is available on mavenCentral with the latest version indicated by the badge at the top of
+this readme file.
+
+`implementation com.tunjid.tiler:tiler:version`
+
 ## License
     Copyright 2021 Google LLC
 
