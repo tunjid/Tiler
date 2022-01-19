@@ -16,44 +16,82 @@
 
 package com.tunjid.demo.common.ui.numbers
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import com.tunjid.demo.common.ui.numbers.Action.Load
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.Mutator
 import com.tunjid.mutator.coroutines.stateFlowMutator
 import com.tunjid.mutator.coroutines.toMutationStream
 import com.tunjid.tiler.Tile
-import com.tunjid.tiler.tiledList
-import com.tunjid.tiler.toTiledList
+import com.tunjid.tiler.Tile.Input
+import com.tunjid.tiler.tiledMap
+import com.tunjid.tiler.toTiledMap
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.scan
-import kotlin.math.pow
-import kotlin.math.roundToInt
+import kotlin.math.abs
 
-data class State(
-    val activePages: List<Int> = listOf(),
-    val numbers: List<NumberTile> = listOf()
-)
-
-val State.chunkedTiles get() = numbers.chunked(3)
+const val GridSize = 5
+private const val PageWindow = 3
+private val ascendingPageComparator = Comparator<Int>(Int::compareTo)
+private val descendingPageComparator = ascendingPageComparator.reversed()
 
 sealed class Action {
-    data class Load(val page: Int) : Action()
+    data class Load(val page: Int, val isAscending: Boolean) : Action()
+    data class FirstVisibleIndexChanged(val index: Int) : Action()
 }
+
+data class State(
+    val isAscending: Boolean = true,
+    val currentPage: Int = 0,
+    val firstVisibleIndex: Int = -1,
+    val loadSummary: String = "",
+    val chunkedItems: List<List<Item>> = listOf()
+)
+
+val State.stickyHeader: Item.Header?
+    get() = when (val item = chunkedItems.getOrNull(firstVisibleIndex)?.firstOrNull()) {
+        is Item.Tile -> Item.Header(page = item.page, color = item.numberTile.color)
+        is Item.Header -> item
+        null -> null
+    }
+
+sealed class Item(open val page: Int) {
+    data class Tile(val numberTile: NumberTile) : Item(numberTile.page)
+    data class Header(
+        override val page: Int,
+        val color: Int,
+    ) : Item(page)
+
+    val key
+        get() = when (this) {
+            is Tile -> "tile-${numberTile.number}"
+            is Header -> "header-$page"
+        }
+}
+
+val Any.isStickyHeaderKey get() = this is String && this.contains("header")
 
 data class NumberTile(
     val number: Int,
     val color: Int,
     val page: Int
+)
+
+/**
+ * A summary of the loading queries in the app
+ */
+private data class LoadMetadata(
+    val previousQueries: List<Int> = listOf(),
+    val currentQueries: List<Int> = listOf(),
+    val toEvict: List<Int> = listOf(),
+    val inMemory: List<Int> = listOf(),
+    val comparator: Comparator<Int>? = null,
+    val isAscending: Boolean = false,
 )
 
 fun numberTilesMutator(
@@ -64,143 +102,135 @@ fun numberTilesMutator(
     transform = { actionFlow ->
         actionFlow.toMutationStream {
             when (val action: Action = type()) {
-                is Load -> merge(
-                    action.flow
-                        .toNumberedTiles()
-                        .map { items ->
-                            Mutation { copy(numbers = items.flatten()) }
-                        },
-                    action.flow
-                        .pageChanges()
-                        .map { (_, activePages) ->
-                            Mutation { copy(activePages = activePages) }
-                        }
-                )
+                is Action.Load -> action.flow.loadMutations()
+                is Action.FirstVisibleIndexChanged -> action.flow.stickyHeaderMutations()
             }
         }
     }
 )
 
-private fun numberTiler() = tiledList(
-    limiter = Tile.Limiter.List { pages -> pages.size > 4 },
-    flattener = Tile.Flattener.PivotSorted(comparator = Int::compareTo),
-    fetcher = { page: Int ->
-        val start = page * 50
-        val numbers = start.until(start + 50)
-        argbFlow().map { color ->
-            numbers.map { number ->
-                NumberTile(
-                    number = number,
-                    color = color,
-                    page = page
+private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
+    toNumberedTiles()
+        .map { pagesToTiles ->
+            Mutation {
+                val chunked: List<List<Item>> = pagesToTiles.flatMap { (page, numberTiles) ->
+                    val color = numberTiles.first().color
+                    val header = Item.Header(page = page, color = color)
+                    listOf(listOf(header)) + when(isAscending){
+                        true -> numberTiles.map(Item::Tile)
+                        else -> numberTiles.map(Item::Tile).reversed()
+                    }.chunked(GridSize)
+                }
+                copy(chunkedItems = chunked)
+            }
+        },
+    loadMetadata()
+        .map {
+            Mutation {
+                copy(
+                    isAscending = it.isAscending,
+                    // 3 pages are fetched at once, the middle is the current page
+                    currentPage = it.currentQueries.startPage(),
+                    loadSummary = "Active pages: ${it.currentQueries}\nPages in memory: ${it.inMemory.sorted()}"
                 )
             }
         }
-    }
 )
 
-private fun Flow<Load>.toNumberedTiles(): Flow<List<List<NumberTile>>> =
-    pageChanges()
-        .flatMapLatest { (oldPages, newPages) ->
-            // Evict all items 10 pages behind the smallest page in the new request.
-            // Their backing flows will stop being collected, and their existing values will be
-            // evicted from memory
-            val toEvict: List<Tile.Request.Evict<Int, List<NumberTile>>> = (newPages.minOrNull()
-                ?.minus(10)
-                ?.downTo(0)
-                ?.take(10)
-                ?: listOf())
-                .map { Tile.Request.Evict(it) }
+private fun Flow<Action.FirstVisibleIndexChanged>.stickyHeaderMutations(): Flow<Mutation<State>> =
+    distinctUntilChanged()
+        .map { (firstVisibleIndex) ->
+            Mutation { copy(firstVisibleIndex = firstVisibleIndex) }
+        }
+
+private fun numberTiler(): (Flow<Input.Map<Int, List<NumberTile>>>) -> Flow<Map<Int, List<NumberTile>>> =
+    tiledMap(
+        limiter = Tile.Limiter.Map { pages -> pages.size > 4 },
+        order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
+        fetcher = { page: Int ->
+            val start = page * 50
+            val numbers = start.until(start + 50)
+            argbFlow().map { color ->
+                numbers.map { number ->
+                    NumberTile(
+                        number = number,
+                        color = color,
+                        page = page
+                    )
+                }
+            }
+        }
+    )
+
+private fun Flow<Action.Load>.toNumberedTiles(): Flow<Map<Int, List<NumberTile>>> =
+    loadMetadata()
+        .flatMapLatest { (previousQueries, currentQueries, evictions, _, comparator) ->
+            // Turn on flows for the requested pages
+            val toTurnOn = currentQueries
+                .map { Tile.Request.On<Int, List<NumberTile>>(it) }
 
             // Turn off the flows for all old requests that are not in the new request batch
             // The existing emitted values will be kept in memory, but their backing flows
             // will stop being collected
-            val toTurnOff: List<Tile.Request.Off<Int, List<NumberTile>>> = oldPages
-                .filterNot(newPages::contains)
-                .map { Tile.Request.Off(it) }
+            val toTurnOff = previousQueries
+                .filterNot { currentQueries.contains(it) }
+                .map { Tile.Request.Off<Int, List<NumberTile>>(it) }
 
-            // Turn on flows for the requested pages
-            val toTurnOn: List<Tile.Request.On<Int, List<NumberTile>>> = newPages
-                .map { Tile.Request.On(it) }
+            // Evict all items 10 pages behind the smallest page in the new request.
+            // Their backing flows will stop being collected, and their existing values will be
+            // evicted from memory
+            val toEvict = evictions
+                .map { Tile.Request.Evict<Int, List<NumberTile>>(it) }
 
-            (toEvict + toTurnOff + toTurnOn).asFlow()
+            val comparison = listOfNotNull(
+                comparator?.let { Tile.Order.PivotSorted<Int, List<NumberTile>>(it) }
+            )
+
+            (toTurnOn + toTurnOff + toEvict + comparison).asFlow()
         }
-        .toTiledList(numberTiler())
+        .toTiledMap(numberTiler())
 
-private fun Flow<Load>.pageChanges(): Flow<Pair<List<Int>, List<Int>>> =
-    map { (page) -> listOf(page - 1, page, page + 1).filter { it >= 0 } }
-        .scan(listOf<Int>() to listOf<Int>()) { pair, new ->
-            pair.copy(
-                first = pair.second,
-                second = new
+private fun Flow<Action.Load>.loadMetadata(): Flow<LoadMetadata> =
+    distinctUntilChanged()
+        .map { (startPage, isAscending) -> isAscending to pagesToLoad(startPage = startPage) }
+        .scan(LoadMetadata()) { previousMetadata, (isAscending, currentQueries) ->
+            val currentlyInMemory = (previousMetadata.inMemory + currentQueries).distinct()
+            val toEvict = when (val min = currentQueries.minOrNull()) {
+                null -> listOf()
+                // Evict items more than 5 offset pages behind the min current query
+                else -> currentlyInMemory.filter { abs(min - it) > 5 }
+            }
+            previousMetadata.copy(
+                isAscending = isAscending,
+                previousQueries = previousMetadata.currentQueries,
+                currentQueries = currentQueries,
+                inMemory = currentlyInMemory - toEvict.toSet(),
+                toEvict = toEvict,
+                comparator = when (isAscending) {
+                    previousMetadata.isAscending -> null
+                    else -> if (isAscending) ascendingPageComparator else descendingPageComparator
+                }
             )
         }
 
-private fun argbFlow(): Flow<Int> = flow {
-    var fraction = 0f
-    var colorIndex = 0
-    val colorsSize = colors.size
-
-    while (true) {
-        fraction += 0.05f
-        if (fraction > 1f) {
-            fraction = 0f
-            colorIndex++
-        }
-
-        emit(
-            interpolateColors(
-                fraction = fraction,
-                startValue = colors[colorIndex % colorsSize],
-                endValue = colors[(colorIndex + 1) % colorsSize]
-            )
+private fun pagesToLoad(startPage: Int): List<Int> {
+    var i = 0
+    val result = mutableListOf(startPage)
+    while (result.size < PageWindow) {
+        i++
+        if (result.size < PageWindow && startPage - 1 >= 0) result.add(
+            index = 0,
+            element = startPage - i
         )
-        delay(100)
+        if (result.size < PageWindow) result.add(
+            element = startPage + i
+        )
     }
+    return result
 }
 
-private fun interpolateColors(fraction: Float, startValue: Int, endValue: Int): Int {
-    val startA = (startValue shr 24 and 0xff) / 255.0f
-    var startR = (startValue shr 16 and 0xff) / 255.0f
-    var startG = (startValue shr 8 and 0xff) / 255.0f
-    var startB = (startValue and 0xff) / 255.0f
-    val endA = (endValue shr 24 and 0xff) / 255.0f
-    var endR = (endValue shr 16 and 0xff) / 255.0f
-    var endG = (endValue shr 8 and 0xff) / 255.0f
-    var endB = (endValue and 0xff) / 255.0f
-
-    // convert from sRGB to linear
-    startR = startR.toDouble().pow(2.2).toFloat()
-    startG = startG.toDouble().pow(2.2).toFloat()
-    startB = startB.toDouble().pow(2.2).toFloat()
-    endR = endR.toDouble().pow(2.2).toFloat()
-    endG = endG.toDouble().pow(2.2).toFloat()
-    endB = endB.toDouble().pow(2.2).toFloat()
-
-    // compute the interpolated color in linear space
-    var a = startA + fraction * (endA - startA)
-    var r = startR + fraction * (endR - startR)
-    var g = startG + fraction * (endG - startG)
-    var b = startB + fraction * (endB - startB)
-
-    // convert back to sRGB in the [0..255] range
-    a = a * 255.0f
-    r = r.toDouble().pow(1.0 / 2.2).toFloat() * 255.0f
-    g = g.toDouble().pow(1.0 / 2.2).toFloat() * 255.0f
-    b = b.toDouble().pow(1.0 / 2.2).toFloat() * 255.0f
-
-    return a.roundToInt() shl 24 or (r.roundToInt() shl 16) or (g.roundToInt() shl 8) or b.roundToInt()
+private fun List<Int>.startPage(): Int {
+    val isOdd = PageWindow % 2 != 0
+    val index = if (isOdd) (PageWindow / 2) + 1 else PageWindow / 2
+    return getOrNull(index) ?: 0
 }
-
-private val colors = listOf(
-    Color.Black,
-    Color.Blue,
-    Color.Cyan,
-    Color.DarkGray,
-    Color.Gray,
-    Color.Green,
-    Color.LightGray,
-    Color.Magenta,
-    Color.Red,
-    Color.Yellow,
-).map(Color::toArgb)

@@ -40,7 +40,7 @@ plugins {
 }
 
 group = "com.tunjid.tiler"
-version = "0.0.0-alpha03"
+version = "0.0.1"
 
 kotlin {
     jvm {
@@ -71,12 +71,20 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.cashapp.turbine)
             }
         }
         val jvmMain by getting
         val jvmTest by getting
         val nativeMain by getting
         val nativeTest by getting
+
+        all {
+            languageSettings.apply {
+                optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
+                optIn("kotlinx.coroutines.FlowPreview")
+            }
+        }
     }
 }
 

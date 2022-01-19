@@ -20,6 +20,7 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.tunjid.demo.common.ui.AppTheme
 import com.tunjid.demo.common.ui.numbers.NumberedTileList
 import com.tunjid.demo.common.ui.numbers.numberTilesMutator
 
@@ -28,7 +29,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val mutator = numberTilesMutator(scope = lifecycleScope)
         setContent {
-            NumberedTileList(mutator = mutator)
+            AppTheme {
+                NumberedTileList(mutator = mutator)
+            }
         }
     }
 }

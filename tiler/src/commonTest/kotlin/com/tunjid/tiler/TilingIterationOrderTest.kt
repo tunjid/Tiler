@@ -16,13 +16,17 @@
 
 package com.tunjid.tiler
 
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-@ExperimentalCoroutinesApi
 class ListMapTilingSamenessTest {
 
     @Test
@@ -34,7 +38,7 @@ class ListMapTilingSamenessTest {
         )
         val emissions = requests
             .asFlow()
-            .zipWith { Tile.Flattener.Sorted(Int::compareTo) }
+            .zipWith { Tile.Order.Sorted(Int::compareTo) }
             .take(requests.size)
             .toList()
 
@@ -65,7 +69,7 @@ class ListMapTilingSamenessTest {
         )
         val emissions = requests
             .asFlow()
-            .zipWith { Tile.Flattener.PivotSorted(Int::compareTo) }
+            .zipWith { Tile.Order.PivotSorted(Int::compareTo) }
             .take(requests.size)
             .toList()
 
@@ -102,12 +106,12 @@ private fun assertSameness(expected: List<Int>, pair: Pair<List<Int>, List<Int>>
 }
 
 private fun Flow<Tile.Request<Int, List<Int>>>.zipWith(
-    flattenerFactory: () -> Tile.Flattener<Int, List<Int>>
+    orderFactory: () -> Tile.Order<Int, List<Int>>
 ): Flow<Pair<List<Int>, List<Int>>> {
     val listTiled = tiledList(
         // Take 3 flattened sets
         limiter = Tile.Limiter.List { it.size >= 3 },
-        flattener = flattenerFactory(),
+        order = orderFactory(),
         fetcher = { page ->
             flowOf(page.testRange.toList())
         }).invoke(this)
@@ -116,7 +120,7 @@ private fun Flow<Tile.Request<Int, List<Int>>>.zipWith(
     val mapTiled = tiledMap(
         // Take 3 sets
         limiter = Tile.Limiter.Map { it.size >= 3 },
-        flattener = flattenerFactory(),
+        order = orderFactory(),
         fetcher = { page ->
             flowOf(page.testRange.toList())
         })

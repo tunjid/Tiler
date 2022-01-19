@@ -23,7 +23,7 @@ internal data class Tiler<Query, Item, Output>(
     val limiter: Tile.Limiter<Query, Item, Output>,
     val shouldEmit: Boolean = false,
     val metadata: Tile.Metadata<Query> = Tile.Metadata(),
-    val flattener: Tile.Flattener<Query, Item> = Tile.Flattener.Unspecified(),
+    val order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     // I'd rather this be immutable, electing against it for performance reasons
     val queryToTiles: MutableMap<Query, Tile<Query, Item>> = mutableMapOf(),
 ) {
@@ -38,7 +38,7 @@ internal data class Tiler<Query, Item, Output>(
                     sortedQueries = metadata.sortedQueries
                         .plus(output.query)
                         .distinct()
-                        .sortedWith(flattener.comparator),
+                        .sortedWith(order.comparator),
                     mostRecentlyEmitted = output.query,
                 )
             },
@@ -58,8 +58,9 @@ internal data class Tiler<Query, Item, Output>(
         )
         is Tile.Output.FlattenChange -> copy(
             shouldEmit = true,
+            order = output.order,
             metadata = metadata.copy(
-                sortedQueries = metadata.sortedQueries.sortedWith(output.flattener.comparator)
+                sortedQueries = metadata.sortedQueries.sortedWith(output.order.comparator)
             )
         )
         is Tile.Output.LimiterChange -> copy(
@@ -69,7 +70,7 @@ internal data class Tiler<Query, Item, Output>(
 
     fun output(): Output = queryToTiles.tileWith(
         metadata = metadata,
-        flattener = flattener,
+        order = order,
         limiter = limiter
     )
 }
