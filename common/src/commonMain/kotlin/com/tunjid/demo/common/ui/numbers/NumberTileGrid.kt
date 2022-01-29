@@ -17,6 +17,7 @@
 package com.tunjid.demo.common.ui.numbers
 
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.GridCells
 import androidx.compose.foundation.lazy.GridItemSpan
@@ -26,6 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import kotlin.math.max
 import kotlin.math.min
 
@@ -59,16 +61,6 @@ object NumberTileGrid : ListStyle<LazyGridState>(name = "Grid") {
     @Composable
     override fun rememberState(): LazyGridState = rememberLazyGridState()
 
-    private fun List<Item>.maxAndMinPages(gridState: LazyGridState) =
-        Pair(
-            first = (getOrNull(gridState.firstVisibleItemIndex)
-                ?.page
-                ?: 0),
-            second = (getOrNull(gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0)
-                ?.page
-                ?: 0)
-        )
-
     override fun stickyHeaderOffsetCalculator(
         state: LazyGridState,
         headerMatcher: (Any) -> Boolean
@@ -86,6 +78,26 @@ object NumberTileGrid : ListStyle<LazyGridState>(name = "Grid") {
                 .minus(firstCompletelyVisibleItem.offset.y)
                 .let { difference -> if (difference < 0) 0 else -difference }
         }
+    }
+
+    @Composable
+    override fun HeaderItem(item: Item.Header) {
+        Row {
+            HeaderTile(
+                modifier = Modifier.wrapContentSize(),
+                item = item
+            )
+        }
+    }
+
+    @Composable
+    override fun TileItem(item: Item.Tile) {
+        NumberTile(
+            modifier = Modifier
+                .aspectRatio(1f)
+                .scale(0.9f),
+            tile = item.numberTile
+        )
     }
 
     @Composable
@@ -108,16 +120,8 @@ object NumberTileGrid : ListStyle<LazyGridState>(name = "Grid") {
                     },
                     itemContent = { item ->
                         when (item) {
-                            is Item.Header -> Row {
-                                HeaderTile(
-                                    modifier = Modifier.wrapContentSize(),
-                                    item = item
-                                )
-                            }
-                            is Item.Tile -> NumberTile(
-                                modifier = Modifier,
-                                tile = item.numberTile
-                            )
+                            is Item.Header -> HeaderItem(item = item)
+                            is Item.Tile -> TileItem(item = item)
                         }
                     }
                 )

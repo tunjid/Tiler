@@ -39,8 +39,8 @@ sealed class Action {
     data class FirstVisibleIndexChanged(val index: Int) : Action()
 }
 
-data class State<T: ScrollableState>(
-    val style: ListStyle<T>,
+data class State(
+    val listStyle: ListStyle<ScrollableState>,
     val isAscending: Boolean = true,
     val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
@@ -48,7 +48,7 @@ data class State<T: ScrollableState>(
     val items: List<Item> = listOf()
 )
 
-val State<*>.stickyHeader: Item.Header?
+val State.stickyHeader: Item.Header?
     get() = when (val item = items.getOrNull(firstVisibleIndex)) {
         is Item.Tile -> Item.Header(page = item.page, color = item.numberTile.color)
         is Item.Header -> item
@@ -89,12 +89,12 @@ private data class LoadMetadata(
     val isAscending: Boolean = false,
 )
 
-fun <T: ScrollableState> numberTilesMutator(
+fun numberTilesMutator(
     scope: CoroutineScope,
-    listStyle: ListStyle<T>
-): Mutator<Action, StateFlow<State<T>>> = stateFlowMutator(
+    listStyle: ListStyle<ScrollableState>
+): Mutator<Action, StateFlow<State>> = stateFlowMutator(
     scope = scope,
-    initialState = State(listStyle),
+    initialState = State(listStyle = listStyle),
     transform = { actionFlow ->
         actionFlow.toMutationStream {
             when (val action: Action = type()) {
@@ -105,7 +105,7 @@ fun <T: ScrollableState> numberTilesMutator(
     }
 )
 
-private fun <T: ScrollableState> Flow<Action.Load>.loadMutations(): Flow<Mutation<State<T>>> = merge(
+private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
     toNumberedTiles()
         .map { pagesToTiles ->
             Mutation {
@@ -132,7 +132,7 @@ private fun <T: ScrollableState> Flow<Action.Load>.loadMutations(): Flow<Mutatio
         }
 )
 
-private fun <T: ScrollableState> Flow<Action.FirstVisibleIndexChanged>.stickyHeaderMutations(): Flow<Mutation<State<T>>> =
+private fun Flow<Action.FirstVisibleIndexChanged>.stickyHeaderMutations(): Flow<Mutation<State>> =
     distinctUntilChanged()
         .map { (firstVisibleIndex) ->
             Mutation { copy(firstVisibleIndex = firstVisibleIndex) }

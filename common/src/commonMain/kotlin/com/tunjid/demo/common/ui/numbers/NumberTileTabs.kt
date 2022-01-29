@@ -22,13 +22,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
+import androidx.compose.material.OutlinedButton
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
@@ -37,22 +40,33 @@ fun NumberTileTabs(
     listStyles: List<ListStyle<ScrollableState>>
 ) {
     if (listStyles.isEmpty()) return
+    val saveableStateHolder = rememberSaveableStateHolder()
 
     var selectedStyle by remember { mutableStateOf(listStyles.first()) }
     val mutatorCreator = remember {
         listStyles.associateWith { listStyle ->
-            numberTilesMutator(scope = scope, listStyle = listStyle)
+            numberTilesMutator(
+                scope = scope,
+                listStyle = listStyle
+            )
         }
     }
+    val mutator = mutatorCreator.getValue(selectedStyle)
 
-    Column {
-        Tabs(
-            listStyles = listStyles,
-            onClick = { selectedStyle = it }
-        )
-        NumberTiles(
-            mutator = mutatorCreator.getValue(selectedStyle)
-        )
+    Surface {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Tabs(
+                listStyles = listStyles,
+                onClick = { selectedStyle = it }
+            )
+            saveableStateHolder.SaveableStateProvider(selectedStyle) {
+                NumberTiles(
+                    mutator = mutator
+                )
+            }
+        }
     }
 }
 
@@ -64,13 +78,15 @@ private fun Tabs(
     Row(
         horizontalArrangement = Arrangement.Center
     ) {
-        listStyles.forEach { listStyle ->
-            Button(
+        listStyles.forEachIndexed { index, listStyle ->
+            val isStart = index == 0
+            val isEnd = index == listStyles.lastIndex
+            OutlinedButton(
                 shape = RoundedCornerShape(
-                    topStart = CornerSize(0),
-                    topEnd = CornerSize(0),
-                    bottomEnd = CornerSize(0),
-                    bottomStart = CornerSize(0)
+                    topStart = CornerSize(percent = if (isStart) 20 else 0),
+                    topEnd = CornerSize(percent = if (isEnd) 20 else 0),
+                    bottomEnd = CornerSize(percent = if (isEnd) 20 else 0),
+                    bottomStart = CornerSize(percent = if (isStart) 20 else 0)
                 ),
                 onClick = { onClick(listStyle) }
             ) {

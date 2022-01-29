@@ -59,9 +59,7 @@ fun NumberTile(
     tile: NumberTile
 ) {
     Button(
-        modifier = modifier
-            .aspectRatio(1f)
-            .scale(0.9f),
+        modifier = modifier,
         elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
         border = BorderStroke(width = 2.dp, color = Color(tile.color)),
         colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.surface),

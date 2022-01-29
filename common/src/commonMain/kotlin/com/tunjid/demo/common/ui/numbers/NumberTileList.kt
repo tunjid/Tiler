@@ -17,6 +17,8 @@
 package com.tunjid.demo.common.ui.numbers
 
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -24,6 +26,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import kotlin.math.max
 import kotlin.math.min
 
@@ -76,6 +79,28 @@ object NumberTileList : ListStyle<LazyListState>(name = "List") {
     override fun rememberState(): LazyListState = rememberLazyListState()
 
     @Composable
+    override fun HeaderItem(item: Item.Header) {
+        Row {
+            HeaderTile(
+                modifier = Modifier
+                    .wrapContentSize()
+                    .padding(horizontal = 8.dp),
+                item = item
+            )
+        }
+    }
+
+    @Composable
+    override fun TileItem(item: Item.Tile) {
+        NumberTile(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            tile = item.numberTile
+        )
+    }
+
+    @Composable
     override fun Content(state: LazyListState, items: List<Item>) {
         LazyColumn(
             state = state,
@@ -85,16 +110,8 @@ object NumberTileList : ListStyle<LazyListState>(name = "List") {
                     key = { it.key },
                     itemContent = { item ->
                         when (item) {
-                            is Item.Header -> Row {
-                                HeaderTile(
-                                    modifier = Modifier.wrapContentSize(),
-                                    item = item
-                                )
-                            }
-                            is Item.Tile -> NumberTile(
-                                modifier = Modifier,
-                                tile = item.numberTile
-                            )
+                            is Item.Header -> HeaderItem(item = item)
+                            is Item.Tile -> TileItem(item = item)
                         }
                     }
                 )

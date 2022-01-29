@@ -62,6 +62,12 @@ sealed class ListStyle<T : ScrollableState>(val name: String) {
     abstract fun rememberState(): T
 
     @Composable
+    abstract fun HeaderItem(item: Item.Header)
+
+    @Composable
+    abstract fun TileItem(item: Item.Tile)
+
+    @Composable
     abstract fun Content(
         state: T,
         items: List<Item>
@@ -69,13 +75,15 @@ sealed class ListStyle<T : ScrollableState>(val name: String) {
 }
 
 @Composable
-fun <T : ScrollableState> NumberTiles(mutator: Mutator<Action, StateFlow<State<T>>>) {
+fun NumberTiles(
+    mutator: Mutator<Action, StateFlow<State>>
+) {
     val state by mutator.state.collectAsState()
     val currentPage = state.currentPage
     val isAscending = state.isAscending
     val items = state.items
     val stickyHeader = state.stickyHeader
-    val listStyle = state.style
+    val listStyle = state.listStyle
     val loadSummary: Flow<String> = remember {
         mutator.state.map { it.loadSummary }.distinctUntilChanged()
     }
@@ -102,7 +110,7 @@ fun <T : ScrollableState> NumberTiles(mutator: Mutator<Action, StateFlow<State<T
                 )
             },
             stickyHeader = {
-                if (stickyHeader != null) HeaderTile(item = stickyHeader)
+                if (stickyHeader != null) listStyle.HeaderItem(item = stickyHeader)
             },
             content = {
                 listStyle.Content(state = lazyState, items = items)
