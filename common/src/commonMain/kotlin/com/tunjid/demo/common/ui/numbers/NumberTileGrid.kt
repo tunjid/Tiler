@@ -23,42 +23,105 @@ import androidx.compose.foundation.lazy.GridItemSpan
 import androidx.compose.foundation.lazy.LazyGridState
 import androidx.compose.foundation.lazy.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import kotlin.math.max
+import kotlin.math.min
 
-@Composable
-fun NumberTileGrid(
-    gridState: LazyGridState,
-    items: List<Item>
-) {
-    LazyVerticalGrid(
-        cells = GridCells.Fixed(GridSize),
-        state = gridState,
-        content = {
-            items(
-                items = items,
-                key = { it.key },
-                span = { item ->
-                    when (item) {
-                        is Item.Tile -> GridItemSpan(currentLineSpan = 1)
-                        is Item.Header -> GridItemSpan(maxCurrentLineSpan)
-                    }
-                },
-                itemContent = { item ->
-                    when (item) {
-                        is Item.Header -> Row {
-                            HeaderTile(
-                                modifier = Modifier.wrapContentSize(),
-                                item = item
+object NumberTileGrid : ListStyle<LazyGridState>(name = "Grid") {
+    override fun firstVisibleIndex(state: LazyGridState): Int? =
+        state.layoutInfo.visibleItemsInfo.firstOrNull()?.index
+
+    override fun scrollState(
+        state: LazyGridState,
+        items: List<Item>,
+        isAscending: Boolean
+    ): ScrollState =
+        ScrollState(
+            offset = state.firstVisibleItemScrollOffset,
+            page = Pair(
+                first = (
+                    items.getOrNull(state.firstVisibleItemIndex)
+                        ?.page
+                        ?: 0),
+                second = (
+                    items.getOrNull(
+                        state.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                    )
+                        ?.page
+                        ?: 0)
+            ).let {
+                if (isAscending) max(it.first, it.second) else min(it.first, it.second)
+            }
+        )
+
+    @Composable
+    override fun rememberState(): LazyGridState = rememberLazyGridState()
+
+    private fun List<Item>.maxAndMinPages(gridState: LazyGridState) =
+        Pair(
+            first = (getOrNull(gridState.firstVisibleItemIndex)
+                ?.page
+                ?: 0),
+            second = (getOrNull(gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0)
+                ?.page
+                ?: 0)
+        )
+
+    override fun stickyHeaderOffsetCalculator(
+        state: LazyGridState,
+        headerMatcher: (Any) -> Boolean
+    ): Int {
+        val layoutInfo = state.layoutInfo
+        val startOffset = layoutInfo.viewportStartOffset
+        val firstCompletelyVisibleItem = layoutInfo.visibleItemsInfo.firstOrNull {
+            it.offset.y >= startOffset
+        } ?: return 0
+
+        return when (headerMatcher(firstCompletelyVisibleItem.key)) {
+            false -> 0
+            true -> firstCompletelyVisibleItem.size
+                .height
+                .minus(firstCompletelyVisibleItem.offset.y)
+                .let { difference -> if (difference < 0) 0 else -difference }
+        }
+    }
+
+    @Composable
+    override fun Content(
+        state: LazyGridState,
+        items: List<Item>
+    ) {
+        LazyVerticalGrid(
+            cells = GridCells.Fixed(GridSize),
+            state = state,
+            content = {
+                items(
+                    items = items,
+                    key = { it.key },
+                    span = { item ->
+                        when (item) {
+                            is Item.Tile -> GridItemSpan(currentLineSpan = 1)
+                            is Item.Header -> GridItemSpan(maxCurrentLineSpan)
+                        }
+                    },
+                    itemContent = { item ->
+                        when (item) {
+                            is Item.Header -> Row {
+                                HeaderTile(
+                                    modifier = Modifier.wrapContentSize(),
+                                    item = item
+                                )
+                            }
+                            is Item.Tile -> NumberTile(
+                                modifier = Modifier,
+                                tile = item.numberTile
                             )
                         }
-                        is Item.Tile -> NumberTile(
-                            modifier = Modifier,
-                            tile = item.numberTile
-                        )
                     }
-                }
-            )
-        }
-    )
+                )
+            }
+        )
+    }
 }

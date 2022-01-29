@@ -21,16 +21,22 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.tunjid.demo.common.ui.AppTheme
-import com.tunjid.demo.common.ui.numbers.NumberedTileList
-import com.tunjid.demo.common.ui.numbers.numberTilesMutator
+import com.tunjid.demo.common.ui.numbers.NumberTileGrid
+import com.tunjid.demo.common.ui.numbers.NumberTileList
+import com.tunjid.demo.common.ui.numbers.NumberTileTabs
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val mutator = numberTilesMutator(scope = lifecycleScope)
         setContent {
             AppTheme {
-                NumberedTileList(mutator = mutator)
+                NumberTileTabs(
+                    scope = lifecycleScope,
+                    listStyles = listOf(
+                        NumberTileGrid,
+                        NumberTileList
+                    )
+                )
             }
         }
     }

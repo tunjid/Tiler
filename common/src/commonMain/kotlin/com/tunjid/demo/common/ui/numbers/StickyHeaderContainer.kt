@@ -56,38 +56,3 @@ fun <T> StickyHeaderContainer(
             .collect { headerOffset = it }
     }
 }
-
-fun lazyListStateStickyHeaderOffsetCalculator(
-    headerMatcher: (Any) -> Boolean
-) : (LazyListState) -> Int = matcher@{ lazyState ->
-    val layoutInfo = lazyState.layoutInfo
-    val startOffset = layoutInfo.viewportStartOffset
-    val firstCompletelyVisibleItem = layoutInfo.visibleItemsInfo.firstOrNull {
-        it.offset >= startOffset
-    } ?: return@matcher 0
-
-    when (headerMatcher(firstCompletelyVisibleItem.key)) {
-        false -> 0
-        true -> firstCompletelyVisibleItem.size
-            .minus(firstCompletelyVisibleItem.offset)
-            .let { difference -> if (difference < 0) 0 else -difference }
-    }
-}
-
-fun lazyGridStateStickyHeaderOffsetCalculator(
-    headerMatcher: (Any) -> Boolean
-) : (LazyGridState) -> Int = matcher@{ lazyState ->
-    val layoutInfo = lazyState.layoutInfo
-    val startOffset = layoutInfo.viewportStartOffset
-    val firstCompletelyVisibleItem = layoutInfo.visibleItemsInfo.firstOrNull {
-        it.offset.y >= startOffset
-    } ?: return@matcher 0
-
-    when (headerMatcher(firstCompletelyVisibleItem.key)) {
-        false -> 0
-        true -> firstCompletelyVisibleItem.size
-            .height
-            .minus(firstCompletelyVisibleItem.offset.y)
-            .let { difference -> if (difference < 0) 0 else -difference }
-    }
-}

@@ -16,6 +16,7 @@
 
 package com.tunjid.demo.common.ui.numbers
 
+import androidx.compose.foundation.gestures.ScrollableState
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.Mutator
 import com.tunjid.mutator.coroutines.stateFlowMutator
@@ -38,7 +39,8 @@ sealed class Action {
     data class FirstVisibleIndexChanged(val index: Int) : Action()
 }
 
-data class State(
+data class State<T: ScrollableState>(
+    val style: ListStyle<T>,
     val isAscending: Boolean = true,
     val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
@@ -46,7 +48,7 @@ data class State(
     val items: List<Item> = listOf()
 )
 
-val State.stickyHeader: Item.Header?
+val State<*>.stickyHeader: Item.Header?
     get() = when (val item = items.getOrNull(firstVisibleIndex)) {
         is Item.Tile -> Item.Header(page = item.page, color = item.numberTile.color)
         is Item.Header -> item
@@ -87,11 +89,12 @@ private data class LoadMetadata(
     val isAscending: Boolean = false,
 )
 
-fun numberTilesMutator(
-    scope: CoroutineScope
-): Mutator<Action, StateFlow<State>> = stateFlowMutator(
+fun <T: ScrollableState> numberTilesMutator(
+    scope: CoroutineScope,
+    listStyle: ListStyle<T>
+): Mutator<Action, StateFlow<State<T>>> = stateFlowMutator(
     scope = scope,
-    initialState = State(),
+    initialState = State(listStyle),
     transform = { actionFlow ->
         actionFlow.toMutationStream {
             when (val action: Action = type()) {
@@ -102,7 +105,7 @@ fun numberTilesMutator(
     }
 )
 
-private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
+private fun <T: ScrollableState> Flow<Action.Load>.loadMutations(): Flow<Mutation<State<T>>> = merge(
     toNumberedTiles()
         .map { pagesToTiles ->
             Mutation {
@@ -129,7 +132,7 @@ private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
         }
 )
 
-private fun Flow<Action.FirstVisibleIndexChanged>.stickyHeaderMutations(): Flow<Mutation<State>> =
+private fun <T: ScrollableState> Flow<Action.FirstVisibleIndexChanged>.stickyHeaderMutations(): Flow<Mutation<State<T>>> =
     distinctUntilChanged()
         .map { (firstVisibleIndex) ->
             Mutation { copy(firstVisibleIndex = firstVisibleIndex) }
