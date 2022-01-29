@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.flow
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-fun argbFlow(): Flow<Int> = flow {
+fun argbFlow(changeDelayMillis: Long = 500L): Flow<Int> = flow {
     var fraction = 0f
     var colorIndex = 0
     val colorsSize = colors.size
@@ -43,7 +43,7 @@ fun argbFlow(): Flow<Int> = flow {
                 endValue = colors[(colorIndex + 1) % colorsSize]
             )
         )
-        delay(100)
+        delay(changeDelayMillis)
     }
 }
 
