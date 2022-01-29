@@ -25,14 +25,7 @@ import com.tunjid.tiler.Tile.Input
 import com.tunjid.tiler.tiledMap
 import com.tunjid.tiler.toTiledMap
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.*
 import kotlin.math.abs
 
 const val GridSize = 5
@@ -50,11 +43,11 @@ data class State(
     val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
     val loadSummary: String = "",
-    val chunkedItems: List<List<Item>> = listOf()
+    val items: List<Item> = listOf()
 )
 
 val State.stickyHeader: Item.Header?
-    get() = when (val item = chunkedItems.getOrNull(firstVisibleIndex)?.firstOrNull()) {
+    get() = when (val item = items.getOrNull(firstVisibleIndex)) {
         is Item.Tile -> Item.Header(page = item.page, color = item.numberTile.color)
         is Item.Header -> item
         null -> null
@@ -113,15 +106,14 @@ private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
     toNumberedTiles()
         .map { pagesToTiles ->
             Mutation {
-                val chunked: List<List<Item>> = pagesToTiles.flatMap { (page, numberTiles) ->
+                copy(items = pagesToTiles.flatMap { (page, numberTiles) ->
                     val color = numberTiles.first().color
                     val header = Item.Header(page = page, color = color)
-                    listOf(listOf(header)) + when(isAscending){
+                    listOf(header) + when (isAscending) {
                         true -> numberTiles.map(Item::Tile)
                         else -> numberTiles.map(Item::Tile).reversed()
-                    }.chunked(GridSize)
-                }
-                copy(chunkedItems = chunked)
+                    }
+                })
             }
         },
     loadMetadata()

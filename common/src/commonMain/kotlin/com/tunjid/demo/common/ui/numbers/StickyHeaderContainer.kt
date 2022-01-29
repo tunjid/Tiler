@@ -18,6 +18,7 @@ package com.tunjid.demo.common.ui.numbers
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.lazy.LazyGridState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,12 +29,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 @Composable
-fun StickyHeaderContainer(
+fun <T> StickyHeaderContainer(
     modifier: Modifier = Modifier,
-    listState: LazyListState,
-    headerMatcher: (Any) -> Boolean,
+    lazyState: T,
+    offsetCalculator: (T) -> Int,
     stickyHeader: @Composable () -> Unit,
     content: @Composable () -> Unit
 ) {
@@ -48,23 +50,44 @@ fun StickyHeaderContainer(
             stickyHeader()
         }
     }
-    LaunchedEffect(listState) {
-        snapshotFlow {
-            val layoutInfo = listState.layoutInfo
-            val startOffset = layoutInfo.viewportStartOffset
-            val firstCompletelyVisibleItem = layoutInfo.visibleItemsInfo.firstOrNull {
-                it.offset >= startOffset
-            } ?: return@snapshotFlow 0
+    LaunchedEffect(lazyState) {
+        snapshotFlow { offsetCalculator(lazyState) }
+            .distinctUntilChanged()
+            .collect { headerOffset = it }
+    }
+}
 
-            when (headerMatcher(firstCompletelyVisibleItem.key)) {
-                false -> 0
-                true -> firstCompletelyVisibleItem.size
-                    .minus(firstCompletelyVisibleItem.offset)
-                    .let { difference -> if (difference < 0) 0 else -difference }
-            }
-        }
-            .collect {
-                headerOffset = it
-            }
+fun lazyListStateStickyHeaderOffsetCalculator(
+    headerMatcher: (Any) -> Boolean
+) : (LazyListState) -> Int = matcher@{ lazyState ->
+    val layoutInfo = lazyState.layoutInfo
+    val startOffset = layoutInfo.viewportStartOffset
+    val firstCompletelyVisibleItem = layoutInfo.visibleItemsInfo.firstOrNull {
+        it.offset >= startOffset
+    } ?: return@matcher 0
+
+    when (headerMatcher(firstCompletelyVisibleItem.key)) {
+        false -> 0
+        true -> firstCompletelyVisibleItem.size
+            .minus(firstCompletelyVisibleItem.offset)
+            .let { difference -> if (difference < 0) 0 else -difference }
+    }
+}
+
+fun lazyGridStateStickyHeaderOffsetCalculator(
+    headerMatcher: (Any) -> Boolean
+) : (LazyGridState) -> Int = matcher@{ lazyState ->
+    val layoutInfo = lazyState.layoutInfo
+    val startOffset = layoutInfo.viewportStartOffset
+    val firstCompletelyVisibleItem = layoutInfo.visibleItemsInfo.firstOrNull {
+        it.offset.y >= startOffset
+    } ?: return@matcher 0
+
+    when (headerMatcher(firstCompletelyVisibleItem.key)) {
+        false -> 0
+        true -> firstCompletelyVisibleItem.size
+            .height
+            .minus(firstCompletelyVisibleItem.offset.y)
+            .let { difference -> if (difference < 0) 0 else -difference }
     }
 }

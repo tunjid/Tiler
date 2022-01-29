@@ -1,0 +1,71 @@
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.tunjid.demo.common.ui.numbers
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun HeaderTile(
+    modifier: Modifier = Modifier,
+    item: Item.Header
+) {
+    Button(
+        modifier = modifier,
+        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+        border = BorderStroke(width = 2.dp, color = Color(item.color)),
+        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.surface),
+        onClick = { /*TODO*/ },
+        content = {
+            Text(
+                modifier = Modifier
+                    .padding(
+                        vertical = 4.dp,
+                        horizontal = 8.dp
+                    ),
+                text = "Page ${item.page}"
+            )
+        }
+    )
+}
+
+@Composable
+fun NumberTile(
+    modifier: Modifier,
+    tile: NumberTile
+) {
+    Button(
+        modifier = modifier
+            .aspectRatio(1f)
+            .scale(0.9f),
+        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+        border = BorderStroke(width = 2.dp, color = Color(tile.color)),
+        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.surface),
+        onClick = { /*TODO*/ },
+        content = { Text(text = tile.number.toString(), color = Color(tile.color)) }
+    )
+}
