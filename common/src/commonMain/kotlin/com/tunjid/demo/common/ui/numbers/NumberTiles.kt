@@ -47,6 +47,7 @@ data class ScrollState(
 sealed class ListStyle<T : ScrollableState>(val name: String) {
 
     abstract fun firstVisibleIndex(state: T): Int?
+
     abstract fun scrollState(
         state: T,
         items: List<Item>,

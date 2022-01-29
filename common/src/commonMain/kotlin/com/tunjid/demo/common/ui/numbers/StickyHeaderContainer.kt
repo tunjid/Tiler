@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 @Composable
@@ -40,12 +41,16 @@ fun <T> StickyHeaderContainer(
     content: @Composable () -> Unit
 ) {
     var headerOffset by remember { mutableStateOf(0) }
-    val headerOffsetDp = with(LocalDensity.current) { headerOffset.toDp() }
 
     Box(modifier = modifier) {
         content()
         Box(
-            modifier = Modifier.offset(y = headerOffsetDp)
+            modifier = Modifier.offset {
+                IntOffset(
+                    x = 0,
+                    y = headerOffset
+                )
+            }
         ) {
             stickyHeader()
         }
