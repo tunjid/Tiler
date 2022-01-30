@@ -24,6 +24,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.tunjid.demo.common.ui.AppTheme
+import com.tunjid.demo.common.ui.Root
 import com.tunjid.demo.common.ui.numbers.ListStyle
 import com.tunjid.demo.common.ui.numbers.NumberTileGrid
 import com.tunjid.demo.common.ui.numbers.NumberTileList
@@ -31,7 +32,6 @@ import com.tunjid.demo.common.ui.numbers.NumberTileTabs
 
 fun main() {
     application {
-        val scope = rememberCoroutineScope()
         val windowState = rememberWindowState(
             size = DpSize(400.dp, 800.dp)
         )
@@ -41,13 +41,7 @@ fun main() {
             title = "Tiling Demo"
         ) {
             AppTheme {
-                NumberTileTabs(
-                    scope = scope,
-                    listStyles = listOf(
-                        NumberTileList as ListStyle<ScrollableState>,
-                        NumberTileGrid as ListStyle<ScrollableState>,
-                    )
-                )
+                Root()
             }
         }
     }

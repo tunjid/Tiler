@@ -12,6 +12,7 @@ kotlin = "1.6.10"
 kotlinxCoroutines = "1.6.0"
 googleMaterial = "1.4.0"
 tunjidMutator = "0.0.1"
+tunjidTreeNav = "0.0.0-alpha01"
 turbine = "0.7.0"
 
 [libraries]
@@ -39,3 +40,4 @@ tunjid-mutator-core-common = { group = "com.tunjid.mutator", name = "core", vers
 tunjid-mutator-core-jvm = { group = "com.tunjid.mutator", name = "core-jvm", version.ref = "tunjidMutator" }
 tunjid-mutator-coroutines-common = { group = "com.tunjid.mutator", name = "coroutines", version.ref = "tunjidMutator" }
 tunjid-mutator-coroutines-jvm = { group = "com.tunjid.mutator", name = "coroutines-jvm", version.ref = "tunjidMutator" }
+tunjid-treenav-common = { group = "com.tunjid.treenav", name = "treenav", version.ref = "tunjidTreeNav" }

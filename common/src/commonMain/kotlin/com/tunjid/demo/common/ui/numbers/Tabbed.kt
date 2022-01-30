@@ -30,33 +30,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import com.tunjid.demo.common.ui.numbers.advanced.numberTilesMutator
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
-fun NumberTileTabs(
-    scope: CoroutineScope,
-    listStyles: List<ListStyle<ScrollableState>>
+fun <T> Tabbed(
+    listStyles: List<ListStyle<ScrollableState>>,
+    contentDependencies: (CoroutineScope, ListStyle<ScrollableState>, isDark: Boolean) -> T,
+    content: @Composable (ListStyle<ScrollableState>, T) -> Unit
 ) {
     if (listStyles.isEmpty()) return
     val saveableStateHolder = rememberSaveableStateHolder()
 
+    val scope = rememberCoroutineScope()
     val isDark = isSystemInDarkTheme()
     var selectedStyle by remember { mutableStateOf(listStyles.first()) }
-    val mutatorCreator = remember {
+    val contentDependencyMap = remember {
         listStyles.associateWith { listStyle ->
-            numberTilesMutator(
-                scope = scope,
-                isDark = isDark,
-                listStyle = listStyle,
-                itemsPerPage = listStyle.itemsPerPage
-            )
+            contentDependencies(scope, listStyle, isDark)
         }
     }
-    val mutator = mutatorCreator.getValue(selectedStyle)
+    val contentDependency = contentDependencyMap.getValue(selectedStyle)
 
     Surface {
         Column(
@@ -67,9 +64,7 @@ fun NumberTileTabs(
                 onClick = { selectedStyle = it }
             )
             saveableStateHolder.SaveableStateProvider(selectedStyle) {
-                NumberTiles(
-                    mutator = mutator
-                )
+                content(selectedStyle, contentDependency)
             }
         }
     }
