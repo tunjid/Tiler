@@ -39,9 +39,12 @@ import kotlin.math.abs
 
 data class ScrollState(
     val offset: Int = 0,
+    val firstVisibleIndex: Int = 0,
     val dy: Int = 0,
-    val page: Int = 0,
+    val firstPage: Int = 0,
+    val lastPage: Int = 0,
     val isDownward: Boolean = true,
+    val isAscending: Boolean = true,
 )
 
 sealed class ListStyle<T : ScrollableState>(
@@ -89,7 +92,6 @@ fun NumberTiles(
     mutator: Mutator<Action, StateFlow<State>>
 ) {
     val state by mutator.state.collectAsState()
-    val currentPage = state.currentPage
     val isAscending = state.isAscending
     val items = state.items
     val stickyHeader = state.stickyHeader
@@ -106,7 +108,6 @@ fun NumberTiles(
         floatingActionButton = {
             Fab(
                 onClick = mutator.accept,
-                currentPage = currentPage,
                 isAscending = isAscending
             )
         }
@@ -133,7 +134,7 @@ fun NumberTiles(
 
     // Load when this Composable enters the composition
     LaunchedEffect(true) {
-        mutator.accept(Action.Load(page = 0, isAscending = isAscending))
+        mutator.accept(Action.Load.Start(page = 0))
     }
 
     // Keep the sticky headers in sync
@@ -156,7 +157,7 @@ fun NumberTiles(
             .scan(ScrollState(), ScrollState::updateDirection)
             .filter { abs(it.dy) > 4 }
             .distinctUntilChangedBy(ScrollState::page)
-            .collect { mutator.accept(Action.Load(page = it.page, isAscending = isAscending)) }
+            .collect { mutator.accept(Action.Load.LoadMore(page = it.page)) }
     }
 
     // In the docs: https://developer.android.com/reference/kotlin/androidx/compose/material/SnackbarHostState
@@ -185,18 +186,10 @@ fun NumberTiles(
 @Composable
 private fun Fab(
     onClick: (Action) -> Unit,
-    currentPage: Int,
     isAscending: Boolean
 ) {
     FloatingActionButton(
-        onClick = {
-            onClick(
-                Action.Load(
-                    page = currentPage,
-                    isAscending = !isAscending
-                )
-            )
-        },
+        onClick = { onClick(Action.Load.ToggleOrder) },
         content = {
             Row(
                 modifier = Modifier
@@ -221,10 +214,16 @@ private fun Fab(
 }
 
 private fun ScrollState.updateDirection(new: ScrollState) = new.copy(
-    page = new.page,
+    firstPage = new.firstPage,
+    lastPage = new.lastPage,
     dy = new.offset - offset,
-    isDownward = when {
-        abs(new.offset - offset) > 10 -> isDownward
-        else -> new.offset > offset
+    isDownward = when(firstVisibleIndex) {
+        new.firstVisibleIndex -> isDownward
+        else -> new.firstVisibleIndex > firstVisibleIndex
     }
 )
+
+private val ScrollState.page get() = when(isDownward) {
+    true -> lastPage
+    false -> firstPage
+}

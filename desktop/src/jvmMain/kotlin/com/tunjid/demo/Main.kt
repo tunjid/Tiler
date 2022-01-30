@@ -44,8 +44,8 @@ fun main() {
                 NumberTileTabs(
                     scope = scope,
                     listStyles = listOf(
+                        NumberTileList as ListStyle<ScrollableState>,
                         NumberTileGrid as ListStyle<ScrollableState>,
-                        NumberTileList as ListStyle<ScrollableState>
                     )
                 )
             }

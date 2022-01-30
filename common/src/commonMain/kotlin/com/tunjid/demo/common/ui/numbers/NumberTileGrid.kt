@@ -28,8 +28,6 @@ import androidx.compose.foundation.lazy.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import kotlin.math.max
-import kotlin.math.min
 
 object NumberTileGrid : ListStyle<LazyGridState>(
     name = "Grid",
@@ -44,21 +42,17 @@ object NumberTileGrid : ListStyle<LazyGridState>(
         isAscending: Boolean
     ): ScrollState =
         ScrollState(
+            isAscending = isAscending,
             offset = state.firstVisibleItemScrollOffset,
-            page = Pair(
-                first = (
-                    items.getOrNull(state.firstVisibleItemIndex)
-                        ?.page
-                        ?: 0),
-                second = (
-                    items.getOrNull(
-                        state.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                    )
-                        ?.page
-                        ?: 0)
-            ).let {
-                if (isAscending) max(it.first, it.second) else min(it.first, it.second)
-            }
+            firstVisibleIndex = state.firstVisibleItemIndex,
+            firstPage = items.getOrNull(state.firstVisibleItemIndex)
+                ?.page
+                ?: 0,
+            lastPage = items.getOrNull(
+                state.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            )
+                ?.page
+                ?: 0,
         )
 
     @Composable

@@ -27,8 +27,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlin.math.max
-import kotlin.math.min
 
 object NumberTileList : ListStyle<LazyListState>(
     name = "List",
@@ -43,21 +41,17 @@ object NumberTileList : ListStyle<LazyListState>(
         isAscending: Boolean
     ): ScrollState =
         ScrollState(
+            isAscending = isAscending,
             offset = state.firstVisibleItemScrollOffset,
-            page = Pair(
-                first = (
-                    items.getOrNull(state.firstVisibleItemIndex)
-                        ?.page
-                        ?: 0),
-                second = (
-                    items.getOrNull(
-                        state.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                    )
-                        ?.page
-                        ?: 0)
-            ).let {
-                if (isAscending) max(it.first, it.second) else min(it.first, it.second)
-            }
+            firstVisibleIndex = state.firstVisibleItemIndex,
+            firstPage = items.getOrNull(state.firstVisibleItemIndex)
+                ?.page
+                ?: 0,
+            lastPage = items.getOrNull(
+                state.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            )
+                ?.page
+                ?: 0,
         )
 
     override fun stickyHeaderOffsetCalculator(
