@@ -16,26 +16,3 @@
 
 package com.tunjid.demo.common.ui.numbers
 
-data class NumberTile(
-    val number: Int,
-    val color: Int,
-    val page: Int
-)
-
-sealed class Item(open val page: Int) {
-
-    data class Tile(
-        val numberTile: NumberTile
-    ) : Item(numberTile.page)
-
-    data class Header(
-        override val page: Int,
-        val color: Int,
-    ) : Item(page)
-
-    val key
-        get() = when (this) {
-            is Tile -> "tile-${numberTile.number}"
-            is Header -> "header-$page"
-        }
-}

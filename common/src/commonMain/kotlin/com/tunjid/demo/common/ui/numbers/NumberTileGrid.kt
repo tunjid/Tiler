@@ -29,7 +29,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import com.tunjid.demo.common.ui.numbers.advanced.GridSize
-import com.tunjid.demo.common.ui.numbers.advanced.Item
 
 object NumberTileGrid : ListStyle<LazyGridState>(
     name = "Grid",

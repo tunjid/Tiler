@@ -32,7 +32,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tunjid.demo.common.ui.numbers.advanced.Action
-import com.tunjid.demo.common.ui.numbers.advanced.Item
 import com.tunjid.demo.common.ui.numbers.advanced.State
 import com.tunjid.demo.common.ui.numbers.advanced.isStickyHeaderKey
 import com.tunjid.demo.common.ui.numbers.advanced.stickyHeader

@@ -17,6 +17,7 @@
 package com.tunjid.demo.common.ui.numbers.advanced
 
 import androidx.compose.foundation.gestures.ScrollableState
+import com.tunjid.demo.common.ui.numbers.Item
 import com.tunjid.demo.common.ui.numbers.ListStyle
 import com.tunjid.demo.common.ui.numbers.NumberTile
 import com.tunjid.mutator.Mutation
@@ -53,20 +54,6 @@ val State.stickyHeader: Item.Header?
         is Item.Header -> item
         null -> null
     }
-
-sealed class Item(open val page: Int) {
-    data class Tile(val numberTile: NumberTile) : Item(numberTile.page)
-    data class Header(
-        override val page: Int,
-        val color: Int,
-    ) : Item(page)
-
-    val key
-        get() = when (this) {
-            is Tile -> "tile-${numberTile.number}"
-            is Header -> "header-$page"
-        }
-}
 
 val Any.isStickyHeaderKey get() = this is String && this.contains("header")
 
