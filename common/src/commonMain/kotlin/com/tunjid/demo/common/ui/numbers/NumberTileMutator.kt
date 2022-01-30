@@ -99,39 +99,51 @@ fun numberTilesMutator(
     actionTransform = { actionFlow ->
         actionFlow.toMutationStream {
             when (val action: Action = type()) {
-                is Action.Load -> action.flow.loadMutations(itemsPerPage)
+                is Action.Load -> action.flow.loadMutations(
+                    scope = scope,
+                    itemsPerPage = itemsPerPage
+                )
                 is Action.FirstVisibleIndexChanged -> action.flow.stickyHeaderMutations()
             }
         }
     }
 )
 
-private fun Flow<Action.Load>.loadMutations(itemsPerPage: Int): Flow<Mutation<State>> = merge(
-    toNumberedTiles(itemsPerPage)
-        .map { pagesToTiles ->
-            Mutation {
-                copy(items = pagesToTiles.flatMap { (page, numberTiles) ->
-                    val color = numberTiles.first().color
-                    val header = Item.Header(page = page, color = color)
-                    listOf(header) + when (isAscending) {
-                        true -> numberTiles.map(Item::Tile)
-                        else -> numberTiles.map(Item::Tile).reversed()
-                    }
-                })
+private fun Flow<Action.Load>.loadMutations(
+    scope: CoroutineScope,
+    itemsPerPage: Int
+): Flow<Mutation<State>> = shareIn(
+    scope = scope,
+    started = SharingStarted.WhileSubscribed(),
+    replay = 1
+).let { sharedFlow ->
+    merge(
+        sharedFlow.toNumberedTiles(itemsPerPage)
+            .map { pagesToTiles ->
+                Mutation {
+                    copy(items = pagesToTiles.flatMap { (page, numberTiles) ->
+                        val color = numberTiles.first().color
+                        val header = Item.Header(page = page, color = color)
+                        listOf(header) + when (isAscending) {
+                            true -> numberTiles.map(Item::Tile)
+                            else -> numberTiles.map(Item::Tile).reversed()
+                        }
+                    })
+                }
+            },
+        sharedFlow.loadMetadata()
+            .map {
+                Mutation {
+                    copy(
+                        isAscending = it.isAscending,
+                        // 3 pages are fetched at once, the middle is the current page
+                        currentPage = it.currentQueries.startPage(),
+                        loadSummary = "Active pages: ${it.currentQueries}\nPages in memory: ${it.inMemory.sorted()}"
+                    )
+                }
             }
-        },
-    loadMetadata()
-        .map {
-            Mutation {
-                copy(
-                    isAscending = it.isAscending,
-                    // 3 pages are fetched at once, the middle is the current page
-                    currentPage = it.currentQueries.startPage(),
-                    loadSummary = "Active pages: ${it.currentQueries}\nPages in memory: ${it.inMemory.sorted()}"
-                )
-            }
-        }
-)
+    )
+}
 
 private fun Flow<Action.FirstVisibleIndexChanged>.stickyHeaderMutations(): Flow<Mutation<State>> =
     distinctUntilChanged()
