@@ -150,10 +150,8 @@ private fun numberTiler(itemsPerPage: Int): (Flow<Tile.Input.Map<PageQuery, List
         limiter = Tile.Limiter.Map { pages -> pages.size > 4 },
         order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
         fetcher = { (page, isAscending) ->
-            val start = page * itemsPerPage
-            val numbers = start.until(start + itemsPerPage)
             argbFlow().map { color ->
-                numbers.map { number ->
+                page.pageRange(itemsPerPage).map { number ->
                     NumberTile(
                         number = number,
                         color = color,
