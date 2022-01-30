@@ -91,6 +91,7 @@ private data class LoadMetadata(
 
 fun numberTilesMutator(
     scope: CoroutineScope,
+    itemsPerPage: Int,
     listStyle: ListStyle<ScrollableState>
 ): Mutator<Action, StateFlow<State>> = stateFlowMutator(
     scope = scope,
@@ -98,15 +99,15 @@ fun numberTilesMutator(
     transform = { actionFlow ->
         actionFlow.toMutationStream {
             when (val action: Action = type()) {
-                is Action.Load -> action.flow.loadMutations()
+                is Action.Load -> action.flow.loadMutations(itemsPerPage)
                 is Action.FirstVisibleIndexChanged -> action.flow.stickyHeaderMutations()
             }
         }
     }
 )
 
-private fun Flow<Action.Load>.loadMutations(): Flow<Mutation<State>> = merge(
-    toNumberedTiles()
+private fun Flow<Action.Load>.loadMutations(itemsPerPage: Int): Flow<Mutation<State>> = merge(
+    toNumberedTiles(itemsPerPage)
         .map { pagesToTiles ->
             Mutation {
                 copy(items = pagesToTiles.flatMap { (page, numberTiles) ->
@@ -138,13 +139,13 @@ private fun Flow<Action.FirstVisibleIndexChanged>.stickyHeaderMutations(): Flow<
             Mutation { copy(firstVisibleIndex = firstVisibleIndex) }
         }
 
-private fun numberTiler(): (Flow<Input.Map<Int, List<NumberTile>>>) -> Flow<Map<Int, List<NumberTile>>> =
+private fun numberTiler(itemsPerPage: Int): (Flow<Input.Map<Int, List<NumberTile>>>) -> Flow<Map<Int, List<NumberTile>>> =
     tiledMap(
         limiter = Tile.Limiter.Map { pages -> pages.size > 4 },
         order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
         fetcher = { page: Int ->
-            val start = page * 50
-            val numbers = start.until(start + 50)
+            val start = page * itemsPerPage
+            val numbers = start.until(start + itemsPerPage)
             argbFlow().map { color ->
                 numbers.map { number ->
                     NumberTile(
@@ -157,7 +158,7 @@ private fun numberTiler(): (Flow<Input.Map<Int, List<NumberTile>>>) -> Flow<Map<
         }
     )
 
-private fun Flow<Action.Load>.toNumberedTiles(): Flow<Map<Int, List<NumberTile>>> =
+private fun Flow<Action.Load>.toNumberedTiles(itemsPerPage: Int): Flow<Map<Int, List<NumberTile>>> =
     loadMetadata()
         .flatMapLatest { (previousQueries, currentQueries, evictions, _, comparator) ->
             // Turn on flows for the requested pages
@@ -183,7 +184,7 @@ private fun Flow<Action.Load>.toNumberedTiles(): Flow<Map<Int, List<NumberTile>>
 
             (toTurnOn + toTurnOff + toEvict + comparison).asFlow()
         }
-        .toTiledMap(numberTiler())
+        .toTiledMap(numberTiler(itemsPerPage))
 
 private fun Flow<Action.Load>.loadMetadata(): Flow<LoadMetadata> =
     distinctUntilChanged()

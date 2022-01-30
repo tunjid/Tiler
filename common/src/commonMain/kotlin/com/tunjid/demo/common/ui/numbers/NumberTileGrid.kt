@@ -31,7 +31,10 @@ import androidx.compose.ui.draw.scale
 import kotlin.math.max
 import kotlin.math.min
 
-object NumberTileGrid : ListStyle<LazyGridState>(name = "Grid") {
+object NumberTileGrid : ListStyle<LazyGridState>(
+    name = "Grid",
+    itemsPerPage = 50
+) {
     override fun firstVisibleIndex(state: LazyGridState): Int? =
         state.layoutInfo.visibleItemsInfo.firstOrNull()?.index
 
@@ -81,19 +84,25 @@ object NumberTileGrid : ListStyle<LazyGridState>(name = "Grid") {
     }
 
     @Composable
-    override fun HeaderItem(item: Item.Header) {
+    override fun HeaderItem(
+        modifier: Modifier,
+        item: Item.Header
+    ) {
         Row {
             HeaderTile(
-                modifier = Modifier.wrapContentSize(),
+                modifier = modifier.wrapContentSize(),
                 item = item
             )
         }
     }
 
     @Composable
-    override fun TileItem(item: Item.Tile) {
+    override fun TileItem(
+        modifier: Modifier,
+        item: Item.Tile
+    ) {
         NumberTile(
-            modifier = Modifier
+            modifier = modifier
                 .aspectRatio(1f)
                 .scale(0.9f),
             tile = item.numberTile
@@ -120,8 +129,14 @@ object NumberTileGrid : ListStyle<LazyGridState>(name = "Grid") {
                     },
                     itemContent = { item ->
                         when (item) {
-                            is Item.Header -> HeaderItem(item = item)
-                            is Item.Tile -> TileItem(item = item)
+                            is Item.Header -> HeaderItem(
+                                modifier = Modifier,
+                                item = item,
+                            )
+                            is Item.Tile -> TileItem(
+                                modifier = Modifier,
+                                item = item,
+                            )
                         }
                     }
                 )

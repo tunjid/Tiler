@@ -30,7 +30,10 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.max
 import kotlin.math.min
 
-object NumberTileList : ListStyle<LazyListState>(name = "List") {
+object NumberTileList : ListStyle<LazyListState>(
+    name = "List",
+    itemsPerPage = 10,
+) {
     override fun firstVisibleIndex(state: LazyListState): Int? =
         state.layoutInfo.visibleItemsInfo.firstOrNull()?.index
 
@@ -79,10 +82,13 @@ object NumberTileList : ListStyle<LazyListState>(name = "List") {
     override fun rememberState(): LazyListState = rememberLazyListState()
 
     @Composable
-    override fun HeaderItem(item: Item.Header) {
+    override fun HeaderItem(
+        modifier: Modifier,
+        item: Item.Header
+    ) {
         Row {
             HeaderTile(
-                modifier = Modifier
+                modifier = modifier
                     .wrapContentSize()
                     .padding(horizontal = 8.dp),
                 item = item
@@ -91,9 +97,12 @@ object NumberTileList : ListStyle<LazyListState>(name = "List") {
     }
 
     @Composable
-    override fun TileItem(item: Item.Tile) {
+    override fun TileItem(
+        modifier: Modifier,
+        item: Item.Tile
+    ) {
         NumberTile(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp),
             tile = item.numberTile
@@ -110,8 +119,14 @@ object NumberTileList : ListStyle<LazyListState>(name = "List") {
                     key = { it.key },
                     itemContent = { item ->
                         when (item) {
-                            is Item.Header -> HeaderItem(item = item)
-                            is Item.Tile -> TileItem(item = item)
+                            is Item.Header -> HeaderItem(
+                                modifier = Modifier.animateItemPlacement(),
+                                item = item
+                            )
+                            is Item.Tile -> TileItem(
+                                modifier = Modifier.animateItemPlacement(),
+                                item = item
+                            )
                         }
                     }
                 )

@@ -47,7 +47,8 @@ fun NumberTileTabs(
         listStyles.associateWith { listStyle ->
             numberTilesMutator(
                 scope = scope,
-                listStyle = listStyle
+                listStyle = listStyle,
+                itemsPerPage = listStyle.itemsPerPage,
             )
         }
     }

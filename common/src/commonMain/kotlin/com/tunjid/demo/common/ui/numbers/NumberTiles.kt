@@ -44,7 +44,10 @@ data class ScrollState(
     val isDownward: Boolean = true,
 )
 
-sealed class ListStyle<T : ScrollableState>(val name: String) {
+sealed class ListStyle<T : ScrollableState>(
+    val name: String,
+    val itemsPerPage: Int,
+) {
 
     abstract fun firstVisibleIndex(state: T): Int?
 
@@ -63,10 +66,16 @@ sealed class ListStyle<T : ScrollableState>(val name: String) {
     abstract fun rememberState(): T
 
     @Composable
-    abstract fun HeaderItem(item: Item.Header)
+    abstract fun HeaderItem(
+        modifier: Modifier,
+        item: Item.Header
+    )
 
     @Composable
-    abstract fun TileItem(item: Item.Tile)
+    abstract fun TileItem(
+        modifier: Modifier,
+        item: Item.Tile
+    )
 
     @Composable
     abstract fun Content(
@@ -111,7 +120,10 @@ fun NumberTiles(
                 )
             },
             stickyHeader = {
-                if (stickyHeader != null) listStyle.HeaderItem(item = stickyHeader)
+                if (stickyHeader != null) listStyle.HeaderItem(
+                    modifier = Modifier,
+                    item = stickyHeader
+                )
             },
             content = {
                 listStyle.Content(state = lazyState, items = items)
