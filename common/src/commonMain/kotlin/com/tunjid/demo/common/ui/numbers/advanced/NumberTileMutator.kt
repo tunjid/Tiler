@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package com.tunjid.demo.common.ui.numbers
+package com.tunjid.demo.common.ui.numbers.advanced
 
 import androidx.compose.foundation.gestures.ScrollableState
+import com.tunjid.demo.common.ui.numbers.ListStyle
+import com.tunjid.demo.common.ui.numbers.NumberTile
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.Mutator
 import com.tunjid.mutator.coroutines.stateFlowMutator
@@ -68,15 +70,10 @@ sealed class Item(open val page: Int) {
 
 val Any.isStickyHeaderKey get() = this is String && this.contains("header")
 
-data class NumberTile(
-    val number: Int,
-    val color: Int,
-    val page: Int
-)
-
 fun numberTilesMutator(
     scope: CoroutineScope,
     itemsPerPage: Int,
+    isDark: Boolean,
     listStyle: ListStyle<ScrollableState>
 ): Mutator<Action, StateFlow<State>> = stateFlowMutator(
     scope = scope,
@@ -86,7 +83,8 @@ fun numberTilesMutator(
             when (val action: Action = type()) {
                 is Action.Load -> action.flow.loadMutations(
                     scope = scope,
-                    itemsPerPage = itemsPerPage
+                    isDark = isDark,
+                    itemsPerPage = itemsPerPage,
                 )
                 is Action.FirstVisibleIndexChanged -> action.flow.stickyHeaderMutations()
             }
@@ -102,7 +100,8 @@ private fun Flow<Action.FirstVisibleIndexChanged>.stickyHeaderMutations(): Flow<
 
 private fun Flow<Action.Load>.loadMutations(
     scope: CoroutineScope,
-    itemsPerPage: Int
+    itemsPerPage: Int,
+    isDark: Boolean,
 ): Flow<Mutation<State>> = loadMetadata()
     .shareIn(
         scope = scope,
@@ -110,7 +109,7 @@ private fun Flow<Action.Load>.loadMutations(
         replay = 1
     ).let { loadMetadata ->
         merge(
-            loadMetadata.toNumberedTiles(itemsPerPage)
+            loadMetadata.toNumberedTiles(itemsPerPage = itemsPerPage, isDark = isDark)
                 .map { pagesToTiles: Map<PageQuery, List<NumberTile>> ->
                     Mutation {
                         copy(items = pagesToTiles.flatMap { (pageQuery, numberTiles) ->

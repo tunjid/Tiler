@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
-package com.tunjid.demo.common.ui.numbers
+package com.tunjid.demo.common.ui.numbers.advanced
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import com.tunjid.demo.common.ui.MutedColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-fun argbFlow(changeDelayMillis: Long = 500L): Flow<Int> = flow {
+fun argbFlow(
+    isDark: Boolean,
+    changeDelayMillis: Long = 500L
+): Flow<Int> = flow {
     var fraction = 0f
     var colorIndex = 0
-    val colorsSize = colors.size
 
     while (true) {
         fraction += 0.05f
@@ -36,11 +37,18 @@ fun argbFlow(changeDelayMillis: Long = 500L): Flow<Int> = flow {
             colorIndex++
         }
 
+
         emit(
             interpolateColors(
                 fraction = fraction,
-                startValue = colors[colorIndex % colorsSize],
-                endValue = colors[(colorIndex + 1) % colorsSize]
+                startValue = MutedColors.colorAt(
+                    isDark = isDark,
+                    index = colorIndex
+                ),
+                endValue = MutedColors.colorAt(
+                    isDark = isDark,
+                    index = colorIndex + 1
+                )
             )
         )
         delay(changeDelayMillis)
@@ -72,7 +80,7 @@ private fun interpolateColors(fraction: Float, startValue: Int, endValue: Int): 
     var b = startB + fraction * (endB - startB)
 
     // convert back to sRGB in the [0..255] range
-    a = a * 255.0f
+    a *= 255.0f
     r = r.toDouble().pow(1.0 / 2.2).toFloat() * 255.0f
     g = g.toDouble().pow(1.0 / 2.2).toFloat() * 255.0f
     b = b.toDouble().pow(1.0 / 2.2).toFloat() * 255.0f
@@ -80,15 +88,3 @@ private fun interpolateColors(fraction: Float, startValue: Int, endValue: Int): 
     return a.roundToInt() shl 24 or (r.roundToInt() shl 16) or (g.roundToInt() shl 8) or b.roundToInt()
 }
 
-private val colors = listOf(
-    Color.Black,
-    Color.Blue,
-    Color.Cyan,
-    Color.DarkGray,
-    Color.Gray,
-    Color.Green,
-    Color.LightGray,
-    Color.Magenta,
-    Color.Red,
-    Color.Yellow,
-).map(Color::toArgb)

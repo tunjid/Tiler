@@ -23,13 +23,12 @@ import com.tunjid.tiler.Tile
 import com.tunjid.tiler.tiledList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 class SimpleNumberFetcher(
     itemsPerPage: Int,
-    isDark: Boolean
+    isDark: Boolean,
 ) {
     private val requests =
         MutableStateFlow<Tile.Input.List<Int, List<NumberTile>>>(Tile.Request.On(query = 0))

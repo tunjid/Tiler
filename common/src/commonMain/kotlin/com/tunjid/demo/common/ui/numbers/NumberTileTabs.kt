@@ -17,6 +17,7 @@
 package com.tunjid.demo.common.ui.numbers
 
 import androidx.compose.foundation.gestures.ScrollableState
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.tunjid.demo.common.ui.numbers.advanced.numberTilesMutator
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
@@ -42,13 +44,15 @@ fun NumberTileTabs(
     if (listStyles.isEmpty()) return
     val saveableStateHolder = rememberSaveableStateHolder()
 
+    val isDark = isSystemInDarkTheme()
     var selectedStyle by remember { mutableStateOf(listStyles.first()) }
     val mutatorCreator = remember {
         listStyles.associateWith { listStyle ->
             numberTilesMutator(
                 scope = scope,
+                isDark = isDark,
                 listStyle = listStyle,
-                itemsPerPage = listStyle.itemsPerPage,
+                itemsPerPage = listStyle.itemsPerPage
             )
         }
     }

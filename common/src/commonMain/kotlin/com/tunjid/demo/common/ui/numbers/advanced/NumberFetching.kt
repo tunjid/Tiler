@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package com.tunjid.demo.common.ui.numbers
+package com.tunjid.demo.common.ui.numbers.advanced
 
+import com.tunjid.demo.common.ui.numbers.NumberTile
+import com.tunjid.demo.common.ui.numbers.pageRange
 import com.tunjid.tiler.Tile
 import com.tunjid.tiler.tiledMap
 import com.tunjid.tiler.toTiledMap
@@ -48,7 +50,10 @@ data class LoadMetadata(
 /**
  * Converts [LoadMetadata] into a [Map] of [PageQuery] to [NumberTile]
  */
-fun Flow<LoadMetadata>.toNumberedTiles(itemsPerPage: Int): Flow<Map<PageQuery, List<NumberTile>>> =
+fun Flow<LoadMetadata>.toNumberedTiles(
+    itemsPerPage: Int,
+    isDark: Boolean,
+): Flow<Map<PageQuery, List<NumberTile>>> =
     flatMapLatest { (previousQueries, currentQueries, evictions, _, comparator) ->
         // Turn on flows for the requested pages
         val toTurnOn = currentQueries
@@ -73,7 +78,7 @@ fun Flow<LoadMetadata>.toNumberedTiles(itemsPerPage: Int): Flow<Map<PageQuery, L
 
         (toEvict + comparison + toTurnOff + toTurnOn).asFlow()
     }
-        .toTiledMap(numberTiler(itemsPerPage))
+        .toTiledMap(numberTiler(itemsPerPage = itemsPerPage, isDark = isDark))
 
 /**
  * Metadata describing the status of loading reduced from [Action.Load] requests
@@ -145,12 +150,15 @@ fun Flow<Action.Load>.loadMetadata(): Flow<LoadMetadata> =
 /**
  * Fetches a [Map] of [PageQuery] to [NumberTile] where the [NumberTile] instances self update
  */
-private fun numberTiler(itemsPerPage: Int): (Flow<Tile.Input.Map<PageQuery, List<NumberTile>>>) -> Flow<Map<PageQuery, List<NumberTile>>> =
+private fun numberTiler(
+    itemsPerPage: Int,
+    isDark: Boolean,
+): (Flow<Tile.Input.Map<PageQuery, List<NumberTile>>>) -> Flow<Map<PageQuery, List<NumberTile>>> =
     tiledMap(
         limiter = Tile.Limiter.Map { pages -> pages.size > 4 },
         order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
         fetcher = { (page, isAscending) ->
-            argbFlow().map { color ->
+            argbFlow(isDark = isDark).map { color ->
                 page.pageRange(itemsPerPage).map { number ->
                     NumberTile(
                         number = number,
