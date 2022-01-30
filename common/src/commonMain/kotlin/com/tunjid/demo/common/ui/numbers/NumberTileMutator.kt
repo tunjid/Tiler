@@ -96,7 +96,7 @@ fun numberTilesMutator(
 ): Mutator<Action, StateFlow<State>> = stateFlowMutator(
     scope = scope,
     initialState = State(listStyle = listStyle),
-    transform = { actionFlow ->
+    actionTransform = { actionFlow ->
         actionFlow.toMutationStream {
             when (val action: Action = type()) {
                 is Action.Load -> action.flow.loadMutations(itemsPerPage)

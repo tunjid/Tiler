@@ -11,7 +11,7 @@ junit4 = "4.13.2"
 kotlin = "1.6.10"
 kotlinxCoroutines = "1.6.0"
 googleMaterial = "1.4.0"
-tunjidMutator = "0.0.0-alpha03"
+tunjidMutator = "0.0.1"
 turbine = "0.7.0"
 
 [libraries]
