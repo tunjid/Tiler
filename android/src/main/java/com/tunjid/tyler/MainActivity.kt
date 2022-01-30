@@ -21,8 +21,8 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.tunjid.demo.common.ui.AppTheme
-import com.tunjid.demo.common.ui.numbers.NumberTileGrid
-import com.tunjid.demo.common.ui.numbers.NumberTileList
+import com.tunjid.demo.common.ui.numbers.GridListStyle
+import com.tunjid.demo.common.ui.numbers.ColumnListStyle
 import com.tunjid.demo.common.ui.numbers.NumberTileTabs
 
 class MainActivity : AppCompatActivity() {
@@ -33,8 +33,8 @@ class MainActivity : AppCompatActivity() {
                 NumberTileTabs(
                     scope = lifecycleScope,
                     listStyles = listOf(
-                        NumberTileGrid,
-                        NumberTileList
+                        GridListStyle,
+                        ColumnListStyle
                     )
                 )
             }

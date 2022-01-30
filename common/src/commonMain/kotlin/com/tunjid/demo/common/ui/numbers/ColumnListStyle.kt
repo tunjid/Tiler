@@ -28,8 +28,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-object NumberTileList : ListStyle<LazyListState>(
-    name = "List",
+object ColumnListStyle : ListStyle<LazyListState>(
+    name = "Column",
     itemsPerPage = 10,
 ) {
     override fun firstVisibleIndex(state: LazyListState): Int? =

@@ -16,8 +16,6 @@
 
 package com.tunjid.demo
 
-import androidx.compose.foundation.gestures.ScrollableState
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -25,10 +23,6 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.tunjid.demo.common.ui.AppTheme
 import com.tunjid.demo.common.ui.Root
-import com.tunjid.demo.common.ui.numbers.ListStyle
-import com.tunjid.demo.common.ui.numbers.NumberTileGrid
-import com.tunjid.demo.common.ui.numbers.NumberTileList
-import com.tunjid.demo.common.ui.numbers.NumberTileTabs
 
 fun main() {
     application {

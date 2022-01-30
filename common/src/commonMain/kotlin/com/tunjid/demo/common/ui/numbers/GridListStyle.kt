@@ -30,7 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import com.tunjid.demo.common.ui.numbers.advanced.GridSize
 
-object NumberTileGrid : ListStyle<LazyGridState>(
+object GridListStyle : ListStyle<LazyGridState>(
     name = "Grid",
     itemsPerPage = 50
 ) {

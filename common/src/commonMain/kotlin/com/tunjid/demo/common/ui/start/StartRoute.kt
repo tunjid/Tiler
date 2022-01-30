@@ -16,7 +16,6 @@
 
 package com.tunjid.demo.common.ui.start
 
-import com.tunjid.treenav.Node
 import com.tunjid.treenav.Route
 
 object StartRoute : Route {
