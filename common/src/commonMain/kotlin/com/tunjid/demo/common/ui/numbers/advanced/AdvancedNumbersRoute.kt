@@ -39,7 +39,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
-object AdvancedRoute : AppRoute {
+object AdvancedNumbersRoute : AppRoute {
     override val id: String
         get() = "advanced"
 

@@ -17,6 +17,7 @@
 package com.tunjid.demo.common.ui.numbers.simple
 
 import com.tunjid.demo.common.ui.MutedColors
+import com.tunjid.demo.common.ui.numbers.Item
 import com.tunjid.demo.common.ui.numbers.NumberTile
 import com.tunjid.demo.common.ui.numbers.pageRange
 import com.tunjid.tiler.Tile
@@ -25,32 +26,54 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
 class SimpleNumberFetcher(
     itemsPerPage: Int,
     isDark: Boolean,
 ) {
-    private val requests =
-        MutableStateFlow<Tile.Input.List<Int, List<NumberTile>>>(Tile.Request.On(query = 0))
+    private val requests = MutableStateFlow(0)
 
-    private val listTiler: (Flow<Tile.Input.List<Int, List<NumberTile>>>) -> Flow<List<List<NumberTile>>> = tiledList(
-        order = Tile.Order.Sorted(comparator = Int::compareTo),
-        fetcher = { page ->
-            flowOf( page.pageRange(itemsPerPage).map {
-                NumberTile(
-                    page = page,
-                    number = it,
-                    color = MutedColors.random(isDark = isDark)
-                )
-            })
-        }
-    )
+    /**
+     * Tiling function to fetch items for a given page
+     */
+    private val listTiler: (Flow<Tile.Input.List<Int, List<Item>>>) -> Flow<List<List<Item>>> =
+        tiledList(
+            order = Tile.Order.Sorted(comparator = Int::compareTo),
+            fetcher = { page ->
+                flowOf(page.pageRange(itemsPerPage).map {
+                    Item.Tile(
+                        NumberTile(
+                            page = page,
+                            number = it,
+                            color = MutedColors.colorAt(isDark = isDark, index = 0)
+                        )
+                    )
+                })
+            }
+        )
 
-    val listItems: Flow<List<NumberTile>> = listTiler
-        .invoke(requests)
+    /**
+     * Outputs items fetched
+     */
+    val listItems: Flow<List<Item>> = listTiler
+        .invoke(requests
+            .onStart {
+                emit(requests.value + 1)
+                emit(requests.value + 2)
+            }
+            .map { Tile.Request.On(it) }
+        )
         .map { it.flatten() }
 
+    /**
+     * Fetches items for the requested page. Fetching is idempotent; no page will be fetched more
+     * than once.
+     *
+     * Note: All pages fetched are kept in memory. To see how memory can be managed, check out the
+     * intermediate and advanced examples.
+     */
     fun fetchPage(page: Int) {
-        requests.value = Tile.Request.On(page)
+        requests.value = page
     }
 }
