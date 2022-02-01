@@ -55,8 +55,6 @@ val State.stickyHeader: Item.Header?
         null -> null
     }
 
-val Any.isStickyHeaderKey get() = this is String && this.contains("header")
-
 fun numberTilesMutator(
     scope: CoroutineScope,
     itemsPerPage: Int,

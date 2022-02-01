@@ -16,11 +16,37 @@
 
 package com.tunjid.demo.common.ui.numbers
 
+import androidx.compose.runtime.LaunchedEffect
+
 data class NumberTile(
     val number: Int,
     val color: Int,
     val page: Int
 )
+
+/**
+ * Keys items for Lazy UI and also saves page information for infinite scrolling efficiency with
+ * [LaunchedEffect].
+ *
+ * Note only the id is used for equality
+ */
+// TODO: should this be a string value class for efficiency?
+private class ItemKey(
+    val id: String,
+    val page: Int
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as ItemKey
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id.hashCode()
+}
 
 sealed class Item(open val page: Int) {
 
@@ -33,9 +59,14 @@ sealed class Item(open val page: Int) {
         val color: Int,
     ) : Item(page)
 
-    val key
+    val key: Any
         get() = when (this) {
-            is Tile -> "tile-${numberTile.number}"
-            is Header -> "header-$page"
+            is Tile -> ItemKey(id = "tile-${numberTile.number}", page = numberTile.page)
+            is Header -> ItemKey(id = "header-$page", page = page)
         }
 }
+
+val Any.isStickyHeaderKey get() = this is ItemKey && id.startsWith("header")
+
+val Any?.pageFromKey get() = if (this is ItemKey) page else 0
+

@@ -26,14 +26,8 @@ import com.tunjid.demo.common.ui.AppRoute
 import com.tunjid.demo.common.ui.numbers.ColumnListStyle
 import com.tunjid.demo.common.ui.numbers.GridListStyle
 import com.tunjid.demo.common.ui.numbers.ListStyle
-import com.tunjid.demo.common.ui.numbers.ScrollState
 import com.tunjid.demo.common.ui.numbers.Tabbed
-import com.tunjid.demo.common.ui.numbers.page
-import com.tunjid.demo.common.ui.numbers.updateDirection
-import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.scan
-import kotlin.math.abs
+import kotlinx.coroutines.flow.filterIsInstance
 
 object SimpleNumbersRoute : AppRoute {
     override val id: String
@@ -82,18 +76,14 @@ fun SimpleList(
     }
 
     // Endless scrolling
-    LaunchedEffect(lazyState, items) {
-        snapshotFlow {
-            listStyle.scrollState(
-                state = lazyState,
-                items = items,
-                isAscending = true
-            )
-        }
-            .scan(ScrollState(), ScrollState::updateDirection)
-            .filter { abs(it.dy) > 4 }
-            .distinctUntilChangedBy(ScrollState::page)
-            .collect { fetcher.fetchPage(page = it.page + 1) }
+    val key = listStyle.boundaryKey(lazyState)
+    LaunchedEffect(key) {
+        snapshotFlow { key }
+            .filterIsInstance<Int>()
+            .collect {
+                println(it)
+                fetcher.fetchPage(page = it + 1)
+            }
     }
 }
 

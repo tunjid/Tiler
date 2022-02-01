@@ -27,12 +27,6 @@ sealed class ListStyle<T : ScrollableState>(
 
     abstract fun firstVisibleIndex(state: T): Int?
 
-    abstract fun scrollState(
-        state: T,
-        items: List<Item>,
-        isAscending: Boolean
-    ): ScrollState
-
     abstract fun stickyHeaderOffsetCalculator(
         state: T,
         headerMatcher: (Any) -> Boolean
@@ -46,6 +40,9 @@ sealed class ListStyle<T : ScrollableState>(
         modifier: Modifier,
         item: Item.Header
     )
+
+    @Composable
+    abstract fun boundaryKey(lazyListState: T): Any?
 
     @Composable
     abstract fun TileItem(

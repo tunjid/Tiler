@@ -32,12 +32,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tunjid.demo.common.ui.AppRoute
-import com.tunjid.demo.common.ui.numbers.*
+import com.tunjid.demo.common.ui.numbers.ColumnListStyle
+import com.tunjid.demo.common.ui.numbers.GridListStyle
+import com.tunjid.demo.common.ui.numbers.ListStyle
+import com.tunjid.demo.common.ui.numbers.StickyHeaderContainer
+import com.tunjid.demo.common.ui.numbers.Tabbed
+import com.tunjid.demo.common.ui.numbers.isStickyHeaderKey
 import com.tunjid.mutator.Mutator
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 object AdvancedNumbersRoute : AppRoute {
     override val id: String
@@ -125,20 +134,11 @@ fun NumberTiles(
             .collect { mutator.accept(Action.FirstVisibleIndexChanged(index = it)) }
     }
 
-    // Endless scrolling
-    LaunchedEffect(lazyState, items) {
-        snapshotFlow {
-            listStyle.scrollState(
-                lazyState,
-                items,
-                isAscending
-            )
-        }
-            .scan(ScrollState(), ScrollState::updateDirection)
-            .filter { abs(it.dy) > 4 }
-            .distinctUntilChangedBy(ScrollState::page)
-            .collect { mutator.accept(Action.Load.LoadMore(page = it.page)) }
-    }
+    listStyle.EndlessScroll(
+        lazyState,
+        mutator.accept
+    )
+
 
     // In the docs: https://developer.android.com/reference/kotlin/androidx/compose/material/SnackbarHostState
     //
@@ -159,6 +159,22 @@ fun NumberTiles(
                         message = it
                     )
                 }
+            }
+    }
+}
+
+@Composable
+private fun ListStyle<ScrollableState>.EndlessScroll(
+    lazyState: ScrollableState,
+    loadMore: (Action.Load) -> Unit,
+) {
+    // Endless scrolling
+    val key = boundaryKey(lazyState)
+    LaunchedEffect(key) {
+        snapshotFlow { key }
+            .filterIsInstance<Int>()
+            .collect {
+                loadMore(Action.Load.LoadMore(page = it))
             }
     }
 }
