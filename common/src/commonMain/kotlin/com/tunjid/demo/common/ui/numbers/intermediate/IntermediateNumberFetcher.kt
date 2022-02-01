@@ -17,77 +17,104 @@
 package com.tunjid.demo.common.ui.numbers.intermediate
 
 import com.tunjid.demo.common.ui.MutedColors
+import com.tunjid.demo.common.ui.numbers.Item
 import com.tunjid.demo.common.ui.numbers.NumberTile
 import com.tunjid.demo.common.ui.numbers.pageRange
 import com.tunjid.tiler.Tile
 import com.tunjid.tiler.tiledList
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import kotlin.math.max
+
+private const val ConcurrentPages = 5
+private const val PagesReturned = 3
+
+private data class LoadMetadata(
+    val currentQueries: List<Int> = listOf(),
+    val toEvict: List<Int> = listOf(),
+)
 
 class IntermediateNumberFetcher(
+    private val scope: CoroutineScope,
     itemsPerPage: Int,
     isDark: Boolean,
 ) {
     private val requests =
-        MutableStateFlow<Tile.Request.On<Int, List<Int>>>(Tile.Request.On(query = 0))
+        MutableSharedFlow<Tile.Request.On<Int, List<Int>>>()
 
-    private val managedRequests: Flow<Tile.Input.List<Int, List<NumberTile>>> = requests
-        .map { (page) -> listOf(page, page + 1).filter { it >= 0 } }
-        .scan(listOf<Int>() to listOf<Int>()) { oldRequestsToNewRequests, newRequests ->
-            // Keep track of what was last requested
-            oldRequestsToNewRequests.copy(
-                first = oldRequestsToNewRequests.second,
-                second = newRequests
-            )
-        }
-        .flatMapLatest { (oldRequests, newRequests) ->
-            // Evict all items 10 pages behind the smallest page in the new request.
-            // Their backing flows will stop being collected, and their existing values will be
-            // evicted from memory
-            val toEvict: List<Tile.Request.Evict<Int, List<NumberTile>>> = (newRequests.minOrNull()
-                ?.minus(10)
-                ?.downTo(0)
-                ?.take(10)
-                ?: listOf())
-                .map { Tile.Request.Evict(it) }
-
-            // Turn off the flows for all old requests that are not in the new request batch
-            // The existing emitted values will be kept in memory, but their backing flows
-            // will stop being collected
-            val toTurnOff: List<Tile.Request.Off<Int, List<NumberTile>>> = oldRequests
-                .filterNot(newRequests::contains)
-                .map { Tile.Request.Off(it) }
-
-            val toTurnOn: List<Tile.Request.On<Int, List<NumberTile>>> = newRequests
-                .map { Tile.Request.On(it) }
-
-            (toEvict + toTurnOff + toTurnOn).asFlow()
-        }
-
-    private val listTiler: (Flow<Tile.Input.List<Int, List<NumberTile>>>) -> Flow<List<List<NumberTile>>> =
+    /**
+     * Tiling function to fetch items for a given page
+     */
+    private val listTiler: (Flow<Tile.Input.List<Int, List<Item>>>) -> Flow<List<List<Item>>> =
         tiledList(
             order = Tile.Order.Sorted(comparator = Int::compareTo),
+            limiter = Tile.Limiter.List { it.size > itemsPerPage * PagesReturned },
             fetcher = { page ->
                 flowOf(page.pageRange(itemsPerPage).map {
-                    NumberTile(
-                        page = page,
-                        number = it,
-                        color = MutedColors.random(isDark = isDark)
+                    Item.Tile(
+                        NumberTile(
+                            page = page,
+                            number = it,
+                            color = MutedColors.colorAt(isDark = isDark, index = 0)
+                        )
                     )
                 })
             }
         )
 
-    val listItems: Flow<List<NumberTile>> = listTiler
+    private val managedRequests: Flow<Tile.Input.List<Int, List<Item>>> = requests
+        .scan(LoadMetadata()) { metadata, request ->
+            val page = request.query
+            val isAtEnd = page > (metadata.currentQueries.lastOrNull() ?: 0)
+            val allQueries = (metadata.currentQueries + page).distinct().sorted()
+            val (toKeep, toEvict) = allQueries.partition {
+                if (isAtEnd) it > (page - ConcurrentPages)
+                else it < (page + ConcurrentPages)
+            }
+            metadata.copy(
+                currentQueries = toKeep,
+                toEvict = toEvict
+            )
+        }
+        .flatMapLatest { metadata ->
+            val toEvict: List<Tile.Request.Evict<Int, List<Item>>> = metadata
+                .toEvict
+                .map { Tile.Request.Evict(it) }
+            val toTurnOn: List<Tile.Request.On<Int, List<Item>>> = metadata.currentQueries
+                .map { Tile.Request.On(it) }
+
+            (toEvict + toTurnOn).asFlow()
+        }
+
+    val listItems: StateFlow<List<Item>> = listTiler
         .invoke(managedRequests)
         .map { it.flatten() }
+        .stateIn(
+            scope = scope,
+            started = SharingStarted.WhileSubscribed(),
+            initialValue = listOf()
+        )
 
-    fun fetchPage(page: Int) {
-        requests.value = Tile.Request.On(page)
+    /**
+     * Makes sure items returned are pivoted around this page
+     */
+    fun pivotAround(page: Int) = awaitSubscribers {
+        requests.emit(Tile.Request.On(page))
+    }
+
+    fun fetchPrevious(page: Int) = awaitSubscribers {
+        requests.emit(Tile.Request.On(max(a = page - 1, b = 0)))
+    }
+
+    fun fetchNext(page: Int) = awaitSubscribers {
+        requests.emit(Tile.Request.On(page + 1))
+    }
+
+    private fun awaitSubscribers(block: suspend () -> Unit) {
+        scope.launch {
+            requests.subscriptionCount.first { it > 0 }
+            block()
+        }
     }
 }

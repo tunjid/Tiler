@@ -14,22 +14,25 @@
  * limitations under the License.
  */
 
-package com.tunjid.demo.common.ui.numbers.simple
+package com.tunjid.demo.common.ui.numbers.intermediate
 
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import com.tunjid.demo.common.ui.AppRoute
 import com.tunjid.demo.common.ui.numbers.ColumnListStyle
 import com.tunjid.demo.common.ui.numbers.GridListStyle
 import com.tunjid.demo.common.ui.numbers.ListStyle
 import com.tunjid.demo.common.ui.numbers.Tabbed
+import kotlinx.coroutines.flow.mapNotNull
 
-object SimpleNumbersRoute : AppRoute {
+object IntermediateNumbersRoute : AppRoute {
     override val id: String
-        get() = "simple"
+        get() = "intermediate"
 
     @Composable
     override fun Render() {
@@ -38,14 +41,15 @@ object SimpleNumbersRoute : AppRoute {
                 ColumnListStyle as ListStyle<ScrollableState>,
                 GridListStyle as ListStyle<ScrollableState>,
             ),
-            contentDependencies = { _, listStyle, isDark ->
-                SimpleNumberFetcher(
+            contentDependencies = { scope, listStyle, isDark ->
+                IntermediateNumberFetcher(
+                    scope = scope,
                     itemsPerPage = listStyle.itemsPerPage,
                     isDark = isDark,
                 )
             },
             content = { listStyle, dependency ->
-                SimpleList(
+                IntermediateList(
                     listStyle = listStyle,
                     fetcher = dependency
                 )
@@ -55,26 +59,34 @@ object SimpleNumbersRoute : AppRoute {
 }
 
 @Composable
-fun SimpleList(
+fun IntermediateList(
     listStyle: ListStyle<ScrollableState>,
-    fetcher: SimpleNumberFetcher
+    fetcher: IntermediateNumberFetcher
 ) {
-    val items by fetcher.listItems.collectAsState(listOf())
+    val items by fetcher.listItems.collectAsState()
     val lazyState = listStyle.rememberState()
 
     listStyle.Content(
         state = lazyState,
         items = items,
         onStartBoundaryReached = {
+            fetcher.fetchPrevious(page = it.page)
         },
         onEndBoundaryReached = {
-            fetcher.fetchPage(page = it.page + 1)
+            fetcher.fetchNext(page = it.page)
         }
     )
 
-    // Load when this Composable enters the composition
-    LaunchedEffect(true) {
-        fetcher.fetchPage(page = 0)
+    LaunchedEffect(lazyState, items) {
+        snapshotFlow { listStyle.firstVisibleIndex(lazyState)?.let(items::get) }
+            .mapNotNull { it?.page }
+            .collect { fetcher.pivotAround(it) }
+    }
+
+    val startItems by rememberUpdatedState(fetcher.listItems)
+
+    LaunchedEffect(startItems) {
+        if (startItems.value.isEmpty()) fetcher.pivotAround(0)
     }
 }
 

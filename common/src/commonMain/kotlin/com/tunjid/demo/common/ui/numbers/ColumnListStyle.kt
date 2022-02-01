@@ -88,7 +88,8 @@ object ColumnListStyle : ListStyle<LazyListState>(
     override fun Content(
         state: LazyListState,
         items: List<Item>,
-        onItemsBoundaryReached: (Item) -> Unit
+        onStartBoundaryReached: (Item) -> Unit,
+        onEndBoundaryReached: (Item) -> Unit,
     ) {
         LazyColumn(
             state = state,
@@ -99,9 +100,9 @@ object ColumnListStyle : ListStyle<LazyListState>(
                     itemContent = { index, item ->
                         val threshold = itemsPerPage / 3
                         if (items.lastIndex - index < threshold) {
-                            onItemsBoundaryReached(items.last())
+                            onEndBoundaryReached(items.last())
                         } else if (index < threshold) {
-                            onItemsBoundaryReached(items.first())
+                            onStartBoundaryReached(items.first())
                         }
                         when (item) {
                             is Item.Header -> HeaderItem(

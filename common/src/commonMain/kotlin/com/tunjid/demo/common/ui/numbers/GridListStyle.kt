@@ -89,7 +89,8 @@ object GridListStyle : ListStyle<LazyGridState>(
     override fun Content(
         state: LazyGridState,
         items: List<Item>,
-        onItemsBoundaryReached: (Item) -> Unit
+        onStartBoundaryReached: (Item) -> Unit,
+        onEndBoundaryReached: (Item) -> Unit
     ) {
         LazyVerticalGrid(
             cells = GridCells.Fixed(GridSize),
@@ -107,9 +108,9 @@ object GridListStyle : ListStyle<LazyGridState>(
                     itemContent = { index, item ->
                         val threshold = itemsPerPage / 3
                         if (items.lastIndex - index < threshold) {
-                            onItemsBoundaryReached(items.last())
+                            onEndBoundaryReached(items.last())
                         } else if (index < threshold) {
-                            onItemsBoundaryReached(items.first())
+                            onStartBoundaryReached(items.first())
                         }
                         when (item) {
                             is Item.Header -> HeaderItem(

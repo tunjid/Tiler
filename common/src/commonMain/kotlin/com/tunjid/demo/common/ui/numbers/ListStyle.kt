@@ -51,6 +51,7 @@ sealed class ListStyle<T : ScrollableState>(
     abstract fun Content(
         state: T,
         items: List<Item>,
-        onItemsBoundaryReached: (item: Item) -> Unit
+        onStartBoundaryReached: (item: Item) -> Unit,
+        onEndBoundaryReached: (item: Item) -> Unit
     )
 }

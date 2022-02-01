@@ -35,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import com.tunjid.demo.common.ui.numbers.advanced.AdvancedNumbersRoute
+import com.tunjid.demo.common.ui.numbers.intermediate.IntermediateNumbersRoute
 import com.tunjid.demo.common.ui.numbers.simple.SimpleNumbersRoute
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.accept
@@ -56,7 +57,8 @@ private val initialNav = MultiStackNav(
     name = "Default",
     stacks = listOf(
         StackNav("Simple", routes = listOf(SimpleNumbersRoute)),
-        StackNav("Advance", routes = listOf(AdvancedNumbersRoute))
+        StackNav("Intermediate", routes = listOf(IntermediateNumbersRoute)),
+        StackNav("Advanced", routes = listOf(AdvancedNumbersRoute))
     )
 )
 
@@ -100,11 +102,8 @@ private fun BottomNav() {
         BottomNavigation(
             backgroundColor = MaterialTheme.colors.primary,
         ) {
-            listOf(
-                SimpleNumbersRoute,
-                AdvancedNumbersRoute
-            )
-                .forEachIndexed { index, navItem ->
+            nav.stacks
+                .forEachIndexed { index, stack ->
                     BottomNavigationItem(
                         icon = {
 //                            Icon(
@@ -112,8 +111,8 @@ private fun BottomNav() {
 //                                contentDescription = navItem.name
 //                            )
                         },
-                        label = { Text(navItem.id) },
-                        selected = navItem == nav.current,
+                        label = { Text(stack.id) },
+                        selected = stack.current == nav.current,
                         onClick = {
                             navMutator.accept { switch(toIndex = index) }
                         }

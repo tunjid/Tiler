@@ -118,8 +118,11 @@ fun NumberTiles(
                 listStyle.Content(
                     state = lazyState,
                     items = items,
-                    onItemsBoundaryReached = {
-                        mutator.accept(Action.Load.Start(page = it.page))
+                    onStartBoundaryReached = {
+                        mutator.accept(Action.Load.LoadMore(page = it.page))
+                    },
+                    onEndBoundaryReached = {
+                        mutator.accept(Action.Load.LoadMore(page = it.page))
                     }
                 )
             }
