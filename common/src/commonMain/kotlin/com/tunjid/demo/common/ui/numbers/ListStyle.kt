@@ -42,9 +42,6 @@ sealed class ListStyle<T : ScrollableState>(
     )
 
     @Composable
-    abstract fun boundaryKey(lazyListState: T): Any?
-
-    @Composable
     abstract fun TileItem(
         modifier: Modifier,
         item: Item.Tile
@@ -53,6 +50,7 @@ sealed class ListStyle<T : ScrollableState>(
     @Composable
     abstract fun Content(
         state: T,
-        items: List<Item>
+        items: List<Item>,
+        onItemsBoundaryReached: (item: Item) -> Unit
     )
 }

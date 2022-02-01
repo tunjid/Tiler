@@ -43,7 +43,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -116,7 +115,13 @@ fun NumberTiles(
                 )
             },
             content = {
-                listStyle.Content(state = lazyState, items = items)
+                listStyle.Content(
+                    state = lazyState,
+                    items = items,
+                    onItemsBoundaryReached = {
+                        mutator.accept(Action.Load.Start(page = it.page))
+                    }
+                )
             }
         )
     }
@@ -133,12 +138,6 @@ fun NumberTiles(
             .distinctUntilChanged()
             .collect { mutator.accept(Action.FirstVisibleIndexChanged(index = it)) }
     }
-
-    listStyle.EndlessScroll(
-        lazyState,
-        mutator.accept
-    )
-
 
     // In the docs: https://developer.android.com/reference/kotlin/androidx/compose/material/SnackbarHostState
     //
@@ -159,22 +158,6 @@ fun NumberTiles(
                         message = it
                     )
                 }
-            }
-    }
-}
-
-@Composable
-private fun ListStyle<ScrollableState>.EndlessScroll(
-    lazyState: ScrollableState,
-    loadMore: (Action.Load) -> Unit,
-) {
-    // Endless scrolling
-    val key = boundaryKey(lazyState)
-    LaunchedEffect(key) {
-        snapshotFlow { key }
-            .filterIsInstance<Int>()
-            .collect {
-                loadMore(Action.Load.LoadMore(page = it))
             }
     }
 }

@@ -21,13 +21,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.snapshotFlow
 import com.tunjid.demo.common.ui.AppRoute
 import com.tunjid.demo.common.ui.numbers.ColumnListStyle
 import com.tunjid.demo.common.ui.numbers.GridListStyle
 import com.tunjid.demo.common.ui.numbers.ListStyle
 import com.tunjid.demo.common.ui.numbers.Tabbed
-import kotlinx.coroutines.flow.filterIsInstance
 
 object SimpleNumbersRoute : AppRoute {
     override val id: String
@@ -61,29 +59,20 @@ fun SimpleList(
     listStyle: ListStyle<ScrollableState>,
     fetcher: SimpleNumberFetcher
 ) {
-
     val items by fetcher.listItems.collectAsState(listOf())
     val lazyState = listStyle.rememberState()
 
     listStyle.Content(
         state = lazyState,
-        items = items
+        items = items,
+        onItemsBoundaryReached = {
+            fetcher.fetchPage(page = it.page + 1)
+        }
     )
 
     // Load when this Composable enters the composition
     LaunchedEffect(true) {
         fetcher.fetchPage(page = 0)
-    }
-
-    // Endless scrolling
-    val key = listStyle.boundaryKey(lazyState)
-    LaunchedEffect(key) {
-        snapshotFlow { key }
-            .filterIsInstance<Int>()
-            .collect {
-                println(it)
-                fetcher.fetchPage(page = it + 1)
-            }
     }
 }
 
