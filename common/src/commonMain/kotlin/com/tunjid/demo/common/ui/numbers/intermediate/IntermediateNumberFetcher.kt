@@ -48,7 +48,7 @@ class IntermediateNumberFetcher(
      */
     private val listTiler: (Flow<Tile.Input.List<Int, List<Item>>>) -> Flow<List<List<Item>>> =
         tiledList(
-            order = Tile.Order.Sorted(comparator = Int::compareTo),
+            order = Tile.Order.PivotSorted(comparator = Int::compareTo),
             limiter = Tile.Limiter.List { it.size > itemsPerPage * PagesReturned },
             fetcher = { page ->
                 flowOf(page.pageRange(itemsPerPage).map {
@@ -103,14 +103,23 @@ class IntermediateNumberFetcher(
         requests.emit(Tile.Request.On(page))
     }
 
+    /**
+     * Fetch items for the page behind this
+     */
     fun fetchPrevious(page: Int) = awaitSubscribers {
         requests.emit(Tile.Request.On(max(a = page - 1, b = 0)))
     }
 
+    /**
+     * Fetch items for the page after this
+     */
     fun fetchNext(page: Int) = awaitSubscribers {
         requests.emit(Tile.Request.On(page + 1))
     }
 
+    /**
+     * Make sure the downstream is connected before fetching
+     */
     private fun awaitSubscribers(block: suspend () -> Unit) {
         scope.launch {
             requests.subscriptionCount.first { it > 0 }
