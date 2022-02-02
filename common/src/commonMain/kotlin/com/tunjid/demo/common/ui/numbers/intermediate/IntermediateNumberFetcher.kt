@@ -16,10 +16,8 @@
 
 package com.tunjid.demo.common.ui.numbers.intermediate
 
-import com.tunjid.demo.common.ui.numbers.MutedColors
 import com.tunjid.demo.common.ui.numbers.Item
-import com.tunjid.demo.common.ui.numbers.NumberTile
-import com.tunjid.demo.common.ui.numbers.pageRange
+import com.tunjid.demo.common.ui.numbers.colorShiftingTiles
 import com.tunjid.tiler.Tile
 import com.tunjid.tiler.tiledList
 import kotlinx.coroutines.CoroutineScope
@@ -51,15 +49,9 @@ class IntermediateNumberFetcher(
             order = Tile.Order.PivotSorted(comparator = Int::compareTo),
             limiter = Tile.Limiter.List { it.size > itemsPerPage * PagesReturned },
             fetcher = { page ->
-                flowOf(page.pageRange(itemsPerPage).map {
-                    Item.Tile(
-                        NumberTile(
-                            page = page,
-                            number = it,
-                            color = MutedColors.colorAt(isDark = isDark, index = 0)
-                        )
-                    )
-                })
+                page.colorShiftingTiles(
+                    itemsPerPage, isDark
+                ).map { it.map(Item::Tile) }
             }
         )
 
