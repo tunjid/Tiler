@@ -17,11 +17,17 @@
 package com.tunjid.demo.common.ui.numbers.advanced
 
 import com.tunjid.demo.common.ui.numbers.NumberTile
-import com.tunjid.demo.common.ui.numbers.pageRange
+import com.tunjid.demo.common.ui.numbers.colorShiftingTiles
 import com.tunjid.tiler.Tile
 import com.tunjid.tiler.tiledMap
 import com.tunjid.tiler.toTiledMap
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.transformWhile
 import kotlin.math.abs
 
 const val StartAscending = true
@@ -158,15 +164,8 @@ private fun numberTiler(
         limiter = Tile.Limiter.Map { pages -> pages.size > 4 },
         order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
         fetcher = { (page, isAscending) ->
-            argbFlow(isDark = isDark).map { color ->
-                page.pageRange(itemsPerPage).map { number ->
-                    NumberTile(
-                        number = number,
-                        color = color,
-                        page = page
-                    )
-                }.let { if (isAscending) it else it.asReversed() }
-            }
+            page.colorShiftingTiles(itemsPerPage, isDark)
+                .map { if (isAscending) it else it.asReversed() }
         }
     )
 

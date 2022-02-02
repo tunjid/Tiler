@@ -14,48 +14,46 @@
  * limitations under the License.
  */
 
-package com.tunjid.demo.common.ui.numbers.advanced
+package com.tunjid.demo.common.ui.numbers
 
-import com.tunjid.demo.common.ui.MutedColors
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
-fun argbFlow(
-    isDark: Boolean,
-    changeDelayMillis: Long = 500L
-): Flow<Int> = flow {
-    var fraction = 0f
-    var colorIndex = 0
+object MutedColors {
+    private val mutedColors = intArrayOf(
+        Color(0xFF2980b9).toArgb(), // Belize Hole
+        Color(0xFF2c3e50).toArgb(), // Midnight Blue
+        Color(0xFFc0392b).toArgb(), // Pomegranate
+        Color(0xFF16a085).toArgb(), // Green Sea
+        Color(0xFF7f8c8d).toArgb() // Concrete
+    )
 
-    while (true) {
-        fraction += 0.05f
-        if (fraction > 1f) {
-            fraction = 0f
-            colorIndex++
-        }
+    private val darkerMutedColors = intArrayOf(
+        Color(0xFF304233).toArgb(),
+        Color(0xFF353b45).toArgb(),
+        Color(0xFF392e3a).toArgb(),
+        Color(0xFF3e2a2a).toArgb(),
+        Color(0xFF474747).toArgb()
+    )
 
+    fun colorAt(isDark: Boolean, index: Int) = palette(isDark).circular(index)
 
-        emit(
-            interpolateColors(
-                fraction = fraction,
-                startValue = MutedColors.colorAt(
-                    isDark = isDark,
-                    index = colorIndex
-                ),
-                endValue = MutedColors.colorAt(
-                    isDark = isDark,
-                    index = colorIndex + 1
-                )
-            )
-        )
-        delay(changeDelayMillis)
+    fun random(isDark: Boolean): Int = palette(isDark).random()
+
+    private fun palette(isDark: Boolean): IntArray = when (isDark) {
+        true -> mutedColors
+        else -> darkerMutedColors
     }
 }
 
-private fun interpolateColors(fraction: Float, startValue: Int, endValue: Int): Int {
+private fun IntArray.circular(index: Int) = this[index % size]
+
+private fun IntArray.random() = this[(Random.Default.nextInt(size))]
+
+fun interpolateColors(fraction: Float, startValue: Int, endValue: Int): Int {
     val startA = (startValue shr 24 and 0xff) / 255.0f
     var startR = (startValue shr 16 and 0xff) / 255.0f
     var startG = (startValue shr 8 and 0xff) / 255.0f
@@ -87,4 +85,3 @@ private fun interpolateColors(fraction: Float, startValue: Int, endValue: Int): 
 
     return a.roundToInt() shl 24 or (r.roundToInt() shl 16) or (g.roundToInt() shl 8) or b.roundToInt()
 }
-

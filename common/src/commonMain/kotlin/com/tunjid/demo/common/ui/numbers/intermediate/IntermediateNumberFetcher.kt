@@ -16,7 +16,7 @@
 
 package com.tunjid.demo.common.ui.numbers.intermediate
 
-import com.tunjid.demo.common.ui.MutedColors
+import com.tunjid.demo.common.ui.numbers.MutedColors
 import com.tunjid.demo.common.ui.numbers.Item
 import com.tunjid.demo.common.ui.numbers.NumberTile
 import com.tunjid.demo.common.ui.numbers.pageRange

@@ -16,7 +16,52 @@
 
 package com.tunjid.demo.common.ui.numbers
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+
 fun Int.pageRange(itemsPerPage: Int): IntRange {
     val start = this * itemsPerPage
     return start.until(start + itemsPerPage)
 }
+
+fun Int.colorShiftingTiles(itemsPerPage: Int, isDark: Boolean) =
+    percentageAndIndex().map { (percentage, count) ->
+        pageRange(itemsPerPage).mapIndexed { index, number ->
+            NumberTile(
+                number = number,
+                color = interpolateColors(
+                    fraction = percentage,
+                    startValue = MutedColors.colorAt(
+                        isDark = isDark,
+                        index = index + count
+                    ),
+                    endValue = MutedColors.colorAt(
+                        isDark = isDark,
+                        index = index + count + 1
+                    )
+                ),
+                page = this
+            )
+        }
+    }
+
+private fun percentageAndIndex(
+    changeDelayMillis: Long = 500L
+): Flow<Pair<Float, Int>> = flow {
+    var percentage = 0f
+    var index = 0
+
+    while (true) {
+        percentage += 0.05f
+        if (percentage > 1f) {
+            percentage = 0f
+            index++
+        }
+
+        emit(percentage to index)
+        delay(changeDelayMillis)
+    }
+}
+
