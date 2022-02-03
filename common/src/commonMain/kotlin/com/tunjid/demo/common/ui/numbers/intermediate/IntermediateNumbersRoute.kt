@@ -21,14 +21,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import com.tunjid.demo.common.ui.AppRoute
 import com.tunjid.demo.common.ui.numbers.ColumnListStyle
 import com.tunjid.demo.common.ui.numbers.GridListStyle
 import com.tunjid.demo.common.ui.numbers.ListStyle
 import com.tunjid.demo.common.ui.numbers.Tabbed
-import kotlinx.coroutines.flow.mapNotNull
+import com.tunjid.demo.common.ui.numbers.pageFromKey
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 
 object IntermediateNumbersRoute : AppRoute {
     override val id: String
@@ -69,24 +70,29 @@ fun IntermediateList(
     listStyle.Content(
         state = lazyState,
         items = items,
-        onStartBoundaryReached = {
-            fetcher.fetchPrevious(page = it.page)
-        },
-        onEndBoundaryReached = {
-            fetcher.fetchNext(page = it.page)
-        }
     )
 
-    LaunchedEffect(lazyState, items) {
-        snapshotFlow { listStyle.firstVisibleIndex(lazyState)?.let(items::get) }
-            .mapNotNull { it?.page }
-            .collect { fetcher.pivotAround(it) }
+    LaunchedEffect(lazyState) {
+        snapshotFlow { listStyle.firstVisibleKey(lazyState)?.pageFromKey }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect {
+                fetcher.fetchPrevious(it)
+                fetcher.pivotAround(it)
+            }
     }
 
-    val startItems by rememberUpdatedState(fetcher.listItems)
+    LaunchedEffect(lazyState) {
+        snapshotFlow { listStyle.lastVisibleKey(lazyState)?.pageFromKey }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect {
+                fetcher.fetchNext(it)
+            }
+    }
 
-    LaunchedEffect(startItems) {
-        if (startItems.value.isEmpty()) fetcher.pivotAround(0)
+    LaunchedEffect(true) {
+        fetcher.fetch(items.lastOrNull()?.page ?: 0)
     }
 }
 

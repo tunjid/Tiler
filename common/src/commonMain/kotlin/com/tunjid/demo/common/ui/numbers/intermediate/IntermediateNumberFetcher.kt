@@ -103,6 +103,13 @@ class IntermediateNumberFetcher(
     }
 
     /**
+     * Fetch items for the specified page after this
+     */
+    fun fetch(page: Int) = awaitSubscribers {
+        requests.emit(Tile.Request.On(page))
+    }
+
+    /**
      * Fetch items for the page after this
      */
     fun fetchNext(page: Int) = awaitSubscribers {

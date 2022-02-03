@@ -21,11 +21,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import com.tunjid.demo.common.ui.AppRoute
 import com.tunjid.demo.common.ui.numbers.ColumnListStyle
 import com.tunjid.demo.common.ui.numbers.GridListStyle
 import com.tunjid.demo.common.ui.numbers.ListStyle
 import com.tunjid.demo.common.ui.numbers.Tabbed
+import com.tunjid.demo.common.ui.numbers.pageFromKey
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 
 object SimpleNumbersRoute : AppRoute {
     override val id: String
@@ -65,12 +69,16 @@ fun SimpleList(
     listStyle.Content(
         state = lazyState,
         items = items,
-        onStartBoundaryReached = {
-        },
-        onEndBoundaryReached = {
-            fetcher.fetchPage(page = it.page + 1)
-        }
     )
+
+    LaunchedEffect(lazyState) {
+        snapshotFlow { listStyle.lastVisibleKey(lazyState)?.pageFromKey }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect {
+                fetcher.fetchPage(it + 1)
+            }
+    }
 
     // Load when this Composable enters the composition
     LaunchedEffect(true) {

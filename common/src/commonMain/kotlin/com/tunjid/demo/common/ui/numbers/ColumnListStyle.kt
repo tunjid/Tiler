@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -32,8 +32,26 @@ object ColumnListStyle : ListStyle<LazyListState>(
     name = "Column",
     itemsPerPage = 10,
 ) {
-    override fun firstVisibleIndex(state: LazyListState): Int? =
-        state.layoutInfo.visibleItemsInfo.firstOrNull()?.index
+    override fun firstVisibleIndex(state: LazyListState): Int? = state
+        .layoutInfo
+        .visibleItemsInfo
+        .firstOrNull()
+        ?.index
+
+    override fun firstVisibleKey(state: LazyListState): Any? = state
+        .layoutInfo.visibleItemsInfo
+        .firstOrNull()
+        ?.key
+
+    override fun lastVisibleIndex(state: LazyListState): Int? = state
+        .layoutInfo.visibleItemsInfo
+        .lastOrNull()
+        ?.index
+
+    override fun lastVisibleKey(state: LazyListState): Any? = state
+        .layoutInfo.visibleItemsInfo
+        .lastOrNull()
+        ?.key
 
     override fun stickyHeaderOffsetCalculator(
         state: LazyListState,
@@ -88,22 +106,14 @@ object ColumnListStyle : ListStyle<LazyListState>(
     override fun Content(
         state: LazyListState,
         items: List<Item>,
-        onStartBoundaryReached: (Item) -> Unit,
-        onEndBoundaryReached: (Item) -> Unit,
     ) {
         LazyColumn(
             state = state,
             content = {
-                itemsIndexed(
+                items(
                     items = items,
-                    key = { _, it -> it.key },
-                    itemContent = { index, item ->
-                        val threshold = itemsPerPage / 3
-                        if (items.lastIndex - index < threshold) {
-                            onEndBoundaryReached(items.last())
-                        } else if (index < threshold) {
-                            onStartBoundaryReached(items.first())
-                        }
+                    key = { it.key },
+                    itemContent = { item ->
                         when (item) {
                             is Item.Header -> HeaderItem(
                                 modifier = Modifier.animateItemPlacement(),

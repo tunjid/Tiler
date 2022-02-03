@@ -31,8 +31,7 @@ const val GridSize = 5
 
 sealed class Action(val key: String) {
     sealed class Load : Action(key = "Load") {
-        data class Start(val page: Int) : Load()
-        data class LoadMore(val page: Int) : Load()
+        data class LoadAround(val page: Int) : Load()
         object ToggleOrder : Load()
     }
 
@@ -101,7 +100,7 @@ private fun Flow<Action.Load>.loadMutations(
                             val color = numberTiles.first().color
                             val header = Item.Header(page = pageQuery.page, color = color)
                             listOf(header) + numberTiles.map(Item::Tile)
-                        })
+                        }.distinctBy { it.key })
                     }
                 },
             loadMetadata

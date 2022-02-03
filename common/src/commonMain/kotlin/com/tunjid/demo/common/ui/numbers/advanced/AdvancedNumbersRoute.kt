@@ -38,6 +38,7 @@ import com.tunjid.demo.common.ui.numbers.ListStyle
 import com.tunjid.demo.common.ui.numbers.StickyHeaderContainer
 import com.tunjid.demo.common.ui.numbers.Tabbed
 import com.tunjid.demo.common.ui.numbers.isStickyHeaderKey
+import com.tunjid.demo.common.ui.numbers.pageFromKey
 import com.tunjid.mutator.Mutator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -118,12 +119,6 @@ fun NumberTiles(
                 listStyle.Content(
                     state = lazyState,
                     items = items,
-                    onStartBoundaryReached = {
-                        mutator.accept(Action.Load.LoadMore(page = it.page))
-                    },
-                    onEndBoundaryReached = {
-                        mutator.accept(Action.Load.LoadMore(page = it.page))
-                    }
                 )
             }
         )
@@ -131,7 +126,18 @@ fun NumberTiles(
 
     // Load when this Composable enters the composition
     LaunchedEffect(true) {
-        mutator.accept(Action.Load.Start(page = 0))
+        mutator.accept(Action.Load.LoadAround(page = 0))
+    }
+
+    LaunchedEffect(lazyState) {
+        snapshotFlow {
+            listStyle.firstVisibleKey(lazyState)?.pageFromKey
+        }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect {
+                mutator.accept(Action.Load.LoadAround(page = it))
+            }
     }
 
     // Keep the sticky headers in sync

@@ -27,6 +27,12 @@ sealed class ListStyle<T : ScrollableState>(
 
     abstract fun firstVisibleIndex(state: T): Int?
 
+    abstract fun firstVisibleKey(state: T): Any?
+
+    abstract fun lastVisibleIndex(state: T): Int?
+
+    abstract fun lastVisibleKey(state: T): Any?
+
     abstract fun stickyHeaderOffsetCalculator(
         state: T,
         headerMatcher: (Any) -> Boolean
@@ -51,7 +57,5 @@ sealed class ListStyle<T : ScrollableState>(
     abstract fun Content(
         state: T,
         items: List<Item>,
-        onStartBoundaryReached: (item: Item) -> Unit,
-        onEndBoundaryReached: (item: Item) -> Unit
     )
 }

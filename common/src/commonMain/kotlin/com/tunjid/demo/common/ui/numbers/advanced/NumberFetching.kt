@@ -27,11 +27,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
-import kotlinx.coroutines.flow.transformWhile
 import kotlin.math.abs
 
 const val StartAscending = true
-private const val PageWindow = 3
+private const val PageWindow = 5
 
 private val ascendingPageComparator = compareBy(PageQuery::page)
 private val descendingPageComparator = ascendingPageComparator.reversed()
@@ -90,29 +89,17 @@ fun Flow<LoadMetadata>.toNumberedTiles(
  * Metadata describing the status of loading reduced from [Action.Load] requests
  */
 fun Flow<Action.Load>.loadMetadata(): Flow<LoadMetadata> =
-    scan(listOf<Action.Load>()) { emissions, action -> (emissions + action).takeLast(2) }
-        .transformWhile {
-            if (it.size == 1) emit(it.first())
-            else if (it.size > 1) {
-                val (previous, current) = it
-                if (current != previous || current is Action.Load.ToggleOrder) emit(current)
-            }
-            true
-        }
+    distinctUntilChanged()
         .scan(LoadMetadata()) { previousMetadata, loadAction ->
+            println(loadAction)
             // Check sort order
             val isAscending = when (loadAction) {
-                is Action.Load.Start,
-                is Action.Load.LoadMore -> previousMetadata.isAscending
+                is Action.Load.LoadAround -> previousMetadata.isAscending
                 Action.Load.ToggleOrder -> !previousMetadata.isAscending
             }
             // Decide what pages to fetch concurrently
             val currentQueries = when (loadAction) {
-                is Action.Load.Start -> pagesToLoad(
-                    startPage = loadAction.page,
-                    isAscending = isAscending
-                )
-                is Action.Load.LoadMore -> pagesToLoad(
+                is Action.Load.LoadAround -> pagesToLoad(
                     startPage = loadAction.page,
                     isAscending = isAscending
                 )
@@ -130,7 +117,7 @@ fun Flow<Action.Load>.loadMetadata(): Flow<LoadMetadata> =
             val toEvict = when (previousMetadata.isAscending) {
                 // The sort order is the same, evict to relieve memory pressure
                 isAscending -> when (val min = currentQueries.minByOrNull(PageQuery::page)) {
-                    // Not enough memory usage to warrant evicting anythng
+                    // Not enough memory usage to warrant evicting anything
                     null -> listOf()
                     // Evict items more than 5 offset pages behind the min current query
                     else -> currentlyInMemory.filter { abs(min.page - it.page) > 5 }
