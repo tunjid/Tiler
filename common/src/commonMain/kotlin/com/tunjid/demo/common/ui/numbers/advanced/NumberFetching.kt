@@ -91,7 +91,6 @@ fun Flow<LoadMetadata>.toNumberedTiles(
 fun Flow<Action.Load>.loadMetadata(): Flow<LoadMetadata> =
     distinctUntilChanged()
         .scan(LoadMetadata()) { previousMetadata, loadAction ->
-            println(loadAction)
             // Check sort order
             val isAscending = when (loadAction) {
                 is Action.Load.LoadAround -> previousMetadata.isAscending

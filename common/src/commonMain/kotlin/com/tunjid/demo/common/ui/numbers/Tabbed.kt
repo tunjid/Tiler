@@ -34,6 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
@@ -60,6 +61,7 @@ fun <T> Tabbed(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Tabs(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
                 listStyles = listStyles,
                 onClick = { selectedStyle = it }
             )
@@ -72,10 +74,12 @@ fun <T> Tabbed(
 
 @Composable
 private fun Tabs(
+    modifier: Modifier = Modifier,
     listStyles: List<ListStyle<ScrollableState>>,
     onClick: (ListStyle<ScrollableState>) -> Unit
 ) {
     Row(
+        modifier = modifier,
         horizontalArrangement = Arrangement.Center
     ) {
         listStyles.forEachIndexed { index, listStyle ->

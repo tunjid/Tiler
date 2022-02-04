@@ -16,6 +16,8 @@
 
 package com.tunjid.demo.common.ui.numbers.intermediate
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import com.tunjid.demo.common.ui.numbers.Item
 import com.tunjid.demo.common.ui.numbers.colorShiftingTiles
 import com.tunjid.tiler.Tile
@@ -51,19 +53,26 @@ class IntermediateNumberFetcher(
             fetcher = { page ->
                 page.colorShiftingTiles(
                     itemsPerPage, isDark
-                ).map { it.map(Item::Tile) }
+                ).map { tiles ->
+                    listOf(
+                        Item.Header(
+                            page = page, color = when (isDark) {
+                                true -> Color.White
+                                false -> Color.Black
+                            }.toArgb()
+                        )
+                    ) + tiles.map(Item::Tile)
+                }
             }
         )
 
     private val managedRequests: Flow<Tile.Input.List<Int, List<Item>>> = requests
         .scan(LoadMetadata()) { metadata, request ->
             val page = request.query
-            val isAtEnd = page > (metadata.currentQueries.lastOrNull() ?: 0)
-            val allQueries = (metadata.currentQueries + page).distinct().sorted()
-            val (toKeep, toEvict) = allQueries.partition {
-                if (isAtEnd) it > (page - ConcurrentPages)
-                else it < (page + ConcurrentPages)
-            }
+            val (toKeep, toEvict) = page.slidingWindow(
+                existing = metadata.currentQueries,
+                limit = ConcurrentPages
+            )
             metadata.copy(
                 currentQueries = toKeep,
                 toEvict = toEvict
@@ -103,7 +112,7 @@ class IntermediateNumberFetcher(
     }
 
     /**
-     * Fetch items for the specified page after this
+     * Fetch items for the specified page
      */
     fun fetch(page: Int) = awaitSubscribers {
         requests.emit(Tile.Request.On(page))
@@ -124,5 +133,15 @@ class IntermediateNumberFetcher(
             requests.subscriptionCount.first { it > 0 }
             block()
         }
+    }
+}
+
+private fun Int.slidingWindow(existing: List<Int>, limit: Int): Pair<List<Int>, List<Int>> {
+    val page = this
+    val isAtEnd = page > (existing.lastOrNull() ?: 0)
+    val allQueries = (existing + page).distinct().sorted()
+    return allQueries.partition {
+        if (isAtEnd) it > (page - limit)
+        else it < (page + limit)
     }
 }

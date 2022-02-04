@@ -17,17 +17,15 @@
 package com.tunjid.demo.common.ui.numbers.intermediate
 
 import androidx.compose.foundation.gestures.ScrollableState
+import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Modifier
 import com.tunjid.demo.common.ui.AppRoute
-import com.tunjid.demo.common.ui.numbers.ColumnListStyle
-import com.tunjid.demo.common.ui.numbers.GridListStyle
-import com.tunjid.demo.common.ui.numbers.ListStyle
-import com.tunjid.demo.common.ui.numbers.Tabbed
-import com.tunjid.demo.common.ui.numbers.pageFromKey
+import com.tunjid.demo.common.ui.numbers.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 
@@ -64,13 +62,39 @@ fun IntermediateList(
     listStyle: ListStyle<ScrollableState>,
     fetcher: IntermediateNumberFetcher
 ) {
-    val items by fetcher.listItems.collectAsState()
     val lazyState = listStyle.rememberState()
+    val items by fetcher.listItems.collectAsState()
+    val stickyHeader: Item.Header? = when (val item = items.getOrNull(
+        listStyle.firstVisibleIndex(lazyState) ?: -1
+    )) {
+        is Item.Tile -> Item.Header(page = item.page, color = item.numberTile.color)
+        is Item.Header -> item
+        null -> null
+    }
 
-    listStyle.Content(
-        state = lazyState,
-        items = items,
-    )
+    Surface {
+        StickyHeaderContainer(
+            lazyState = lazyState,
+            offsetCalculator = { lazyState ->
+                listStyle.stickyHeaderOffsetCalculator(
+                    state = lazyState,
+                    headerMatcher = Any::isStickyHeaderKey
+                )
+            },
+            stickyHeader = {
+                if (stickyHeader != null) listStyle.HeaderItem(
+                    modifier = Modifier,
+                    item = stickyHeader
+                )
+            },
+            content = {
+                listStyle.Content(
+                    state = lazyState,
+                    items = items,
+                )
+            }
+        )
+    }
 
     LaunchedEffect(lazyState) {
         snapshotFlow { listStyle.firstVisibleKey(lazyState)?.pageFromKey }
