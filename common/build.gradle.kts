@@ -15,14 +15,13 @@
  */
 
 plugins {
-    id("com.android.library")
+    `android-library-convention`
+    `kotlin-library-convention`
     kotlin("multiplatform")
     id("org.jetbrains.compose")
 }
 
 kotlin {
-    android()
-    jvm("desktop")
     sourceSets {
         named("commonMain") {
             dependencies {
@@ -48,17 +47,6 @@ kotlin {
                 implementation(libs.androidx.compose.foundation.layout)
             }
         }
-        all {
-            languageSettings.useExperimentalAnnotation("androidx.compose.animation.ExperimentalAnimationApi")
-            languageSettings.useExperimentalAnnotation("androidx.compose.foundation.ExperimentalFoundationApi")
-            languageSettings.useExperimentalAnnotation("androidx.compose.material.ExperimentalMaterialApi")
-            languageSettings.useExperimentalAnnotation("kotlinx.serialization.ExperimentalSerializationApi")
-            languageSettings.useExperimentalAnnotation("kotlinx.coroutines.ExperimentalCoroutinesApi")
-            languageSettings.useExperimentalAnnotation("kotlinx.coroutines.FlowPreview")
-        }
-        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-            kotlinOptions.jvmTarget = "11"
-        }
         configurations.all {
             resolutionStrategy.eachDependency {
                 if (requested.group.startsWith("androidx.compose")) {
@@ -69,25 +57,3 @@ kotlin {
         }
     }
 }
-
-android {
-    compileSdk = 31
-
-    defaultConfig {
-        minSdk = 21
-        targetSdk = 31
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    sourceSets {
-        named("main") {
-            manifest.srcFile("src/androidMain/AndroidManifest.xml")
-            res.srcDirs("src/androidMain/res")
-        }
-    }
-}
-
