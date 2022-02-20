@@ -54,6 +54,14 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group.startsWith("androidx.compose")) {
+                useVersion("1.2.0-alpha03")
+                because("I need the changes in lazyGrid")
+            }
+        }
+    }
 }
 
 dependencies {
@@ -64,10 +72,10 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.4.0")
 
     implementation("androidx.activity:activity-compose:1.4.0")
-    implementation(libs.compose.material)
-    implementation(libs.compose.animation)
+    implementation(libs.jetbrains.compose.material)
+    implementation(libs.jetbrains.compose.animation)
     implementation("com.google.android.material:material:1.4.0")
 
-    implementation("com.tunjid.mutator:core:0.0.0-alpha01")
-    implementation("com.tunjid.mutator:coroutines:0.0.0-alpha01")
+    implementation("com.tunjid.mutator:core:0.0.1")
+    implementation("com.tunjid.mutator:coroutines:0.0.1")
 }

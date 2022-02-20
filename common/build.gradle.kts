@@ -28,19 +28,24 @@ kotlin {
             dependencies {
                 implementation(project(":tiler"))
 
-                implementation(libs.compose.ui.tooling)
-                implementation(libs.compose.ui.util)
+                implementation(libs.jetbrains.compose.ui.tooling)
+                implementation(libs.jetbrains.compose.ui.util)
 
-                implementation(libs.compose.runtime)
-                implementation(libs.compose.animation)
-                implementation(libs.compose.material)
-                implementation(libs.compose.foundation.layout)
+                implementation(libs.jetbrains.compose.runtime)
+                implementation(libs.jetbrains.compose.animation)
+                implementation(libs.jetbrains.compose.material)
+                implementation(libs.jetbrains.compose.foundation.layout)
 
                 implementation(libs.kotlinx.coroutines.core)
 
                 implementation(libs.tunjid.mutator.core.common)
                 implementation(libs.tunjid.mutator.coroutines.common)
                 implementation(libs.tunjid.treenav.common)
+            }
+        }
+        named("androidMain") {
+            dependencies {
+                implementation(libs.androidx.compose.foundation.layout)
             }
         }
         all {
@@ -53,6 +58,14 @@ kotlin {
         }
         tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
             kotlinOptions.jvmTarget = "11"
+        }
+        configurations.all {
+            resolutionStrategy.eachDependency {
+                if (requested.group.startsWith("androidx.compose")) {
+                    useVersion("1.2.0-alpha03")
+                    because("I need the changes in lazyGrid")
+                }
+            }
         }
     }
 }

@@ -17,7 +17,6 @@
 package com.tunjid.demo.common.ui.numbers
 
 import androidx.compose.foundation.gestures.ScrollableState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,13 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.CoroutineScope
@@ -47,7 +41,7 @@ fun <T> Tabbed(
     val saveableStateHolder = rememberSaveableStateHolder()
 
     val scope = rememberCoroutineScope()
-    val isDark = isSystemInDarkTheme()
+    val isDark = true
     var selectedStyle by remember { mutableStateOf(listStyles.first()) }
     val contentDependencyMap = remember {
         listStyles.associateWith { listStyle ->
@@ -65,7 +59,7 @@ fun <T> Tabbed(
                 listStyles = listStyles,
                 onClick = { selectedStyle = it }
             )
-            saveableStateHolder.SaveableStateProvider(selectedStyle) {
+            saveableStateHolder.SaveableStateProvider(selectedStyle.name) {
                 content(selectedStyle, contentDependency)
             }
         }

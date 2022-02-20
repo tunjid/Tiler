@@ -24,30 +24,6 @@ data class NumberTile(
     val page: Int
 )
 
-/**
- * Keys items for Lazy UI and also saves page information for infinite scrolling efficiency with
- * [LaunchedEffect].
- *
- * Note only the id is used for equality
- */
-// TODO: should this be a string value class for efficiency?
-private class ItemKey(
-    val id: String,
-    val page: Int
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || this::class != other::class) return false
-
-        other as ItemKey
-        if (id != other.id) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int = id.hashCode()
-}
-
 sealed class Item(open val page: Int) {
 
     data class Tile(
@@ -61,12 +37,15 @@ sealed class Item(open val page: Int) {
 
     val key: Any
         get() = when (this) {
-            is Tile -> ItemKey(id = "tile-${numberTile.number}", page = numberTile.page)
-            is Header -> ItemKey(id = "header-$page", page = page)
+            is Tile -> "tile-${numberTile.page}-${numberTile.number}"
+            is Header -> "header-$page"
         }
 }
 
-val Any.isStickyHeaderKey get() = this is ItemKey && id.startsWith("header")
+val Any.isStickyHeaderKey get() = this is String && this.startsWith("header")
 
-val Any?.pageFromKey get() = if (this is ItemKey) page else 0
+val Any?.pageFromKey get() = when (this) {
+    is String -> split("-").getOrNull(1)?.toIntOrNull() ?: 0
+    else -> 0
+}
 

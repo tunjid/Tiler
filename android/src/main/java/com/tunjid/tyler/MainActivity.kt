@@ -19,24 +19,15 @@ package com.tunjid.tyler
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import com.tunjid.demo.common.ui.AppTheme
-import com.tunjid.demo.common.ui.numbers.GridListStyle
-import com.tunjid.demo.common.ui.numbers.ColumnListStyle
-import com.tunjid.demo.common.ui.numbers.NumberTileTabs
+import com.tunjid.demo.common.ui.Root
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
-                NumberTileTabs(
-                    scope = lifecycleScope,
-                    listStyles = listOf(
-                        GridListStyle,
-                        ColumnListStyle
-                    )
-                )
+                Root()
             }
         }
     }
