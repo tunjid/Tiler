@@ -17,7 +17,6 @@
 plugins {
     `android-library-convention`
     `kotlin-library-convention`
-    kotlin("multiplatform")
     id("org.jetbrains.compose")
 }
 
@@ -45,14 +44,6 @@ kotlin {
         named("androidMain") {
             dependencies {
                 implementation(libs.androidx.compose.foundation.layout)
-            }
-        }
-        configurations.all {
-            resolutionStrategy.eachDependency {
-                if (requested.group.startsWith("androidx.compose")) {
-                    useVersion("1.2.0-alpha03")
-                    because("I need the changes in lazyGrid")
-                }
             }
         }
     }

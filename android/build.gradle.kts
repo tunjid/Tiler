@@ -38,17 +38,6 @@ android {
             )
         }
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-    configurations.all {
-        resolutionStrategy.eachDependency {
-            if (requested.group.startsWith("androidx.compose")) {
-                useVersion("1.2.0-alpha03")
-                because("I need the changes in lazyGrid")
-            }
-        }
-    }
 }
 
 dependencies {
