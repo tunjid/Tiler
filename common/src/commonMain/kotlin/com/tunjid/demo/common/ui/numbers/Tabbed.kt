@@ -20,6 +20,7 @@ import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.OutlinedButton
@@ -55,7 +56,9 @@ fun <T> Tabbed(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Tabs(
-                modifier = Modifier.align(Alignment.CenterHorizontally),
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .fillMaxWidth(),
                 listStyles = listStyles,
                 onClick = { selectedStyle = it }
             )
