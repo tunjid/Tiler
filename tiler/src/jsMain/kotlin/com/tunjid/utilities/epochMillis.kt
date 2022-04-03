@@ -14,21 +14,8 @@
  * limitations under the License.
  */
 
-package com.tunjid.tyler
+package com.tunjid.utilities
 
-import android.os.Bundle
-import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatActivity
-import com.tunjid.demo.common.ui.AppTheme
-import com.tunjid.demo.common.ui.Root
+import kotlin.js.Date
 
-class MainActivity : AppCompatActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            AppTheme {
-                Root()
-            }
-        }
-    }
-}
+internal actual fun epochMillis(): Long = Date().getTime().toLong()

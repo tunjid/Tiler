@@ -16,16 +16,13 @@
 
 package com.tunjid.demo
 
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.tunjid.demo.common.ui.AppTheme
-import com.tunjid.demo.common.ui.numbers.NumberedTileList
-import com.tunjid.demo.common.ui.numbers.numberTilesMutator
+import com.tunjid.demo.common.ui.Root
 
 fun main() {
     application {
@@ -38,11 +35,7 @@ fun main() {
             title = "Tiling Demo"
         ) {
             AppTheme {
-                val scope = rememberCoroutineScope()
-                val mutator = remember {
-                    numberTilesMutator(scope = scope)
-                }
-                NumberedTileList(mutator = mutator)
+                Root()
             }
         }
     }

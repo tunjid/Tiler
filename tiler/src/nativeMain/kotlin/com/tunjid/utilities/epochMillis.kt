@@ -19,11 +19,17 @@ package com.tunjid.utilities
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
-import platform.posix.gettimeofday
-import platform.posix.timeval
+import platform.posix.CLOCK_REALTIME
+import platform.posix.clock_gettime
+import platform.posix.timespec
 
 internal actual fun epochMillis(): Long = memScoped {
-    val timeVal = alloc<timeval>()
-    gettimeofday(timeVal.ptr, null)
-    (timeVal.tv_sec * 1000) + (timeVal.tv_usec / 1000)
+//    val timeVal = alloc<timeval>()
+//    gettimeofday(timeVal.ptr, null)
+//    (timeVal.tv_sec * 1000L) + (timeVal.tv_usec / 1000L)
+
+    // Using timespec bc Windows doesn't support gettimeofday
+    val timeSpec = alloc<timespec>()
+    clock_gettime(CLOCK_REALTIME, timeSpec.ptr)
+    (timeSpec.tv_sec * 1000L) + (timeSpec.tv_nsec / 1000_000L)
 }

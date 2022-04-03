@@ -40,9 +40,13 @@ plugins {
 }
 
 group = "com.tunjid.tiler"
-version = "0.0.1"
+version = "0.0.2"
 
 kotlin {
+    js {
+        nodejs()
+        browser()
+    }
     jvm {
         compilations.all {
             kotlinOptions.jvmTarget = "1.8"
@@ -52,14 +56,16 @@ kotlin {
             useJUnit()
         }
     }
-    val hostOs = System.getProperty("os.name")
-    val isMingwX64 = hostOs.startsWith("Windows")
-    val nativeTarget = when {
-        hostOs == "Mac OS X" -> macosX64("native")
-        hostOs == "Linux" -> linuxX64("native")
-        isMingwX64 -> mingwX64("native")
-        else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
-    }
+    ios()
+    iosSimulatorArm64()
+    linuxX64()
+    macosX64()
+    macosArm64()
+    mingwX64()
+    tvos()
+    tvosSimulatorArm64()
+    watchos()
+    watchosSimulatorArm64()
 
     sourceSets {
         val commonMain by getting {
@@ -76,8 +82,41 @@ kotlin {
         }
         val jvmMain by getting
         val jvmTest by getting
-        val nativeMain by getting
-        val nativeTest by getting
+
+        // Native targets
+        val nativeMain by creating {
+            dependsOn(commonMain)
+        }
+        val iosMain by getting {
+            dependsOn(nativeMain)
+        }
+        val iosSimulatorArm64Main by getting {
+            dependsOn(nativeMain)
+        }
+        val tvosMain by getting {
+            dependsOn(nativeMain)
+        }
+        val tvosSimulatorArm64Main by getting {
+            dependsOn(nativeMain)
+        }
+        val watchosMain by getting {
+            dependsOn(nativeMain)
+        }
+        val watchosSimulatorArm64Main by getting {
+            dependsOn(nativeMain)
+        }
+        val linuxX64Main by getting {
+            dependsOn(nativeMain)
+        }
+        val mingwX64Main by getting {
+            dependsOn(nativeMain)
+        }
+        val macosX64Main by getting {
+            dependsOn(nativeMain)
+        }
+        val macosArm64Main by getting {
+            dependsOn(nativeMain)
+        }
 
         all {
             languageSettings.apply {

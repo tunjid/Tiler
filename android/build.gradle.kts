@@ -15,16 +15,13 @@
  */
 
 plugins {
-    id("com.android.application")
+    `android-application-convention`
     id("kotlin-android")
 }
 
 android {
-    compileSdk = 31
-
     defaultConfig {
         applicationId = "com.tunjid.tyler"
-        minSdk = 21
         targetSdk = 31
         versionCode = 1
         versionName = "1.0"
@@ -41,19 +38,6 @@ android {
             )
         }
     }
-    buildFeatures {
-        compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.1.0-rc02"
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
 }
 
 dependencies {
@@ -64,10 +48,10 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.4.0")
 
     implementation("androidx.activity:activity-compose:1.4.0")
-    implementation(libs.compose.material)
-    implementation(libs.compose.animation)
+    implementation(libs.jetbrains.compose.material)
+    implementation(libs.jetbrains.compose.animation)
     implementation("com.google.android.material:material:1.4.0")
 
-    implementation("com.tunjid.mutator:core:0.0.0-alpha01")
-    implementation("com.tunjid.mutator:coroutines:0.0.0-alpha01")
+    implementation("com.tunjid.mutator:core:0.0.1")
+    implementation("com.tunjid.mutator:coroutines:0.0.1")
 }
