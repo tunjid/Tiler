@@ -21,7 +21,15 @@ are production tested, and should not be taken as anything more than its face va
 Tiling is a kotlin multiplatform experiment for loading chunks of structured data from reactive
 sources.
 
-Tiling is achieved with a Tiler; a pure function with an API most similar to a reactive `Map` where:
+Tiling is achieved with a Tiler; a pure function that has the ability to adapt a generic API of the form:
+
+```kotlin
+fun <T> items(query: Query): Flow<T>
+```
+
+into a paginated API.
+
+It does this by exposing an API most similar to a reactive `Map` where:
 
 * The keys are queries for data
 * The values are dynamic sets of data returned over time as the result of the query key.
