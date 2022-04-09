@@ -33,12 +33,15 @@ It does this by exposing an API most similar to a reactive `Map` where:
 * The keys are the queries (`Query`) for data
 * The values are dynamic sets of data returned over time as the result of the `Query` key.
 
-The output of a Tiler is either a snapshot of the `Map<Key, Value>` or a flattened `List<Value>`
+The output of a Tiler is either a snapshot of either:
+
+* A flattened `List<Value>` 
+* `Map<Key, Value>`
+
 making a `Tiler` either of the following functional types:
 
-* `(Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>>`
-  or
-* `(Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>>`
+* A `ListTiler<Query, Item>` which is a `(Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>>`
+* A `MapTiler<Query, Item>` which is a `(Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>>`
 
 ## Demo
 

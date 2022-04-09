@@ -19,6 +19,10 @@ package com.tunjid.tiler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+typealias ListTiler<Query, Item> = (Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>>
+
+typealias MapTiler<Query, Item> = (Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>>
+
 /**
  * class holding metadata about a [Query] for an [Item], the [Item], and when the [Query] was sent
  */
@@ -179,7 +183,7 @@ data class Tile<Query, Item : Any?>(
  * Convenience method to convert a [Flow] of [Tile.Input.List] to a [Flow] of a [List] of [Item]s
  */
 fun <Query, Item> Flow<Tile.Input.List<Query, Item>>.toTiledList(
-    transform: (Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>>
+    transform: ListTiler<Query, Item>
 ): Flow<List<Item>> = transform(this)
 
 /**
@@ -187,7 +191,7 @@ fun <Query, Item> Flow<Tile.Input.List<Query, Item>>.toTiledList(
  * [Item]s
  */
 fun <Query, Item> Flow<Tile.Input.Map<Query, Item>>.toTiledMap(
-    transform: (Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>>
+    transform: MapTiler<Query, Item>
 ): Flow<Map<Query, Item>> = transform(this)
 
 /**
@@ -197,7 +201,7 @@ fun <Query, Item> tiledList(
     limiter: Tile.Limiter.List<Query, Item> = Tile.Limiter.List { false },
     order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
-): (Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>> = { requests ->
+): ListTiler<Query, Item> = { requests ->
     tilerFactory(
         limiter = limiter,
         order = order,
@@ -214,7 +218,7 @@ fun <Query, Item> tiledMap(
     limiter: Tile.Limiter.Map<Query, Item> = Tile.Limiter.Map { false },
     order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<Item>
-): (Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>> = { requests ->
+): MapTiler<Query, Item> = { requests ->
     tilerFactory(
         limiter = limiter,
         order = order,
