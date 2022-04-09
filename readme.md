@@ -65,31 +65,39 @@ Tilers are implemented as plain functions. Given a `Flow` of `Input`, you can ei
 In the simplest case given a `MutableStateFlow<Tile.Request<Int, List<Int>>` one can write:
 
 ```kotlin
+import com.tunjid.tiler.Tile
+import com.tunjid.tiler.tiledList
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+
 class NumberFetcher {
-    private val requests =
-        MutableStateFlow<Tile.Input.List<Int, List<Int>>>(Tile.Request.On(query = 0))
+  private val requests = MutableStateFlow(0)
 
-    private val tiledList: (Flow<Tile.Input<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
-        order = Tile.Order.Sorted(comparator = Int::compareTo),
-        fetcher = { page ->
-            val start = page * 50
-            val numbers = start.until(start + 50)
-            flowOf(numbers.toList())
-        }
-    )
-
-    val listItems: Flow<List<Int>> = tiledList.invoke(requests).map { it.flatten() }
-
-    fun fetchPage(page: Int) {
-        requests.value = Tile.Request.On(page)
+  private val tiledList: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
+    order = Tile.Order.Sorted(comparator = Int::compareTo),
+    fetcher = { page ->
+      val start = page * 50
+      val numbers = start.until(start + 50)
+      flowOf(numbers.toList())
     }
+  )
+
+  val listItems: Flow<List<Int>> = tiledList.invoke(
+    requests.map { Tile.Request.On(it) }
+  ).map { it.flatten() }
+
+  fun fetchPage(page: Int) {
+    requests.value = page
+  }
 }
 ```
 
 The above will return a full list of every item requested sorted in ascending order of the pages.
 
 Note that in the above, the list will grow indefinitely as more tiles are requested unless queries are evicted. This may
-be fine for small lists, but as the list size grows, some items may need to be evicted and only a small subset of items
+be fine for small lists, but as the list size grows, some items may need to be evicted as only a small subset of items
 need to be presented to the UI. This sort of behavior can be achieved using the `Evict` `Request`, and
 the `PivotSorted` `Order` covered below.
 
@@ -204,14 +212,15 @@ class ManagedNumberFetcher {
   val listItems: Flow<List<Int>> = tiledList.invoke(managedRequests)
     .map(List<List<Int>>::flatten)
 
-  fun fetchPage(page: Int) {
+  fun setCurrentPage(page: Int) {
     requests.value = page
   }
 }
 ```
 
 In the above, only 5 page flows are collected at any one time. 4 more pages are kept in memory for quick resumption,
-and the rest are evicted from memory.
+and the rest are evicted from memory. As the user scrolls, `setCurrentPage` is called, and data is fetched for
+that page, and the surrounding pages. Pages that are far away from the current page scrolled are removed from memory.
 
 ### Use cases
 
