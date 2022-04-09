@@ -20,7 +20,7 @@ taken as anything more than its face value.
 
 Tiling is a kotlin multiplatform experiment for loading chunks of structured data from reactive sources.
 
-Tiling is achieved with a Tiler; a pure function that has the ability to adapt a generic API of the form:
+Tiling is achieved with a Tiler; a pure function that has the ability to adapt any generic method of the form:
 
 ```kotlin
 fun <T> items(query: Query): Flow<T>
@@ -30,11 +30,11 @@ into a paginated API.
 
 It does this by exposing an API most similar to a reactive `Map` where:
 
-* The keys are queries for data
-* The values are dynamic sets of data returned over time as the result of the query key.
+* The keys are the queries (`Query`) for data
+* The values are dynamic sets of data returned over time as the result of the `Query` key.
 
 The output of a Tiler is either a snapshot of the `Map<Key, Value>` or a flattened `List<Value>`
-making a `Tiler` either a:
+making a `Tiler` either of the following functional types:
 
 * `(Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>>`
   or
@@ -78,12 +78,14 @@ class NumberFetcher {
   private val tiledList: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
     order = Tile.Order.Sorted(comparator = Int::compareTo),
     fetcher = { page ->
+      // Fetch 50 numbers for each page
       val start = page * 50
       val numbers = start.until(start + 50)
       flowOf(numbers.toList())
     }
   )
 
+  // All paginated items in a single list
   val listItems: Flow<List<Int>> = tiledList.invoke(
     requests.map { Tile.Request.On(it) }
   ).map { it.flatten() }
@@ -96,7 +98,7 @@ class NumberFetcher {
 
 The above will return a full list of every item requested sorted in ascending order of the pages.
 
-Note that in the above, the list will grow indefinitely as more tiles are requested unless queries are evicted. This may
+Note that in the above, the list will grow indefinitely as more pages are requested unless queries are evicted. This may
 be fine for small lists, but as the list size grows, some items may need to be evicted as only a small subset of items
 need to be presented to the UI. This sort of behavior can be achieved using the `Evict` `Request`, and
 the `PivotSorted` `Order` covered below.
@@ -181,18 +183,18 @@ class ManagedNumberFetcher {
   private val requests = MutableStateFlow(0)
 
   val managedRequests: Flow<Tile.Input.List<Int, List<Int>>> = requests
-    .scan(LoadMetadata()) { previousMetadata, page ->
+    .scan(LoadMetadata()) { previousMetadata, currentPage ->
       // Load 5 pages pivoted around the current page at once
-      val on: List<Int> = ((page - 2)..(page + 2))
+      val on: List<Int> = ((currentPage - 2)..(currentPage + 2))
         .filter { it >= 0 }
         .toList()
       // Keep 2 pages on either end of the active pages in memory
-      val off: List<Int> = (((page - 5)..(page - 3)) + ((page + 3)..(page + 5)))
+      val off: List<Int> = (((currentPage - 5)..(currentPage - 3)) + ((currentPage + 3)..(currentPage + 5)))
         .filter { it >= 0 }
       LoadMetadata(
         on = on,
         off = off,
-        pivotPage = page,
+        pivotPage = currentPage,
         // Evict everything not in the curren active and inactive range
         evict = (previousMetadata.on + previousMetadata.off) - (on + off).toSet()
       )
@@ -203,6 +205,7 @@ class ManagedNumberFetcher {
   private val tiledList: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
     order = Tile.Order.PivotSorted(comparator = Int::compareTo),
     fetcher = { page ->
+      // Fetch 50 numbers for each page
       val start = page * 50
       val numbers = start.until(start + 50)
       flowOf(numbers.toList())
@@ -218,9 +221,10 @@ class ManagedNumberFetcher {
 }
 ```
 
-In the above, only 5 page flows are collected at any one time. 4 more pages are kept in memory for quick resumption,
-and the rest are evicted from memory. As the user scrolls, `setCurrentPage` is called, and data is fetched for
-that page, and the surrounding pages. Pages that are far away from the current page scrolled are removed from memory.
+In the above, only flows for 5 pages are collected at any one time. 4 more pages are kept in memory for quick
+resumption, and the rest are evicted from memory. As the user scrolls, `setCurrentPage` is called, and data is
+fetched for that page, and the surrounding pages.
+Pages that are far away from the current page (more than 4 pages away) are removed from memory.
 
 ### Use cases
 
