@@ -27,10 +27,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
-import kotlin.math.abs
 
 const val StartAscending = true
-private const val PageWindow = 5
 
 private val ascendingPageComparator = compareBy(PageQuery::page)
 private val descendingPageComparator = ascendingPageComparator.reversed()
@@ -44,100 +42,59 @@ data class PageQuery(
  * A summary of the loading queries in the app
  */
 data class LoadMetadata(
-    val previousQueries: List<PageQuery> = listOf(),
-    val currentQueries: List<PageQuery> = listOf(),
-    val toEvict: List<PageQuery> = listOf(),
-    val inMemory: List<PageQuery> = listOf(),
-    val comparator: Comparator<PageQuery>? = null,
-    val isAscending: Boolean = StartAscending,
+    val pivotPage: Int = 0,
+    // Pages actively being collected and loaded from
+    val on: List<Int> = listOf(),
+    // Pages whose emissions are in memory, but are not being collected from
+    val off: List<Int> = listOf(),
+    // Pages to remove from memory
+    val evict: List<Int> = listOf(),
+    // Sort order
+    val isAscending: Boolean = true,
 )
 
+val LoadMetadata.loadSummary get() = "Active pages: ${on}\nPages in memory: $off"
+
 /**
- * Converts [LoadMetadata] into a [Map] of [PageQuery] to [NumberTile]
+ * Loads pages pivoted around the users scroll position
  */
+fun Flow<Action.Load>.loadMetadata() =
+    distinctUntilChanged()
+        .scan(LoadMetadata()) { previous, emitted ->
+            when (emitted) {
+                is Action.Load.LoadAround -> {
+                    // Load 5 pages pivoted around the current page at once
+                    val on: List<Int> = ((emitted.page - 2)..(emitted.page + 2))
+                        .filter { it >= 0 }
+                        .toList()
+                    // Keep 2 pages on either end of the active pages in memory
+                    val off: List<Int> = ((emitted.page - 5)..(emitted.page + -3))
+                        .plus(((emitted.page + 3)..(emitted.page + 5)))
+                        .filter { it >= 0 }
+                    LoadMetadata(
+                        on = on,
+                        off = off,
+                        pivotPage = emitted.page,
+                        isAscending = previous.isAscending,
+                        // Evict everything not in the curren active and inactive range
+                        evict = (previous.on + previous.off) - (on + off).toSet()
+                    )
+                }
+                Action.Load.ToggleOrder -> previous.copy(isAscending = !previous.isAscending)
+            }
+        }
+        .distinctUntilChanged()
+
 fun Flow<LoadMetadata>.toNumberedTiles(
     itemsPerPage: Int,
     isDark: Boolean,
-): Flow<Map<PageQuery, List<NumberTile>>> =
-    flatMapLatest { (previousQueries, currentQueries, evictions, _, comparator) ->
-        // Turn on flows for the requested pages
-        val toTurnOn = currentQueries
-            .map { Tile.Request.On<PageQuery, List<NumberTile>>(it) }
-
-        // Turn off the flows for all old requests that are not in the new request batch
-        // The existing emitted values will be kept in memory, but their backing flows
-        // will stop being collected
-        val toTurnOff = previousQueries
-            .filterNot { currentQueries.contains(it) }
-            .map { Tile.Request.Off<PageQuery, List<NumberTile>>(it) }
-
-        // Evict all items 10 pages behind the smallest page in the new request.
-        // Their backing flows will stop being collected, and their existing values will be
-        // evicted from memory
-        val toEvict = evictions
-            .map { Tile.Request.Evict<PageQuery, List<NumberTile>>(it) }
-
-        val comparison = listOfNotNull(
-            comparator?.let { Tile.Order.PivotSorted<PageQuery, List<NumberTile>>(it) }
+) = flatMapLatest(LoadMetadata::toQueries)
+    .toTiledMap(
+        numberTiler(
+            itemsPerPage = itemsPerPage,
+            isDark = isDark
         )
-
-        (toEvict + comparison + toTurnOff + toTurnOn).asFlow()
-    }
-        .toTiledMap(numberTiler(itemsPerPage = itemsPerPage, isDark = isDark))
-
-/**
- * Metadata describing the status of loading reduced from [Action.Load] requests
- */
-fun Flow<Action.Load>.loadMetadata(): Flow<LoadMetadata> =
-    distinctUntilChanged()
-        .scan(LoadMetadata()) { previousMetadata, loadAction ->
-            // Check sort order
-            val isAscending = when (loadAction) {
-                is Action.Load.LoadAround -> previousMetadata.isAscending
-                Action.Load.ToggleOrder -> !previousMetadata.isAscending
-            }
-            // Decide what pages to fetch concurrently
-            val currentQueries = when (loadAction) {
-                is Action.Load.LoadAround -> pagesToLoad(
-                    startPage = loadAction.page,
-                    isAscending = isAscending
-                )
-                Action.Load.ToggleOrder -> previousMetadata.currentQueries.map {
-                    it.copy(isAscending = isAscending)
-                }
-            }
-            val currentlyInMemory = (
-                // If the sort order did not change, keep the same queries in memory
-                when (previousMetadata.isAscending) {
-                    isAscending -> previousMetadata.inMemory
-                    else -> listOf()
-                } + currentQueries).distinctBy(PageQuery::page)
-
-            val toEvict = when (previousMetadata.isAscending) {
-                // The sort order is the same, evict to relieve memory pressure
-                isAscending -> when (val min = currentQueries.minByOrNull(PageQuery::page)) {
-                    // Not enough memory usage to warrant evicting anything
-                    null -> listOf()
-                    // Evict items more than 5 offset pages behind the min current query
-                    else -> currentlyInMemory.filter { abs(min.page - it.page) > 5 }
-                }
-                // The sort order has changed, invalidate all queries
-                else -> (previousMetadata.currentQueries + previousMetadata.inMemory).distinct()
-            }
-
-            previousMetadata.copy(
-                isAscending = isAscending,
-                previousQueries = previousMetadata.currentQueries,
-                currentQueries = currentQueries,
-                inMemory = currentlyInMemory - toEvict.toSet(),
-                toEvict = toEvict,
-                comparator = when (isAscending) {
-                    previousMetadata.isAscending -> null
-                    else -> if (isAscending) ascendingPageComparator else descendingPageComparator
-                }
-            )
-        }
-        .distinctUntilChanged()
+    )
 
 /**
  * Fetches a [Map] of [PageQuery] to [NumberTile] where the [NumberTile] instances self update
@@ -155,36 +112,31 @@ private fun numberTiler(
         }
     )
 
-/**
- * Computes the [PageQuery] to run for a single page
- */
-private fun pagesToLoad(startPage: Int, isAscending: Boolean): List<PageQuery> {
-    var i = 0
-    val result = mutableListOf(startPage)
-    while (result.size < PageWindow) {
-        i++
-        if (result.size < PageWindow && startPage - 1 >= 0) result.add(
-            index = 0,
-            element = startPage - i
-        )
-        if (result.size < PageWindow) result.add(
-            element = startPage + i
+private fun LoadMetadata.tileRequest(
+    pages: List<Int>,
+    constructor: (PageQuery) -> Tile.Request<PageQuery, List<NumberTile>>
+): List<Tile.Request<PageQuery, List<NumberTile>>> =
+    pages.map {
+        constructor(
+            PageQuery(
+                page = it,
+                isAscending = isAscending,
+            )
         )
     }
-    return result.map {
-        PageQuery(page = it, isAscending = isAscending)
-    }
-}
 
-val LoadMetadata.startPage: Int
-    get() {
-        val isOdd = PageWindow % 2 != 0
-        val index = if (isOdd) (PageWindow / 2) + 1 else PageWindow / 2
-        return currentQueries.getOrNull(index)?.page ?: 0
-    }
-
-val LoadMetadata.loadSummary get() = "Active pages: ${activePages}\nPages in memory: $cachedPages"
-
-private val LoadMetadata.activePages get() = currentQueries.map(PageQuery::page)
-
-private val LoadMetadata.cachedPages get() = inMemory.map(PageQuery::page).sorted()
+private fun LoadMetadata.toQueries(): Flow<Tile.Input.Map<PageQuery, List<NumberTile>>> =
+    listOf(
+        tileRequest(evict) { Tile.Request.Evict(it) },
+        tileRequest(off) { Tile.Request.Off(it) },
+        tileRequest(on) { Tile.Request.On(it) },
+        listOf(
+            Tile.Order.PivotSorted(
+                comparator =
+                if (isAscending) ascendingPageComparator
+                else descendingPageComparator
+            )
+        )
+    )
+        .flatten()
+        .asFlow()

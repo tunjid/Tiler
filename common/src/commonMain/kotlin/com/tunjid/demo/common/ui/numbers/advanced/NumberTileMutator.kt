@@ -25,7 +25,13 @@ import com.tunjid.mutator.Mutator
 import com.tunjid.mutator.coroutines.stateFlowMutator
 import com.tunjid.mutator.coroutines.toMutationStream
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.shareIn
 
 const val GridSize = 5
 
@@ -109,7 +115,7 @@ private fun Flow<Action.Load>.loadMutations(
                         copy(
                             isAscending = it.isAscending,
                             // 3 pages are fetched at once, the middle is the current page
-                            currentPage = it.startPage,
+                            currentPage = it.pivotPage,
                             loadSummary = it.loadSummary
                         )
                     }
