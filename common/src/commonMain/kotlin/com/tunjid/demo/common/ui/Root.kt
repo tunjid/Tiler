@@ -35,7 +35,6 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import com.tunjid.demo.common.ui.numbers.advanced.AdvancedNumbersRoute
-import com.tunjid.demo.common.ui.numbers.intermediate.IntermediateNumbersRoute
 import com.tunjid.demo.common.ui.numbers.simple.SimpleNumbersRoute
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.accept
@@ -57,7 +56,6 @@ private val initialNav = MultiStackNav(
     name = "Default",
     stacks = listOf(
         StackNav("Simple", routes = listOf(SimpleNumbersRoute)),
-        StackNav("Intermediate", routes = listOf(IntermediateNumbersRoute)),
         StackNav("Advanced", routes = listOf(AdvancedNumbersRoute))
     )
 )
