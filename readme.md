@@ -173,7 +173,7 @@ pages loaded are defined as a function of the page the user is currently at:
 
 Where `n` is an arbitrary number that may be defined by how many items are visible on the screen at once.
 
-For an example where `n` is a function of grid size in a grid list, check out [ArchiveLoaadin](https://github.com/tunjid/me/blob/main/common/feature-archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveLoading.kt) in the [me](https://github.com/tunjid/me) project.
+For an example where `n` is a function of grid size in a grid list, check out [ArchiveLoading.kt](https://github.com/tunjid/me/blob/main/common/feature-archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveLoading.kt) in the [me](https://github.com/tunjid/me) project.
 
 An example where `n` is fixed at 2 follows:
 
