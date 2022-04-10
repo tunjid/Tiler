@@ -151,6 +151,32 @@ The `Limiter` allows for selecting an arbitrary amount of items as the situation
 To deal with the issue of the tiled data set becoming arbitrarily large, one can create a pipeline where the
 pages loaded are defined as a function of the page the user is currently at:
 
+```
+[out of bounds]                                  -> Evict from memory
+                                          _
+[currentPage - n - 1 - n]                  |
+...                                        | -> Keep pages in memory, but don't observe
+[currentPage - n - 1]          _          _|                        
+[currentPage - n]               |
+...                             |
+[currentPage - 1]               |
+[currentPage]                   |  -> Observe pages     
+[currentPage + 1]               |
+...                             |
+[currentPage + n]              _|         _
+[currentPage + n + 1]                      |
+...                                        | -> Keep pages in memory, but don't observe
+[currentPage + n + 1 + n]                 _|
+
+[out of bounds]                                  -> Evict from memory
+```
+
+Where `n` is an arbitrary number that may be defined by how many items are visible on the screen at once.
+
+For an example where `n` is a function of grid size in a grid list, check out [ArchiveLoaadin](https://github.com/tunjid/me/blob/main/common/feature-archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveLoading.kt) in the [me](https://github.com/tunjid/me) project.
+
+An example where `n` is fixed at 2 follows:
+
 ```kotlin
 import com.tunjid.tiler.Tile
 import com.tunjid.tiler.tiledList
