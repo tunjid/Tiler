@@ -28,20 +28,22 @@ fun <T> items(query: Query): Flow<T>
 
 into a paginated API.
 
-It does this by exposing an API most similar to a reactive `Map` where:
+It does this by exposing a functional reactive API most similar to a `Map` where:
 
 * The keys are the queries (`Query`) for data
 * The values are dynamic sets of data returned over time as the result of the `Query` key.
 
-The output of a Tiler is either a snapshot of either:
 
-* A flattened `List<Value>` 
-* `Map<Key, Value>`
+  | `typealias`              | type                                                            | Output             |
+  |--------------------------|-----------------------------------------------------------------|--------------------|
+  | `ListTiler<Query, Item>` | `(Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>>`      | A flattened `List` |
+  | `MapTiler<Query, Item>`  | `(Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>>` | `Map<Key, Value>`  |
 
-making a `Tiler` either of the following functional types:
+## Get it
 
-* A `ListTiler<Query, Item>` which is a `(Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>>`
-* A `MapTiler<Query, Item>` which is a `(Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>>`
+`Tiler` is available on mavenCentral with the latest version indicated by the badge at the top of this readme file.
+
+`implementation com.tunjid.tiler:tiler:version`
 
 ## Demo
 
@@ -50,63 +52,42 @@ The demo app is cheekily implemented as a grid of tiles with dynamic colors:
 ![Demo image](https://github.com/tunjid/tiler/blob/develop/misc/demo.gif)
 
 
-### Get it
+## Use cases
 
-`Tiler` is available on mavenCentral with the latest version indicated by the badge at the top of this readme file.
+As tiling is a pure function that operates on a reactive stream, its configuration can be changed on the fly.
+This lends it well to the following situations:
 
-`implementation com.tunjid.tiler:tiler:version`
+* Adaptive pagination: The amount of items paginated through can be adjusted dynamically to account for app window
+resizing by turning [on](https://github.com/tunjid/Tiler#inputrequest) more pages and increasing the 
+[limit](https://github.com/tunjid/Tiler#inputlimiter) of data sent to the UI from the paginated data available.
+An example is in the [Me](https://github.com/tunjid/me/blob/main/common/feature-archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveLoading.kt) app.
+
+* Dynamic sort order: The sort order of paginated items can be changed cheaply on a whim by changing the
+[order](https://github.com/tunjid/Tiler#inputorder) as this only operates on the data output from the tiler, and not
+the entire paginated data set. An example is in the sample in this
+[repository](https://github.com/tunjid/Tiler/blob/develop/common/src/commonMain/kotlin/com/tunjid/demo/common/ui/numbers/advanced/NumberFetching.kt).
+
 
 ## API surface
 
 ### Getting your data
+
+Tiling prioritizes access to the data you've paged through, allowing you to read all paginated data at once, or a subset of it
+(using `Input.Limiter`). This allows you to trivially transform the data you've fetched after the fact.
 
 Tilers are implemented as plain functions. Given a `Flow` of `Input`, you can either choose to get your data as:
 
 * A `Flow<List<Item>>` with `tiledList`
 * A `Flow<Map<Query, Item>>` with `tiledMap`
 
-In the simplest case given a `MutableStateFlow<Tile.Request<Int, List<Int>>` one can write:
+The choice between the two depends largely on the operations you want to perform on the output before consuming it.
+A `MapTiler` could be used when you want a clear separation of the chunks of data,
+for example to add headers or to group information in a single component. Alternatively, you can use a `ListTiler`
+and call `List<Item>.groupBy {...}` if you find that more ergonomic. The `Map<Query, Item>` in the `Flow` produced from the `MapTiler` is guaranteed to have a stable iteration order defined by
+the `Input.Order` passed to it. More on this below.
 
-```kotlin
-import com.tunjid.tiler.Tile
-import com.tunjid.tiler.tiledList
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 
-class NumberFetcher {
-  private val requests = MutableStateFlow(0)
-
-  private val tiledList: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
-    order = Tile.Order.Sorted(comparator = Int::compareTo),
-    fetcher = { page ->
-      // Fetch 50 numbers for each page
-      val start = page * 50
-      val numbers = start.until(start + 50)
-      flowOf(numbers.toList())
-    }
-  )
-
-  // All paginated items in a single list
-  val listItems: Flow<List<Int>> = tiledList.invoke(
-    requests.map { Tile.Request.On(it) }
-  ).map { it.flatten() }
-
-  fun fetchPage(page: Int) {
-    requests.value = page
-  }
-}
-```
-
-The above will return a full list of every item requested sorted in ascending order of the pages.
-
-Note that in the above, the list will grow indefinitely as more pages are requested unless queries are evicted. This may
-be fine for small lists, but as the list size grows, some items may need to be evicted as only a small subset of items
-need to be presented to the UI. This sort of behavior can be achieved using the `Evict` `Request`, and
-the `PivotSorted` `Order` covered below.
-
-### Managing requested data
+## Managing requested data
 
 Much like a classic `Map` that supports update and remove methods, a Tiler offers analogous operations in the form
 of `Inputs`.
@@ -124,6 +105,12 @@ of `Inputs`.
   also evicts the items previously fetched by the `query` from memory. Requesting this is idempotent; multiple requests
   have no side effects.
 
+### `Input.Limiter`
+
+Can be used to select a subset of items tiled instead of the entire paginated set. For example, assuming 1000 items have been
+fetched, there's no need to send a 1000 items to the UI for diffing/display when the UI can only show about 30 at once.
+The `Limiter` allows for selecting an arbitrary amount of items as the situation demands.
+
 ### `Input.Order`
 
 Defines the heuristic for selecting tiled items into the output container.
@@ -140,13 +127,54 @@ Defines the heuristic for selecting tiled items into the output container.
 
 * Custom: Flattens tiled items produced whichever way you desire.
 
-### `Input.Limiter`
+## Examples
 
-Can be used to select a subset of items tiled instead of the whole set. For example, assuming 1000 items have been
-fetched. There's no need to send a 1000 items to the UI for diffing/display when the UI can only show about 30 at once.
-The `Limiter` allows for selecting an arbitrary amount of items as the situation demands.
+### Simple, non scaling example
 
-### More complex uses
+In this example, the code will return a full list of every item requested sorted in ascending order of the pages.
+
+The list will grow indefinitely as more pages are requested unless queries are evicted. This may
+be fine for small lists, but as the list size grows, some items may need to be evicted as only a small subset of items
+need to be presented to the UI. This sort of behavior can be achieved using the `Evict` `Request`, and
+the `PivotSorted` `Order` covered next.
+
+```kotlin
+import com.tunjid.tiler.Tile
+import com.tunjid.tiler.tiledList
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+
+class NumberFetcher {
+  private val requests = MutableStateFlow(0)
+
+  private val tiledList: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
+    // Sort items in ascending order
+    order = Tile.Order.Sorted(comparator = Int::compareTo),
+    fetcher = { page ->
+      // Fetch 50 numbers for each page
+      val start = page * 50
+      val numbers = start.until(start + 50)
+      flowOf(numbers.toList())
+    }
+  )
+
+  // All paginated items in a single list
+  val listItems: Flow<List<Int>> = tiledList.invoke(
+    requests.map { Tile.Request.On(it) }
+  )
+    .map(List<List<Int>>::flatten)
+
+
+  fun fetchPage(page: Int) {
+    requests.value = page
+  }
+}
+```
+
+
+### Advanced, scalable solution
 
 To deal with the issue of the tiled data set becoming arbitrarily large, one can create a pipeline where the
 pages loaded are defined as a function of the page the user is currently at:
@@ -232,7 +260,10 @@ class ManagedNumberFetcher {
     .flatMapLatest(LoadMetadata::toRequests)
 
   private val tiledList: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
+    // Sort items in ascending order, pivoted around the current page
     order = Tile.Order.PivotSorted(comparator = Int::compareTo),
+    // Output at most 200 items at once to allow for cheap data transformations regardless of paged dataset size
+    limiter = Tile.Limiter.List { it.size > 200 },
     fetcher = { page ->
       // Fetch 50 numbers for each page
       val start = page * 50
@@ -254,12 +285,6 @@ In the above, only flows for 5 pages are collected at any one time. 4 more pages
 resumption, and the rest are evicted from memory. As the user scrolls, `setCurrentPage` is called, and data is
 fetched for that page, and the surrounding pages.
 Pages that are far away from the current page (more than 4 pages away) are removed from memory.
-
-### Use cases
-
-Tilers are useful in a scenario where the underlying data sets are dynamic. This can range from common cases like
-endless scrolling of lists whose individual elements change often, to niche cases like crosswords that alert users if
-their solving attempts are correct. Please take a look at the sample app for concrete examples.
 
 ## License
 
