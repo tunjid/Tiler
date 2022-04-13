@@ -286,6 +286,20 @@ resumption, and the rest are evicted from memory. As the user scrolls, `setCurre
 fetched for that page, and the surrounding pages.
 Pages that are far away from the current page (more than 4 pages away) are removed from memory.
 
+## Efficiency & performance
+
+As tiling loads from multiple flows simultaneously, performance is a function of 2 things:
+
+* How often the backing `Flow` for each `Input.Request` emits
+* The time and space complexity of the transformations applied to the output `List<Item>` or `Map<Query, Item>`.
+
+In the case of a former, the `Flow` should only emit if the backing dataset has actually changed. This prevents unneccessary emissions downstream.
+
+In the case of the latter, by using `Input.Limiter` on the output of the tiler, you can guarantee transformations on the output are a function `O(N)`,
+where `N` is the amount defined by the `Input.Limiter`.
+
+For example if tiling is done for the UI, with a viewport that can display 20 items at once, 20 items can be fetched per page, and 100 (20 * 5) pages can be observed at concurrently. Using `Input.Limiter.List { it.size > 100 }`, only 100 items will be sent to the UI at once. The items can be transformed with algorithms of `O(N)` to `O(N^2)` time and space complexity trivially as regardless of the size of the actual paginated set, only 100 items will be transformed at any one time.
+
 ## License
 
     Copyright 2021 Google LLC
