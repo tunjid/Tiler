@@ -23,10 +23,11 @@ repositories {
 }
 
 plugins {
-    `kotlin-dsl` version "2.1.7"
+    `kotlin-dsl`
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10")
-    implementation("com.android.tools.build:gradle:7.0.4")
+    implementation(libs.jetbrains.compose.gradlePlugin)
+    implementation(libs.kotlin.gradlePlugin)
+    implementation(libs.android.gradlePlugin)
 }

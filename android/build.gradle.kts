@@ -41,17 +41,14 @@ android {
 }
 
 dependencies {
-    implementation(project(":tiler"))
     implementation(project(":common"))
 
-    implementation("androidx.core:core-ktx:1.7.0")
-    implementation("androidx.appcompat:appcompat:1.4.0")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
 
-    implementation("androidx.activity:activity-compose:1.4.0")
+    implementation(libs.androidx.activity.compose)
     implementation(libs.jetbrains.compose.material)
     implementation(libs.jetbrains.compose.animation)
-    implementation("com.google.android.material:material:1.4.0")
 
-    implementation("com.tunjid.mutator:core:0.0.1")
-    implementation("com.tunjid.mutator:coroutines:0.0.1")
+    implementation(libs.google.material)
 }

@@ -19,12 +19,12 @@ package com.tunjid.demo.common.ui.numbers
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.lazy.GridCells
-import androidx.compose.foundation.lazy.GridItemSpan
-import androidx.compose.foundation.lazy.LazyGridState
-import androidx.compose.foundation.lazy.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyGridState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -109,7 +109,7 @@ object GridListStyle : ListStyle<LazyGridState>(
         items: List<Item>,
     ) {
         LazyVerticalGrid(
-            cells = GridCells.Fixed(GridSize),
+            columns = GridCells.Fixed(GridSize),
             state = state,
             content = {
                 items(
@@ -119,6 +119,12 @@ object GridListStyle : ListStyle<LazyGridState>(
                         when (item) {
                             is Item.Tile -> GridItemSpan(currentLineSpan = 1)
                             is Item.Header -> GridItemSpan(maxCurrentLineSpan)
+                        }
+                    },
+                    contentType = { item ->
+                        when (item) {
+                            is Item.Tile -> 0
+                            is Item.Header -> 1
                         }
                     },
                     itemContent = { item ->

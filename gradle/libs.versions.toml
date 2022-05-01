@@ -3,17 +3,17 @@ androidGradlePlugin = "7.0.4"
 androidxActivity = "1.4.0"
 androidxAppCompat = "1.4.0"
 androidxCore = "1.7.0"
-androidxCompose = "1.2.0-alpha03"
+androidxCompose = "1.2.0-alpha08"
 androidxTest = "1.4.0"
 androidxTestExt = "1.1.2"
 dokka = "1.6.10"
-jetbrainsCompose = "1.2.0-alpha01-dev620"
+jetbrainsCompose = "1.2.0-alpha01-dev675"
 junit4 = "4.13.2"
-kotlin = "1.6.10"
+kotlin = "1.6.20"
 kotlinxCoroutines = "1.6.0"
 googleMaterial = "1.4.0"
-tunjidMutator = "0.0.1"
-tunjidTreeNav = "0.0.0-alpha01"
+tunjidMutator = "0.0.2"
+tunjidTreeNav = "0.0.3"
 turbine = "0.7.0"
 
 [libraries]
@@ -35,6 +35,7 @@ cashapp-turbine = { group = "app.cash.turbine", name = "turbine", version.ref = 
 google-material = { group = "com.google.android.material", name = "material", version.ref = "googleMaterial" }
 jetbrains-compose-animation = { group = "org.jetbrains.compose.animation", name = "animation", version.ref = "jetbrainsCompose" }
 jetbrains-compose-foundation-layout = { group = "org.jetbrains.compose.foundation", name = "foundation-layout", version.ref = "jetbrainsCompose" }
+jetbrains-compose-gradlePlugin = { group = "org.jetbrains.compose", name = "compose-gradle-plugin", version.ref = "jetbrainsCompose" }
 jetbrains-compose-material = { group = "org.jetbrains.compose.material", name = "material", version.ref = "jetbrainsCompose" }
 jetbrains-compose-runtime = { group = "org.jetbrains.compose.runtime", name = "runtime", version.ref = "jetbrainsCompose" }
 jetbrains-compose-ui-test = { group = "org.jetbrains.compose.ui", name = "ui-test-junit4", version.ref = "jetbrainsCompose" }
