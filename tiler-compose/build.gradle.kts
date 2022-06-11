@@ -65,6 +65,7 @@ kotlin {
             dependencies {
                 implementation(project(":tiler"))
                 implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.jetbrains.compose.foundation.layout)
             }
         }
         val commonTest by getting {

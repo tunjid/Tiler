@@ -86,6 +86,8 @@ fun <Query> Flow<Query>.pivotWith(request: PivotRequest<Query>): Flow<PivotResul
 
 fun <Query, Item> Flow<PivotResult<Query>>.toRequests() =
     flatMapLatest { managedRequest ->
+        // There's a mild efficiency hit here to make this more readable.
+        // A simple list concatenation would be faster.
         sequenceOf<List<Tile.Request<Query, Item>>>(
             managedRequest.on.map { Tile.Request.On(it) },
             managedRequest.off.map { Tile.Request.Off(it) },
