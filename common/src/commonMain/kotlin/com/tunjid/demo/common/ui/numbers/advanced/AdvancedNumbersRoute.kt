@@ -126,7 +126,7 @@ fun NumberTiles(
 
     // Load when this Composable enters the composition
     LaunchedEffect(true) {
-        mutator.accept(Action.Load.LoadAround(page = 0, ascending = state.isAscending))
+        mutator.accept(Action.Load.LoadAround(PageQuery(page = 0, isAscending = state.isAscending)))
     }
 
     LaunchedEffect(lazyState) {
@@ -136,7 +136,7 @@ fun NumberTiles(
             .filterNotNull()
             .distinctUntilChanged()
             .collect {
-                mutator.accept(Action.Load.LoadAround(page = it, ascending = state.isAscending))
+                mutator.accept(Action.Load.LoadAround(PageQuery(page = it, isAscending = state.isAscending)))
             }
     }
 

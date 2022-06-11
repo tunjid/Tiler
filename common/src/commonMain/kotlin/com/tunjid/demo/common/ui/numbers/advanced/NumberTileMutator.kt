@@ -63,7 +63,7 @@ data class PageQuery(
 
 sealed class Action(val key: String) {
     sealed class Load : Action(key = "Load") {
-        data class LoadAround(val page: Int, val ascending: Boolean) : Load()
+        data class LoadAround(val pageQuery: PageQuery) : Load()
         data class ToggleOrder(val isAscending: Boolean) : Load()
     }
 
@@ -138,13 +138,8 @@ private fun Flow<Action.Load>.loadMutations(
             when (load) {
                 is Action.Load.LoadAround -> Mutation {
                     copy(
-                        currentPage = load.page,
-                        loadSummary = PagePivot.pivotAround(
-                            PageQuery(
-                                page = load.page,
-                                isAscending = load.ascending
-                            )
-                        ).loadSummary
+                        currentPage = load.pageQuery.page,
+                        loadSummary = PagePivot.pivotAround(load.pageQuery).loadSummary
                     )
                 }
                 is Action.Load.ToggleOrder -> Mutation { copy(isAscending = load.isAscending) }
@@ -165,7 +160,7 @@ private fun Flow<Action.Load>.toNumberedTiles(
     transform = {
         when (val type = type()) {
             is Action.Load.LoadAround -> type.flow
-                .map { PageQuery(it.page, it.ascending) }
+                .map { it.pageQuery }
                 .pivotWith(PagePivot)
                 .toRequests()
             is Action.Load.ToggleOrder -> type.flow.map {
