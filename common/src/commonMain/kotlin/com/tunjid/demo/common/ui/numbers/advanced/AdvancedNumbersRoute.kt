@@ -126,7 +126,7 @@ fun NumberTiles(
 
     // Load when this Composable enters the composition
     LaunchedEffect(true) {
-        mutator.accept(Action.Load.LoadAround(page = 0))
+        mutator.accept(Action.Load.LoadAround(page = 0, ascending = state.isAscending))
     }
 
     LaunchedEffect(lazyState) {
@@ -136,7 +136,7 @@ fun NumberTiles(
             .filterNotNull()
             .distinctUntilChanged()
             .collect {
-                mutator.accept(Action.Load.LoadAround(page = it))
+                mutator.accept(Action.Load.LoadAround(page = it, ascending = state.isAscending))
             }
     }
 
@@ -177,7 +177,7 @@ private fun Fab(
     isAscending: Boolean
 ) {
     FloatingActionButton(
-        onClick = { onClick(Action.Load.ToggleOrder) },
+        onClick = { onClick(Action.Load.ToggleOrder(isAscending)) },
         content = {
             Row(
                 modifier = Modifier

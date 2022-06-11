@@ -20,10 +20,20 @@ import androidx.compose.foundation.gestures.ScrollableState
 import com.tunjid.demo.common.ui.numbers.Item
 import com.tunjid.demo.common.ui.numbers.ListStyle
 import com.tunjid.demo.common.ui.numbers.NumberTile
+import com.tunjid.demo.common.ui.numbers.colorShiftingTiles
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.Mutator
+import com.tunjid.mutator.coroutines.splitByType
 import com.tunjid.mutator.coroutines.stateFlowMutator
 import com.tunjid.mutator.coroutines.toMutationStream
+import com.tunjid.tiler.Tile
+import com.tunjid.tiler.tiledMap
+import com.tunjid.tiler.toTiledMap
+import com.tunjid.utilities.PivotRequest
+import com.tunjid.utilities.PivotResult
+import com.tunjid.utilities.pivotAround
+import com.tunjid.utilities.pivotWith
+import com.tunjid.utilities.toRequests
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,10 +45,26 @@ import kotlinx.coroutines.flow.shareIn
 
 const val GridSize = 5
 
+const val StartAscending = true
+
+private val ascendingPageComparator = compareBy(PageQuery::page)
+private val descendingPageComparator = ascendingPageComparator.reversed()
+
+val PagePivot = PivotRequest<PageQuery>(
+    onCount = 5,
+    nextQuery = { copy(page = page + 1) },
+    previousQuery = { copy(page = page - 1).takeIf { it.page >= 0 } }
+)
+
+data class PageQuery(
+    val page: Int,
+    val isAscending: Boolean
+)
+
 sealed class Action(val key: String) {
     sealed class Load : Action(key = "Load") {
-        data class LoadAround(val page: Int) : Load()
-        object ToggleOrder : Load()
+        data class LoadAround(val page: Int, val ascending: Boolean) : Load()
+        data class ToggleOrder(val isAscending: Boolean) : Load()
     }
 
     data class FirstVisibleIndexChanged(val index: Int) : Action(key = "FirstVisibleIndexChanged")
@@ -92,33 +118,86 @@ private fun Flow<Action.Load>.loadMutations(
     scope: CoroutineScope,
     itemsPerPage: Int,
     isDark: Boolean,
-): Flow<Mutation<State>> = loadMetadata()
-    .shareIn(
-        scope = scope,
-        started = SharingStarted.WhileSubscribed(200),
-        replay = 1
-    ).let { loadMetadata ->
-        merge(
-            loadMetadata.toNumberedTiles(itemsPerPage = itemsPerPage, isDark = isDark)
-                .map { pagesToTiles: Map<PageQuery, List<NumberTile>> ->
-                    Mutation {
-                        copy(items = pagesToTiles.flatMap { (pageQuery, numberTiles) ->
-                            val color = numberTiles.first().color
-                            val header = Item.Header(page = pageQuery.page, color = color)
-                            listOf(header) + numberTiles.map(Item::Tile)
-                        }.distinctBy { it.key })
-                    }
-                },
-            loadMetadata
-                .map {
-                    Mutation {
-                        copy(
-                            isAscending = it.isAscending,
-                            // 3 pages are fetched at once, the middle is the current page
-                            currentPage = it.pivotPage,
-                            loadSummary = it.loadSummary
-                        )
-                    }
+): Flow<Mutation<State>> = shareIn(
+    scope = scope,
+    started = SharingStarted.WhileSubscribed(200),
+    replay = 1
+).let { loads ->
+    merge(
+        loads.toNumberedTiles(itemsPerPage = itemsPerPage, isDark = isDark)
+            .map { pagesToTiles: Map<PageQuery, List<NumberTile>> ->
+                Mutation {
+                    copy(items = pagesToTiles.flatMap { (pageQuery, numberTiles) ->
+                        val color = numberTiles.first().color
+                        val header = Item.Header(page = pageQuery.page, color = color)
+                        listOf(header) + numberTiles.map(Item::Tile)
+                    }.distinctBy { it.key })
                 }
-        )
+            },
+        loads.map { load ->
+            when (load) {
+                is Action.Load.LoadAround -> Mutation {
+                    copy(
+                        currentPage = load.page,
+                        loadSummary = PagePivot.pivotAround(
+                            PageQuery(
+                                page = load.page,
+                                isAscending = load.ascending
+                            )
+                        ).loadSummary
+                    )
+                }
+                is Action.Load.ToggleOrder -> Mutation { copy(isAscending = load.isAscending) }
+            }
+        }
+    )
+}
+
+
+val PivotResult<PageQuery>.loadSummary
+    get() = "Active pages: ${on.map { it.page }}\nPages in memory: ${off.map { it.page }}"
+
+private fun Flow<Action.Load>.toNumberedTiles(
+    itemsPerPage: Int,
+    isDark: Boolean,
+) = splitByType(
+    typeSelector = { it },
+    transform = {
+        when (val type = type()) {
+            is Action.Load.LoadAround -> type.flow
+                .map { PageQuery(it.page, it.ascending) }
+                .pivotWith(PagePivot)
+                .toRequests()
+            is Action.Load.ToggleOrder -> type.flow.map {
+                Tile.Order.PivotSorted<PageQuery, List<NumberTile>>(
+                    comparator = when {
+                        it.isAscending -> descendingPageComparator
+                        else -> ascendingPageComparator
+                    }
+                )
+            }
+        }
     }
+)
+    .toTiledMap(
+        numberTiler(
+            itemsPerPage = itemsPerPage,
+            isDark = isDark
+        )
+    )
+
+/**
+ * Fetches a [Map] of [PageQuery] to [NumberTile] where the [NumberTile] instances self update
+ */
+private fun numberTiler(
+    itemsPerPage: Int,
+    isDark: Boolean,
+): (Flow<Tile.Input.Map<PageQuery, List<NumberTile>>>) -> Flow<Map<PageQuery, List<NumberTile>>> =
+    tiledMap(
+        limiter = Tile.Limiter.Map { pages -> pages.size > 4 },
+        order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
+        fetcher = { (page, isAscending) ->
+            page.colorShiftingTiles(itemsPerPage, isDark)
+                .map { if (isAscending) it else it.asReversed() }
+        }
+    )
