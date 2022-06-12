@@ -14,30 +14,40 @@
  * limitations under the License.
  */
 
+import org.jetbrains.kotlin.konan.properties.hasProperty
+
+
 plugins {
-    kotlin("multiplatform")
+    `android-library-convention`
+    `kotlin-library-convention`
+    `publishing-library-convention`
+    id("org.jetbrains.compose")
+    `maven-publish`
+    signing
+    id("org.jetbrains.dokka")
 }
 
 kotlin {
-    android()
-    jvm("desktop")
     sourceSets {
+        named("commonMain") {
+            dependencies {
+                implementation(libs.jetbrains.compose.foundation)
+                implementation(libs.jetbrains.compose.foundation.layout)
+            }
+        }
+        named("androidMain") {
+            dependencies {
+                implementation(libs.androidx.compose.foundation)
+                implementation(libs.androidx.compose.foundation.layout)
+            }
+        }
+
         all {
             languageSettings.apply {
-                optIn("androidx.compose.animation.ExperimentalAnimationApi")
-                optIn("androidx.compose.foundation.ExperimentalFoundationApi")
-                optIn("androidx.compose.material.ExperimentalMaterialApi")
-                optIn("androidx.compose.ui.ExperimentalComposeUiApi")
-                optIn("kotlinx.serialization.ExperimentalSerializationApi")
                 optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
                 optIn("kotlinx.coroutines.FlowPreview")
             }
         }
     }
-    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions.jvmTarget = "11"
-    }
-    configurations.all {
-        coerceComposeVersion(this)
-    }
 }
+

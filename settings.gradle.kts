@@ -19,24 +19,12 @@ pluginManagement {
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
         google()
     }
-
-    plugins {
-        val kotlinVersion = "1.6.10"
-        val agpVersion = "7.0.4"
-        val composeVersion = "1.0.1"
-
-        kotlin("jvm").version(kotlinVersion)
-        kotlin("multiplatform").version(kotlinVersion)
-        kotlin("android").version(kotlinVersion)
-        id("com.android.application").version(agpVersion)
-        id("com.android.library").version(agpVersion)
-        id("org.jetbrains.compose").version(composeVersion)
-    }
 }
-rootProject.name = "Tiler"
+rootProject.name = "Tiling"
 include(
-    ":tiler",
-    ":common",
-    ":android",
-    ":desktop",
+    ":library:compose",
+    ":library:tiler",
+    ":sample:common",
+    ":sample:android",
+    ":sample:desktop",
 )

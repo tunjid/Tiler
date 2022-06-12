@@ -14,24 +14,30 @@
  * limitations under the License.
  */
 
-plugins {
-    id("com.android.library")
-}
+package com.tunjid.demo.common.ui
 
-android {
-    androidConfiguration(this)
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.darkColors
+import androidx.compose.material.lightColors
+import androidx.compose.runtime.Composable
 
-    defaultConfig {
-        targetSdk = 31
+private val DarkColorPalette = darkColors()
+
+private val LightColorPalette = lightColors()
+
+@Composable
+fun AppTheme(
+    darkTheme: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val colors = if (darkTheme) {
+        DarkColorPalette
+    } else {
+        LightColorPalette
     }
 
-    sourceSets {
-        named("main") {
-            manifest.srcFile("src/androidMain/AndroidManifest.xml")
-            res.srcDirs("src/androidMain/res")
-        }
-    }
-    configurations.all {
-        coerceComposeVersion(this)
-    }
+    MaterialTheme(
+        colors = colors,
+        content = content
+    )
 }

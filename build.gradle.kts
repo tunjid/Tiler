@@ -26,6 +26,11 @@ buildscript {
                 if (file.exists()) load(java.io.FileInputStream(file))
             }
         })
+        set("libProps", java.util.Properties().apply {
+            file("libraryVersion.properties").let { file ->
+                if (file.exists()) load(java.io.FileInputStream(file))
+            }
+        })
     }
 
     repositories {
