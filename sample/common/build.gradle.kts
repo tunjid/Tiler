@@ -24,8 +24,8 @@ kotlin {
     sourceSets {
         named("commonMain") {
             dependencies {
-                implementation(project(":tiler"))
-                implementation(project(":compose"))
+                implementation(project(":library:tiler"))
+                implementation(project(":library:compose"))
 
                 implementation(libs.jetbrains.compose.ui.tooling)
                 implementation(libs.jetbrains.compose.ui.util)

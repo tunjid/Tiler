@@ -139,8 +139,8 @@ need to be presented to the UI. This sort of behavior can be achieved using the 
 the `PivotSorted` `Order` covered next.
 
 ```kotlin
-import com.tunjid.tiler.Tile
-import com.tunjid.tiler.tiledList
+import Tile
+import tiledList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -206,8 +206,8 @@ For an example where `n` is a function of grid size in a grid list, check out [A
 An example where `n` is fixed at 2 follows:
 
 ```kotlin
-import com.tunjid.tiler.Tile
-import com.tunjid.tiler.tiledList
+import Tile
+import tiledList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asFlow

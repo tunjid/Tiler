@@ -30,7 +30,7 @@ kotlin {
     sourceSets {
         named("jvmMain") {
             dependencies {
-                implementation(project(":common"))
+                implementation(project(":sample:common"))
 
                 implementation(compose.desktop.currentOs)
 

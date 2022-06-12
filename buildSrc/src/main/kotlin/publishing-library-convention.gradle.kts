@@ -22,7 +22,7 @@ plugins {
 
 allprojects {
     val versionKey = project.name + "_version"
-    val libProps = parent?.ext?.get("libProps") as? java.util.Properties
+    val libProps = rootProject.ext.get("libProps") as? java.util.Properties
         ?: return@allprojects
     group = libProps["groupId"] as String
     version = libProps[versionKey] as String
@@ -81,7 +81,7 @@ publishing {
         }
     }
     repositories {
-        val localProperties = parent?.ext?.get("localProps") as? java.util.Properties
+        val localProperties = rootProject.ext.get("localProps") as? java.util.Properties
             ?: return@repositories
 
         val publishUrl = localProperties.getProperty("publishUrl")
@@ -100,7 +100,7 @@ publishing {
 
 
 signing {
-    val localProperties = parent?.ext?.get("localProps") as? java.util.Properties
+    val localProperties = rootProject.ext.get("localProps") as? java.util.Properties
         ?: return@signing
 
     val signingKey = localProperties.getProperty("signingKey")
