@@ -21,6 +21,7 @@ import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import platform.posix.CLOCK_REALTIME
 import platform.posix.clock_gettime
+import platform.posix.clockid_t
 import platform.posix.timespec
 
 internal actual fun epochMillis(): Long = memScoped {
@@ -30,6 +31,6 @@ internal actual fun epochMillis(): Long = memScoped {
 
     // Using timespec bc Windows doesn't support gettimeofday
     val timeSpec = alloc<timespec>()
-    clock_gettime(CLOCK_REALTIME, timeSpec.ptr)
+    clock_gettime(CLOCK_REALTIME.toUInt() as clockid_t, timeSpec.ptr)
     (timeSpec.tv_sec * 1000L) + (timeSpec.tv_nsec / 1000_000L)
 }
