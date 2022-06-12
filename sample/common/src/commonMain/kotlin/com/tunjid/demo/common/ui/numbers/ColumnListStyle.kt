@@ -27,7 +27,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import middleItem
+import com.tunjid.tiler.compose.middleItem
 
 object ColumnListStyle : ListStyle<LazyListState>(
     name = "Column",
