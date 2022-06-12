@@ -58,4 +58,10 @@ sealed class ListStyle<T : ScrollableState>(
         state: T,
         items: List<Item>,
     )
+
+    @Composable
+    abstract fun pageChangeListener(
+        state: T,
+        onPageChanged: (Int) -> Unit
+    )
 }

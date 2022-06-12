@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import com.tunjid.demo.common.ui.numbers.advanced.GridSize
+import middleItem
 
 object GridListStyle : ListStyle<LazyGridState>(
     name = "Grid",
@@ -57,6 +58,14 @@ object GridListStyle : ListStyle<LazyGridState>(
 
     @Composable
     override fun rememberState(): LazyGridState = rememberLazyGridState()
+
+    @Composable
+    override fun pageChangeListener(state: LazyGridState, onPageChanged: (Int) -> Unit) {
+        state.middleItem(
+            queryMapper = { it.key.pageFromKey },
+            onQueryChanged = onPageChanged
+        )
+    }
 
     override fun stickyHeaderOffsetCalculator(
         state: LazyGridState,

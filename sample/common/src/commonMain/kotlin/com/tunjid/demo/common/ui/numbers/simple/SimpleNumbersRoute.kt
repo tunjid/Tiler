@@ -71,14 +71,10 @@ fun SimpleList(
         items = items,
     )
 
-    LaunchedEffect(lazyState) {
-        snapshotFlow { listStyle.lastVisibleKey(lazyState)?.pageFromKey }
-            .filterNotNull()
-            .distinctUntilChanged()
-            .collect {
-                fetcher.fetchPage(it + 1)
-            }
-    }
+    listStyle.pageChangeListener(
+        state = lazyState,
+        onPageChanged = { fetcher.fetchPage(it + 1) }
+    )
 
     // Load when this Composable enters the composition
     LaunchedEffect(true) {

@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import middleItem
 
 object ColumnListStyle : ListStyle<LazyListState>(
     name = "Column",
@@ -73,6 +74,13 @@ object ColumnListStyle : ListStyle<LazyListState>(
 
     @Composable
     override fun rememberState(): LazyListState = rememberLazyListState()
+    @Composable
+    override fun pageChangeListener(state: LazyListState, onPageChanged: (Int) -> Unit) {
+        state.middleItem(
+            queryMapper = { it.key.pageFromKey },
+            onQueryChanged = onPageChanged
+        )
+    }
 
     @Composable
     override fun HeaderItem(
