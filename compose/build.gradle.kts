@@ -14,39 +14,40 @@
  * limitations under the License.
  */
 
+import org.jetbrains.kotlin.konan.properties.hasProperty
+
+
 plugins {
     `android-library-convention`
     `kotlin-library-convention`
+    `publishing-library-convention`
     id("org.jetbrains.compose")
+    `maven-publish`
+    signing
+    id("org.jetbrains.dokka")
 }
 
 kotlin {
     sourceSets {
         named("commonMain") {
             dependencies {
-                implementation(project(":tiler"))
-                implementation(project(":compose"))
-
-                implementation(libs.jetbrains.compose.ui.tooling)
-                implementation(libs.jetbrains.compose.ui.util)
-
-                implementation(libs.jetbrains.compose.runtime)
-                implementation(libs.jetbrains.compose.animation)
-                implementation(libs.jetbrains.compose.material)
+                implementation(libs.jetbrains.compose.foundation)
                 implementation(libs.jetbrains.compose.foundation.layout)
-
-                implementation(libs.kotlinx.coroutines.core)
-
-                implementation(libs.tunjid.mutator.core.common)
-                implementation(libs.tunjid.mutator.coroutines.common)
-
-                implementation(libs.tunjid.treenav.common)
             }
         }
         named("androidMain") {
             dependencies {
+                implementation(libs.androidx.compose.foundation)
                 implementation(libs.androidx.compose.foundation.layout)
+            }
+        }
+
+        all {
+            languageSettings.apply {
+                optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
+                optIn("kotlinx.coroutines.FlowPreview")
             }
         }
     }
 }
+

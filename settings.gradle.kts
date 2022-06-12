@@ -22,6 +22,7 @@ pluginManagement {
 }
 rootProject.name = "Tiling"
 include(
+    ":compose",
     ":tiler",
     ":common",
     ":android",
