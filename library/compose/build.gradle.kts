@@ -28,6 +28,10 @@ plugins {
 }
 
 kotlin {
+    js(IR) {
+        nodejs()
+        browser()
+    }
     sourceSets {
         named("commonMain") {
             dependencies {
@@ -41,6 +45,9 @@ kotlin {
                 implementation(libs.androidx.compose.foundation.layout)
             }
         }
+
+        val jsMain by getting
+        val jsTest by getting
 
         all {
             languageSettings.apply {

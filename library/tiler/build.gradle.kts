@@ -41,7 +41,7 @@ plugins {
 }
 
 kotlin {
-    js {
+    js(IR) {
         nodejs()
         browser()
     }
@@ -80,6 +80,9 @@ kotlin {
         }
         val jvmMain by getting
         val jvmTest by getting
+
+        val jsMain by getting
+        val jsTest by getting
 
         // Native targets
         val nativeMain by creating {

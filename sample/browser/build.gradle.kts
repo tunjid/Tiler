@@ -1,6 +1,3 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension
-
 /*
  * Copyright 2021 Google LLC
  *
@@ -17,43 +14,44 @@ import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension
  * limitations under the License.
  */
 
+import org.jetbrains.compose.compose
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension
+
 plugins {
     kotlin("multiplatform")
+    id("org.jetbrains.compose")
 }
 
 kotlin {
-    android()
-    jvm("desktop")
     js(IR) {
         browser()
-        nodejs()
         binaries.executable()
     }
     sourceSets {
-        all {
-            languageSettings.apply {
-                optIn("androidx.compose.animation.ExperimentalAnimationApi")
-                optIn("androidx.compose.foundation.ExperimentalFoundationApi")
-                optIn("androidx.compose.material.ExperimentalMaterialApi")
-                optIn("androidx.compose.ui.ExperimentalComposeUiApi")
-                optIn("kotlinx.serialization.ExperimentalSerializationApi")
-                optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
-                optIn("kotlinx.coroutines.FlowPreview")
+        val commonMain by getting {
+            dependencies {
+                implementation(project(":sample:common"))
+
+                implementation(libs.kotlinx.coroutines.core)
+
+                implementation(libs.tunjid.mutator.core.common)
+                implementation(libs.tunjid.mutator.coroutines.common)
             }
         }
-    }
 
-    targets.withType(KotlinNativeTarget::class.java) {
-        binaries.all {
-            binaryOptions["memoryModel"] = "experimental"
+        val commonTest by getting {
+            dependencies {
+            }
+        }
+
+        val jsMain by getting {
         }
     }
-    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions.jvmTarget = "11"
-    }
-    configurations.all {
-        coerceComposeVersion(this)
-    }
+}
+
+compose.experimental {
+    web.application {}
 }
 
 // a temporary workaround for a bug in jsRun invocation - see https://youtrack.jetbrains.com/issue/KT-48273

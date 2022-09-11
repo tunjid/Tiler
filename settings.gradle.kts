@@ -27,4 +27,5 @@ include(
     ":sample:common",
     ":sample:android",
     ":sample:desktop",
+    ":sample:browser",
 )

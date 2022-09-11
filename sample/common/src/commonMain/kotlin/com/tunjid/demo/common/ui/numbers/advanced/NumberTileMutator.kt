@@ -16,9 +16,7 @@
 
 package com.tunjid.demo.common.ui.numbers.advanced
 
-import androidx.compose.foundation.gestures.ScrollableState
 import com.tunjid.demo.common.ui.numbers.Item
-import com.tunjid.demo.common.ui.numbers.ListStyle
 import com.tunjid.demo.common.ui.numbers.NumberTile
 import com.tunjid.demo.common.ui.numbers.colorShiftingTiles
 import com.tunjid.mutator.Mutation
@@ -47,8 +45,8 @@ const val GridSize = 5
 
 const val StartAscending = true
 
-private val ascendingPageComparator = compareBy(PageQuery::page)
-private val descendingPageComparator = ascendingPageComparator.reversed()
+ val ascendingPageComparator = compareBy(PageQuery::page)
+ val descendingPageComparator = ascendingPageComparator.reversed()
 
 val PagePivot = PivotRequest<PageQuery>(
     onCount = 5,
@@ -71,7 +69,6 @@ sealed class Action(val key: String) {
 }
 
 data class State(
-    val listStyle: ListStyle<ScrollableState>,
     val isAscending: Boolean = StartAscending,
     val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
@@ -90,10 +87,9 @@ fun numberTilesMutator(
     scope: CoroutineScope,
     itemsPerPage: Int,
     isDark: Boolean,
-    listStyle: ListStyle<ScrollableState>
 ): Mutator<Action, StateFlow<State>> = stateFlowMutator(
     scope = scope,
-    initialState = State(listStyle = listStyle),
+    initialState = State(),
     actionTransform = { actionFlow ->
         actionFlow.toMutationStream(keySelector = Action::key) {
             when (val action: Action = type()) {
@@ -102,6 +98,7 @@ fun numberTilesMutator(
                     isDark = isDark,
                     itemsPerPage = itemsPerPage,
                 )
+
                 is Action.FirstVisibleIndexChanged -> action.flow.stickyHeaderMutations()
             }
         }
@@ -142,6 +139,7 @@ private fun Flow<Action.Load>.loadMutations(
                         loadSummary = PagePivot.pivotAround(load.pageQuery).loadSummary
                     )
                 }
+
                 is Action.Load.ToggleOrder -> Mutation { copy(isAscending = load.isAscending) }
             }
         }
@@ -163,6 +161,7 @@ private fun Flow<Action.Load>.toNumberedTiles(
                 .map { it.pageQuery }
                 .pivotWith(PagePivot)
                 .toRequests()
+
             is Action.Load.ToggleOrder -> type.flow.map {
                 Tile.Order.PivotSorted<PageQuery, List<NumberTile>>(
                     comparator = when {
