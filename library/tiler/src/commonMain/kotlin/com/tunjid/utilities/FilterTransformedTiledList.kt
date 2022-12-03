@@ -20,10 +20,11 @@ import com.tunjid.tiler.TiledList
 
 /**
  * A [TiledList] implementation that allows for transforming a [TiledList] while delegating to
- * the original for query lookup. Lookup is O(n).
+ * the original for query lookup.
+ * Query lookup is O(n), this is acceptable as [TiledList] has ~ 100 items or less
  * If pivoting while tiling, this is on average O(n/2) as the user is typically in the center of the pivot.
  */
-internal class TransformedTiledList<Query, Item>(
+internal class FilterTransformedTiledList<Query, Item>(
     private val originalList: TiledList<Query, Item>,
     private val transformedList: List<Item>,
 ) : AbstractList<Item>(), TiledList<Query, Item> {

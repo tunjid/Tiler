@@ -40,14 +40,14 @@ private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
         is Tile.Order.Unspecified -> queryToTiles.keys
             .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
                 val items = queryToTiles.getValue(query).items
-                mutableTiledList.queryItemPairs.addAll(elements = query.pairWith(items))
+                mutableTiledList.addAll(query = query, items = items)
                 mutableTiledList
             }
 
         is Tile.Order.Sorted -> sortedQueries
             .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
                 val items = queryToTiles.getValue(query).items
-                mutableTiledList.queryItemPairs.addAll(elements = query.pairWith(items))
+                mutableTiledList.addAll(query = query, items = items)
                 mutableTiledList
             }
 
@@ -65,19 +65,19 @@ private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
             var items = queryToTiles.getValue(query).items
 
             val tiledList = MutablePairedTiledList<Query, Item>()
-            tiledList.queryItemPairs.addAll(elements = query.pairWith(items))
+            tiledList.addAll(query = query, items = items)
 
 
             while (!limiter.check(tiledList) && (leftIndex >= 0 || rightIndex <= sortedQueries.lastIndex)) {
                 if (--leftIndex >= 0) {
                     query = sortedQueries[leftIndex]
                     items = queryToTiles.getValue(query).items
-                    tiledList.queryItemPairs.addAll(index = 0, elements = query.pairWith(items))
+                    tiledList.addAll(index = 0, query = query, items = items)
                 }
                 if (++rightIndex <= sortedQueries.lastIndex) {
                     query = sortedQueries[rightIndex]
                     items = queryToTiles.getValue(query).items
-                    tiledList.queryItemPairs.addAll(elements = query.pairWith(items))
+                    tiledList.addAll(query = query, items = items)
                 }
             }
             tiledList
@@ -86,10 +86,6 @@ private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
         is Tile.Order.Custom -> order.transform(metadata, queryToTiles)
     }
 }
-
-private fun <Item, Query> Query.pairWith(
-    items: List<Item>
-) = items.map { this to it }
 
 private inline fun <T, R> Iterable<T>.foldWhile(
     initial: R,

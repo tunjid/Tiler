@@ -22,7 +22,7 @@ import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.emptyTiledList
 import com.tunjid.tiler.tiledList
 import com.tunjid.tiler.toTiledList
-import com.tunjid.tiler.transform
+import com.tunjid.tiler.filterTransform
 import com.tunjid.utilities.PivotRequest
 import com.tunjid.utilities.PivotResult
 import com.tunjid.utilities.pivotWith
@@ -90,7 +90,7 @@ class Loader(
             isAscending = pageQuery.isAscending,
             currentPage = pageQuery.page,
             loadSummary = pivotResult.loadSummary,
-            items = tiledList.transform(
+            items = tiledList.filterTransform(
                 transformer = { distinctBy(NumberTile::key) }
             )
         )
