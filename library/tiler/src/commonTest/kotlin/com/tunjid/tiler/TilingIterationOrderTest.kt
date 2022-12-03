@@ -19,10 +19,8 @@ package com.tunjid.tiler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -30,37 +28,37 @@ import kotlin.test.assertEquals
 class ListMapTilingSamenessTest {
 
     @Test
-    fun `maintain iteration order with Sorted`() = runTest {
-        val requests = listOf<Tile.Request<Int, List<Int>>>(
+    fun maintain_iteration_order_with_Sorted() = runTest {
+        val requests = listOf<Tile.Request<Int, Int>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 3),
             Tile.Request.On(query = 8),
         )
         val emissions = requests
             .asFlow()
-            .zipWith { Tile.Order.Sorted(Int::compareTo) }
+            .orderWith { Tile.Order.Sorted(Int::compareTo) }
             .take(requests.size)
             .toList()
 
-        assertSameness(
+        assertEquals(
             1.testRange.toList(),
             emissions[0]
         )
 
-        assertSameness(
+        assertEquals(
             (1.testRange + 3.testRange).toList(),
             emissions[1]
         )
 
-        assertSameness(
+        assertEquals(
             (1.testRange + 3.testRange + 8.testRange).toList(),
             emissions[2]
         )
     }
 
     @Test
-    fun `maintain iteration order with PivotSorted`() = runTest {
-        val requests = listOf<Tile.Request<Int, List<Int>>>(
+    fun maintain_iteration_order_with_PivotSorted() = runTest {
+        val requests = listOf<Tile.Request<Int, Int>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 3),
             Tile.Request.On(query = 8),
@@ -69,63 +67,43 @@ class ListMapTilingSamenessTest {
         )
         val emissions = requests
             .asFlow()
-            .zipWith { Tile.Order.PivotSorted(Int::compareTo) }
+            .orderWith { Tile.Order.PivotSorted(Int::compareTo) }
             .take(requests.size)
             .toList()
 
-        assertSameness(
+        assertEquals(
             1.testRange.toList(),
             emissions[0]
         )
 
-        assertSameness(
+        assertEquals(
             (1.testRange + 3.testRange).toList(),
             emissions[1]
         )
 
-        assertSameness(
+        assertEquals(
             (1.testRange + 3.testRange + 8.testRange).toList(),
             emissions[2]
         )
 
-        assertSameness(
+        assertEquals(
             (3.testRange + 8.testRange + 9.testRange).toList(),
             emissions[3]
         )
 
-        assertSameness(
+        assertEquals(
             (3.testRange + 4.testRange + 8.testRange).toList(),
             emissions[4]
         )
     }
 }
 
-private fun assertSameness(expected: List<Int>, pair: Pair<List<Int>, List<Int>>) {
-    assertEquals(expected, pair.first, "Testing list iteration order")
-    assertEquals(expected, pair.second, "Testing map iteration order")
-}
-
-private fun Flow<Tile.Request<Int, List<Int>>>.zipWith(
-    orderFactory: () -> Tile.Order<Int, List<Int>>
-): Flow<Pair<List<Int>, List<Int>>> {
-    val listTiled = tiledList(
-        // Take 3 flattened sets
-        limiter = Tile.Limiter.List { it.size >= 3 },
-        order = orderFactory(),
-        fetcher = { page ->
-            flowOf(page.testRange.toList())
-        }).invoke(this)
-        .map { it.flatten() }
-
-    val mapTiled = tiledMap(
-        // Take 3 sets
-        limiter = Tile.Limiter.Map { it.size >= 3 },
-        order = orderFactory(),
-        fetcher = { page ->
-            flowOf(page.testRange.toList())
-        })
-        .invoke(this)
-        .map { it.flatMap { (_, values) -> values } }
-
-    return listTiled.zip(mapTiled, ::Pair)
-}
+private fun Flow<Tile.Request<Int, Int>>.orderWith(
+    orderFactory: () -> Tile.Order<Int, Int>
+): Flow<List<Int>> = tiledList(
+    // Take 3 pages of items
+    limiter = Tile.Limiter { it.size >= 30 },
+    order = orderFactory(),
+    fetcher = { page ->
+        flowOf(page.testRange.toList())
+    }).invoke(this)

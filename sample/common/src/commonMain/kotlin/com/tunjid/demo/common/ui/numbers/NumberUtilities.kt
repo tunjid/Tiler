@@ -42,7 +42,6 @@ fun Int.colorShiftingTiles(itemsPerPage: Int, isDark: Boolean) =
                         index = index + count + 1
                     )
                 ),
-                page = this
             )
         }
     }

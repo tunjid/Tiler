@@ -13,18 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
-        google()
-    }
+
+package com.tunjid.utilities
+
+import com.tunjid.tiler.TiledList
+
+/**
+ * A [TiledList] implementation that associates each [Item] with its [Query] with a [Pair]
+ */
+internal class MutablePairedTiledList<Query, Item>(
+    val queryItemPairs: MutableList<Pair<Query, Item>> = mutableListOf(),
+) : AbstractList<Item>(), TiledList<Query, Item> {
+
+    override val size: Int get() = queryItemPairs.size
+
+    override fun get(index: Int): Item = queryItemPairs[index].second
+
+    override fun queryFor(index: Int): Query = queryItemPairs[index].first
+
 }
-rootProject.name = "Tiling"
-include(
-    ":library:tiler",
-    ":sample:common",
-    ":sample:android",
-    ":sample:desktop",
-    ":sample:browser",
-)

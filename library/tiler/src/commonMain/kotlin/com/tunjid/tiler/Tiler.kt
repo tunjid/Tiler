@@ -17,10 +17,10 @@
 package com.tunjid.tiler
 
 /**
- * Produces [Output] from the current tiling state
+ * Produces [TiledList] from the current tiling state
  */
-internal data class Tiler<Query, Item, Output>(
-    val limiter: Tile.Limiter<Query, Item, Output>,
+internal data class Tiler<Query, Item>(
+    val limiter: Tile.Limiter<Query, Item>,
     val shouldEmit: Boolean = false,
     val metadata: Tile.Metadata<Query> = Tile.Metadata(),
     val order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
@@ -28,7 +28,7 @@ internal data class Tiler<Query, Item, Output>(
     val queryToTiles: MutableMap<Query, Tile<Query, Item>> = mutableMapOf(),
 ) {
 
-    fun add(output: Tile.Output<Query, Item>): Tiler<Query, Item, Output> = when (output) {
+    fun add(output: Tile.Output<Query, Item>): Tiler<Query, Item> = when (output) {
         is Tile.Output.Data -> copy(
             shouldEmit = true,
             // Only sort queries when they output the first time to amortize the cost of sorting.
@@ -64,36 +64,13 @@ internal data class Tiler<Query, Item, Output>(
             )
         )
         is Tile.Output.LimiterChange -> copy(
-            limiter = output.limiter.swapWith(limiter)
+            limiter = output.limiter
         )
     }
 
-    fun output(): Output = queryToTiles.tileWith(
+    fun output(): TiledList<Query, Item> = queryToTiles.tileWith(
         metadata = metadata,
         order = order,
         limiter = limiter
     )
 }
-
-@Suppress("UNCHECKED_CAST")
-private fun <Query, Item, Output> Tile.Limiter<Query, Item, *>.swapWith(
-    original: Tile.Limiter<Query, Item, Output>
-): Tile.Limiter<Query, Item, Output> =
-    when (val newLimiter = this) {
-        is Tile.Limiter.List -> when (original) {
-            is Tile.Limiter.List -> newLimiter
-            else -> throw IllegalArgumentException(
-                """
-                Illegal swap of limiters tried to pass in a Map Limiter when a List Limiter was expected
-            """.trimIndent()
-            )
-        }
-        is Tile.Limiter.Map -> when (original) {
-            is Tile.Limiter.Map -> newLimiter
-            else -> throw IllegalArgumentException(
-                """
-                Illegal swap of limiters tried to pass in a List Limiter when a Map Limiter was expected
-            """.trimIndent()
-            )
-        }
-    } as Tile.Limiter<Query, Item, Output>

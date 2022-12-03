@@ -25,10 +25,7 @@ kotlin {
         named("commonMain") {
             dependencies {
                 implementation(project(":library:tiler"))
-                implementation(project(":library:compose"))
-
-                implementation(libs.jetbrains.compose.ui.tooling)
-                implementation(libs.jetbrains.compose.ui.util)
+//                implementation(project(":library:compose"))
 
                 implementation(libs.jetbrains.compose.runtime)
                 implementation(libs.jetbrains.compose.animation)
@@ -37,10 +34,10 @@ kotlin {
 
                 implementation(libs.kotlinx.coroutines.core)
 
-                implementation(libs.tunjid.mutator.core.common)
-                implementation(libs.tunjid.mutator.coroutines.common)
+                api(libs.tunjid.mutator.core.common)
+                api(libs.tunjid.mutator.coroutines.common)
 
-                implementation(libs.tunjid.treenav.common)
+                api(libs.tunjid.treenav.common)
             }
         }
         named("androidMain") {
@@ -48,5 +45,13 @@ kotlin {
                 implementation(libs.androidx.compose.foundation.layout)
             }
         }
+        val jsMain by getting {
+            dependencies {
+            }
+        }
     }
+}
+
+compose.experimental {
+    web.application {}
 }

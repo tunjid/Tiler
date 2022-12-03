@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package com.tunjid.demo.common.ui.numbers.advanced
+package com.tunjid.demo.common.ui.numbers
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
@@ -28,124 +30,82 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.rememberScaffoldState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.tunjid.demo.common.ui.AppRoute
-import com.tunjid.demo.common.ui.numbers.ColumnListStyle
-import com.tunjid.demo.common.ui.numbers.GridListStyle
-import com.tunjid.demo.common.ui.numbers.ListStyle
-import com.tunjid.demo.common.ui.numbers.StickyHeaderContainer
-import com.tunjid.demo.common.ui.numbers.Tabbed
-import com.tunjid.demo.common.ui.numbers.isStickyHeaderKey
-import com.tunjid.demo.common.ui.numbers.pageFromKey
-import com.tunjid.mutator.Mutator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-object AdvancedNumbersRoute : AppRoute {
-    override val id: String
-        get() = "advanced"
-
-    @Composable
-    override fun Render() {
-        Tabbed(
-            listStyles = listOf(
-                ColumnListStyle as ListStyle<ScrollableState>,
-                GridListStyle as ListStyle<ScrollableState>,
-            ),
-            contentDependencies = { coroutineScope, listStyle, isDark ->
-                numberTilesMutator(
-                    scope = coroutineScope,
-                    isDark = isDark,
-                    listStyle = listStyle,
-                    itemsPerPage = listStyle.itemsPerPage
-                )
-            },
-            content = { _, dependency ->
-                NumberTiles(
-                    mutator = dependency
-                )
-            }
-        )
-    }
-}
 
 @Composable
 fun NumberTiles(
-    mutator: Mutator<Action, StateFlow<State>>
+    loader: Loader
 ) {
-    val state by mutator.state.collectAsState()
+    val state by loader.state.collectAsState()
     val isAscending = state.isAscending
-    val items = state.items
-    val stickyHeader = state.stickyHeader
-    val listStyle = state.listStyle
+    val tiledItems = state.items
+    val distinctItems by  remember(tiledItems) {
+        derivedStateOf { tiledItems.distinct() }
+    }
     val loadSummary: Flow<String> = remember {
-        mutator.state.map { it.loadSummary }.distinctUntilChanged()
+        loader.state.map { it.loadSummary }.distinctUntilChanged()
     }
 
     val scaffoldState = rememberScaffoldState()
-    val lazyState = listStyle.rememberState()
+    val listState = rememberLazyListState()
 
     Scaffold(
         scaffoldState = scaffoldState,
         floatingActionButton = {
             Fab(
-                onClick = mutator.accept,
+                onClick = { loader.toggleOrder() },
                 isAscending = isAscending
             )
         }
     ) {
-        StickyHeaderContainer(
-            lazyState = lazyState,
-            offsetCalculator = { lazyState ->
-                listStyle.stickyHeaderOffsetCalculator(
-                    state = lazyState,
-                    headerMatcher = Any::isStickyHeaderKey
-                )
-            },
-            stickyHeader = {
-                if (stickyHeader != null) listStyle.HeaderItem(
-                    modifier = Modifier,
-                    item = stickyHeader
-                )
-            },
+        LazyColumn(
+            state = listState,
             content = {
-                listStyle.Content(
-                    state = lazyState,
-                    items = items,
+                items(
+                    items = distinctItems,
+                    key = NumberTile::key,
+                    itemContent = { numberTile ->
+                        NumberTile(
+                            Modifier.animateItemPlacement(),
+                            numberTile
+                        )
+                    }
                 )
             }
         )
     }
 
-    // Load when this Composable enters the composition
-    LaunchedEffect(true) {
-        mutator.accept(Action.Load.LoadAround(PageQuery(page = 0, isAscending = state.isAscending)))
-    }
-
-    LaunchedEffect(lazyState) {
+    LaunchedEffect(tiledItems) {
         snapshotFlow {
-            listStyle.firstVisibleKey(lazyState)?.pageFromKey
+            val visibleItems = listState.layoutInfo.visibleItemsInfo
+            val middleIndex = visibleItems.getOrNull(visibleItems.size / 2)?.index ?: return@snapshotFlow null
+            val item = distinctItems[middleIndex]
+            val indexInTiledList = tiledItems.indexOf(item)
+            tiledItems.queryFor(indexInTiledList)
         }
             .filterNotNull()
             .distinctUntilChanged()
             .collect {
-                mutator.accept(Action.Load.LoadAround(PageQuery(page = it, isAscending = state.isAscending)))
+                loader.setCurrentPage(it.page)
             }
-    }
-
-    // Keep the sticky headers in sync
-    LaunchedEffect(lazyState) {
-        snapshotFlow { listStyle.firstVisibleIndex(lazyState) }
-            .filterNotNull()
-            .distinctUntilChanged()
-            .collect { mutator.accept(Action.FirstVisibleIndexChanged(index = it)) }
     }
 
     // In the docs: https://developer.android.com/reference/kotlin/androidx/compose/material/SnackbarHostState
@@ -173,11 +133,11 @@ fun NumberTiles(
 
 @Composable
 private fun Fab(
-    onClick: (Action) -> Unit,
+    onClick: () -> Unit,
     isAscending: Boolean
 ) {
     FloatingActionButton(
-        onClick = { onClick(Action.Load.ToggleOrder(isAscending)) },
+        onClick = { onClick() },
         content = {
             Row(
                 modifier = Modifier
@@ -191,6 +151,7 @@ private fun Fab(
                         imageVector = Icons.Default.KeyboardArrowDown,
                         contentDescription = text
                     )
+
                     else -> Icon(
                         imageVector = Icons.Default.KeyboardArrowUp,
                         contentDescription = text

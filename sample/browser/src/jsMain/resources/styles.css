@@ -13,18 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
-        google()
-    }
+
+#root {
+    width: 100%;
+    height: 100vh;
 }
-rootProject.name = "Tiling"
-include(
-    ":library:tiler",
-    ":sample:common",
-    ":sample:android",
-    ":sample:desktop",
-    ":sample:browser",
-)
+
+#root > .compose-web-column > div {
+    position: relative;
+}
