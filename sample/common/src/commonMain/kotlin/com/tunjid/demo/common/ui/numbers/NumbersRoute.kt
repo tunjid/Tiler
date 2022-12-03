@@ -96,9 +96,8 @@ fun NumberTiles(
     LaunchedEffect(tiledItems) {
         snapshotFlow {
             val visibleItems = listState.layoutInfo.visibleItemsInfo
-            val middleIndex = visibleItems.size / 2
-            val firstIndex = visibleItems.getOrNull(middleIndex)?.index ?: return@snapshotFlow null
-            val item = distinctItems[firstIndex]
+            val middleIndex = visibleItems.getOrNull(visibleItems.size / 2)?.index ?: return@snapshotFlow null
+            val item = distinctItems[middleIndex]
             val indexInTiledList = tiledItems.indexOf(item)
             tiledItems.queryFor(indexInTiledList)
         }
