@@ -16,139 +16,80 @@
 
 package com.tunjid.tiler
 
-@Suppress("UNCHECKED_CAST")
-internal fun <Query, Item, Output> Map<Query, Tile<Query, Item>>.tileWith(
+import com.tunjid.utilities.MutablePairedTiledList
+
+internal fun <Query, Item> Map<Query, Tile<Query, Item>>.tileWith(
     metadata: Tile.Metadata<Query>,
     order: Tile.Order<Query, Item>,
-    limiter: Tile.Limiter<Query, Item, Output>
-): Output = when (limiter) {
-    is Tile.Limiter.List -> listTiling(
-        metadata = metadata,
-        order = order,
-        limiter = limiter
-    ) as Output
-    is Tile.Limiter.Map -> mapTiling(
-        metadata = metadata,
-        order = order,
-        limiter = limiter
-    ) as Output
-}
+    limiter: Tile.Limiter<Query, Item>
+): TiledList<Query, Item> = listTiling(
+    metadata = metadata,
+    order = order,
+    limiter = limiter
+)
 
 private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
     metadata: Tile.Metadata<Query>,
     order: Tile.Order<Query, Item>,
-    limiter: Tile.Limiter.List<Query, Item>
-): List<Item> {
+    limiter: Tile.Limiter<Query, Item>
+): TiledList<Query, Item> {
     val queryToTiles = this
     val sortedQueries = metadata.sortedQueries
 
     return when (order) {
         is Tile.Order.Unspecified -> queryToTiles.keys
-            .foldWhile(mutableListOf(), limiter.check) { list, query ->
-                list.add(element = queryToTiles.getValue(query).item)
-                list
+            .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
+                val items = queryToTiles.getValue(query).items
+                mutableTiledList.queryItemPairs.addAll(elements = query.pairWith(items))
+                mutableTiledList
             }
-        is Tile.Order.Sorted -> sortedQueries
-            .foldWhile(mutableListOf(), limiter.check) { list, query ->
-                list.add(element = queryToTiles.getValue(query).item)
-                list
-            }
-        is Tile.Order.PivotSorted -> {
-            if (sortedQueries.isEmpty()) return emptyList()
 
-            val mostRecentQuery: Query = metadata.mostRecentlyTurnedOn ?: return emptyList()
+        is Tile.Order.Sorted -> sortedQueries
+            .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
+                val items = queryToTiles.getValue(query).items
+                mutableTiledList.queryItemPairs.addAll(elements = query.pairWith(items))
+                mutableTiledList
+            }
+
+        is Tile.Order.PivotSorted -> {
+            if (sortedQueries.isEmpty()) return emptyTiledList()
+
+            val mostRecentQuery: Query = metadata.mostRecentlyTurnedOn ?: return emptyTiledList()
             val startIndex = sortedQueries.binarySearch(mostRecentQuery, order.comparator)
 
-            if (startIndex < 0) return emptyList()
-
-            var leftIndex = startIndex
-            var rightIndex = startIndex
-            val result = mutableListOf(queryToTiles.getValue(sortedQueries[startIndex]).item)
-
-            while (!limiter.check(result) && (leftIndex >= 0 || rightIndex <= sortedQueries.lastIndex)) {
-                if (--leftIndex >= 0) result.add(
-                    index = 0,
-                    element = queryToTiles.getValue(sortedQueries[leftIndex]).item
-                )
-                if (++rightIndex <= sortedQueries.lastIndex) result.add(
-                    element = queryToTiles.getValue(sortedQueries[rightIndex]).item
-                )
-            }
-            result
-        }
-        is Tile.Order.CustomList -> order.transform(metadata, queryToTiles)
-        // This should be an impossible state to reach using the external API
-        is Tile.Order.CustomMap -> throw IllegalArgumentException(
-            """
-            Cannot flatten into a List using CustomMap. 
-        """.trimIndent()
-        )
-    }
-}
-
-/**
- * Produces a [Map] that adheres to the semantics of the specified [order]
- */
-private fun <Query, Item> Map<Query, Tile<Query, Item>>.mapTiling(
-    metadata: Tile.Metadata<Query>,
-    order: Tile.Order<Query, Item>,
-    limiter: Tile.Limiter.Map<Query, Item>
-): Map<Query, Item> {
-    val queryToTiles = this
-    val sortedQueries = metadata.sortedQueries
-
-    return when (order) {
-        is Tile.Order.Unspecified -> queryToTiles.keys
-            .foldWhile(mutableMapOf(), limiter.check) { map, query ->
-                map[query] = queryToTiles.getValue(query).item
-                map
-            }
-        is Tile.Order.Sorted -> sortedQueries
-            .foldWhile(mutableMapOf(), limiter.check) { map, query ->
-                map[query] = queryToTiles.getValue(query).item
-                map
-            }
-        is Tile.Order.PivotSorted -> {
-            if (sortedQueries.isEmpty()) return emptyMap()
-
-            val mostRecentQuery: Query = metadata.mostRecentlyTurnedOn ?: return emptyMap()
-            val startIndex = sortedQueries.binarySearch(mostRecentQuery, order.comparator)
-
-            if (startIndex < 0) return emptyMap()
+            if (startIndex < 0) return emptyTiledList()
 
             var leftIndex = startIndex
             var rightIndex = startIndex
             var query = sortedQueries[startIndex]
-            val iterationOrder = mutableListOf(query)
-            val result = mutableMapOf<Query, Item>()
-            result[query] = queryToTiles.getValue(query).item
+            var items = queryToTiles.getValue(query).items
 
-            while (!limiter.check(result) && (leftIndex >= 0 || rightIndex <= sortedQueries.lastIndex)) {
+            val tiledList = MutablePairedTiledList<Query, Item>()
+            tiledList.queryItemPairs.addAll(elements = query.pairWith(items))
+
+
+            while (!limiter.check(tiledList) && (leftIndex >= 0 || rightIndex <= sortedQueries.lastIndex)) {
                 if (--leftIndex >= 0) {
                     query = sortedQueries[leftIndex]
-                    iterationOrder.add(0, query)
-                    result[query] = queryToTiles.getValue(query).item
+                    items = queryToTiles.getValue(query).items
+                    tiledList.queryItemPairs.addAll(index = 0, elements = query.pairWith(items))
                 }
                 if (++rightIndex <= sortedQueries.lastIndex) {
                     query = sortedQueries[rightIndex]
-                    iterationOrder.add(query)
-                    result[query] = queryToTiles.getValue(query).item
+                    items = queryToTiles.getValue(query).items
+                    tiledList.queryItemPairs.addAll(elements = query.pairWith(items))
                 }
             }
-            OrderedMap(
-                orderedKeys = iterationOrder,
-                backing = result
-            )
+            tiledList
         }
-        // This should be an impossible state to reach using the external API
-        is Tile.Order.CustomList -> throw IllegalArgumentException(
-            """
-            Cannot flatten into a Map using CustomList. 
-        """.trimIndent()
-        )
-        is Tile.Order.CustomMap -> order.transform(metadata, queryToTiles)
+
+        is Tile.Order.Custom -> order.transform(metadata, queryToTiles)
     }
 }
+
+private fun <Item, Query> Query.pairWith(
+    items: List<Item>
+) = items.map { this to it }
 
 private inline fun <T, R> Iterable<T>.foldWhile(
     initial: R,
@@ -162,27 +103,3 @@ private inline fun <T, R> Iterable<T>.foldWhile(
     }
     return accumulator
 }
-
-/**
- * Hideous class to guarantee iteration order of keys in a [Map]. It's inefficient, gross and I hate it.
- */
-private class OrderedMap<K, V>(
-    val orderedKeys: List<K>,
-    val backing: Map<K, V>
-) : Map<K, V> by backing {
-    override val keys: Set<K> by lazy { orderedKeys.toSet() }
-    override val entries: Set<Map.Entry<K, V>> by lazy {
-        orderedKeys.fold(mutableSetOf()) { set, key ->
-            set.add(Entry(
-                key = key,
-                value = backing.getValue(key)
-            ))
-            set
-        }
-    }
-}
-
-private data class Entry<K, V>(
-    override val key: K,
-    override val value: V
-) : Map.Entry<K, V>

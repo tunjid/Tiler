@@ -21,7 +21,7 @@ import kotlin.test.*
 class TilerKtTest {
 
     @Test
-    fun `maintains all items`() {
+    fun maintains_all_items() {
         val tiled =
             (1..9)
                 .mapIndexed { index, int ->
@@ -29,19 +29,18 @@ class TilerKtTest {
                         query = int,
                         tile = Tile(
                             flowOnAt = index.toLong(),
-                            item = int.testRange.toList()
+                            items = int.testRange.toList()
                         )
                     )
                 }
                 .fold(
                     initial = Tiler(
-                        limiter = Tile.Limiter.List { false },
+                        limiter = Tile.Limiter { false },
                         order = Tile.Order.Sorted(comparator = Int::compareTo)
                     ),
-                    operation = Tiler<Int, List<Int>, List<List<Int>>>::add
+                    operation = Tiler<Int, Int>::add
                 )
                 .output()
-                .flatten()
 
         assertEquals(
             (1..9).map(Int::testRange).flatten(),
@@ -50,7 +49,7 @@ class TilerKtTest {
     }
 
     @Test
-    fun `pivots around most recent when limit exists`() {
+    fun pivots_around_most_recent_when_limit_exists() {
         val tiles =
             ((1..9).mapIndexed { index, int ->
                 listOf(
@@ -58,7 +57,7 @@ class TilerKtTest {
                         query = int,
                         tile = Tile(
                             flowOnAt = index.toLong(),
-                            item = int.testRange.toList()
+                            items = int.testRange.toList()
                         )
                     ),
                     Tile.Output.TurnedOn(
@@ -71,13 +70,12 @@ class TilerKtTest {
                     )
                 .fold(
                     initial = Tiler(
-                        limiter = Tile.Limiter.List { items -> items.fold(0) { count, list -> count + list.size } >= 50 },
+                        limiter = Tile.Limiter { items -> items.size >= 50 },
                         order = Tile.Order.PivotSorted(comparator = Int::compareTo)
                     ),
-                    operation = Tiler<Int, List<Int>, List<List<Int>>>::add
+                    operation = Tiler<Int, Int>::add
                 )
                 .output()
-                .flatten()
 
         assertEquals(
             (2..6).map(Int::testRange).flatten(),

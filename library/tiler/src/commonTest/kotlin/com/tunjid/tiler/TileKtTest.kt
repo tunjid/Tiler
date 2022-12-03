@@ -25,7 +25,7 @@ import kotlin.test.*
 
 class TileKtTest {
 
-    private lateinit var listTiler: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>>
+    private lateinit var listTiler: ListTiler<Int, Int>
     private lateinit var tileFlowMap: MutableMap<Int, MutableStateFlow<List<Int>>>
 
     @BeforeTest
@@ -39,8 +39,8 @@ class TileKtTest {
     }
 
     @Test
-    fun `requesting 1 tile works`() = runTest {
-        val requests = listOf<Tile.Request<Int, List<Int>>>(
+    fun requesting_1_tile_works() = runTest {
+        val requests = listOf<Tile.Request<Int, Int>>(
             Tile.Request.On(query = 1),
         )
 
@@ -49,14 +49,13 @@ class TileKtTest {
             .toTiledList(listTiler)
             .take(requests.size)
             .toList()
-            .map(List<List<Int>>::flatten)
 
         assertEquals(1.testRange.toList(), emissions[0])
     }
 
     @Test
-    fun `requesting multiple queries works`() = runTest {
-        val requests = listOf<Tile.Request<Int, List<Int>>>(
+    fun requesting_multiple_queries_works() = runTest {
+        val requests = listOf<Tile.Request<Int, Int>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 3),
             Tile.Request.On(query = 8),
@@ -66,7 +65,6 @@ class TileKtTest {
             .toTiledList(listTiler)
             .take(requests.size)
             .toList()
-            .map(List<List<Int>>::flatten)
 
         assertEquals(
             1.testRange.toList(),
@@ -83,8 +81,8 @@ class TileKtTest {
     }
 
     @Test
-    fun `only requested queries have subscribers`() = runTest {
-        val requests = listOf<Tile.Request<Int, List<Int>>>(
+    fun only_requested_queries_have_subscribers() = runTest {
+        val requests = listOf<Tile.Request<Int, Int>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 3),
             Tile.Request.On(query = 8),
@@ -100,7 +98,6 @@ class TileKtTest {
             .map { it.value }
             .take(requests.size)
             .toList()
-            .map(List<List<Int>>::flatten)
 
         assertEquals(
             (1.testRange + 3.testRange + 8.testRange).toList(),
@@ -117,8 +114,8 @@ class TileKtTest {
     }
 
     @Test
-    fun `Can turn off valve for query`() = runTest {
-        val requests = listOf<Tile.Request<Int, List<Int>>>(
+    fun can_turn_off_valve_for_query() = runTest {
+        val requests = listOf<Tile.Request<Int, Int>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 3),
             Tile.Request.On(query = 8),
@@ -140,7 +137,6 @@ class TileKtTest {
             .map { it.value }
             .take(requests.filterIsInstance<Tile.Request.On<Int, List<Int>>>().size)
             .toList()
-            .map(List<List<Int>>::flatten)
 
         assertEquals(
             (1.testRange + 3.testRange + 8.testRange).toList(),
@@ -149,8 +145,8 @@ class TileKtTest {
     }
 
     @Test
-    fun `queries are idempotent`() = runTest {
-        val requests = listOf<Tile.Request<Int, List<Int>>>(
+    fun queries_are_idempotent() = runTest {
+        val requests = listOf<Tile.Request<Int, Int>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 1),
@@ -162,7 +158,6 @@ class TileKtTest {
             .toTiledList(listTiler)
             .take(1)
             .toList()
-            .map(List<List<Int>>::flatten)
 
         assertEquals(
             1.testRange.toList(),
@@ -179,8 +174,8 @@ class TileKtTest {
     }
 
     @Test
-    fun `queries can be evicted`() = runTest {
-        val requests = listOf<Tile.Request<Int, List<Int>>>(
+    fun queries_can_be_evicted() = runTest {
+        val requests = listOf<Tile.Request<Int, Int>>(
             Tile.Request.On(query = 1),
             Tile.Request.On(query = 3),
             Tile.Request.Evict(query = 1),
@@ -192,7 +187,6 @@ class TileKtTest {
             .toTiledList(listTiler)
             .take(requests.size)
             .toList()
-            .map(List<List<Int>>::flatten)
 
         assertEquals(
             1.testRange.toList(),
@@ -213,44 +207,8 @@ class TileKtTest {
     }
 
     @Test
-    fun `items can be requested in a map`() = runTest {
-        val requests = listOf<Tile.Request<Int, List<Int>>>(
-            Tile.Request.On(query = 1),
-            Tile.Request.On(query = 3),
-            Tile.Request.On(query = 8),
-        )
-
-        val emissions = tiledMap<Int, List<Int>> { page ->
-            flowOf(page.testRange.toList())
-        }
-            .invoke(requests.asFlow())
-            .take(requests.size)
-            .toList()
-
-        assertEquals(
-            mapOf(1 to 1.testRange.toList()),
-            emissions[0]
-        )
-        assertEquals(
-            mapOf(
-                1 to 1.testRange.toList(),
-                3 to 3.testRange.toList()
-            ),
-            emissions[1]
-        )
-        assertEquals(
-            mapOf(
-                1 to 1.testRange.toList(),
-                3 to 3.testRange.toList(),
-                8 to 8.testRange.toList()
-            ),
-            emissions[2]
-        )
-    }
-
-    @Test
-    fun `items limits and sorting can be changed on the fly`() = runTest {
-        val requests = MutableSharedFlow<Tile.Input.List<Int, List<Int>>>()
+    fun items_limits_and_sorting_can_be_changed_on_the_fly() = runTest {
+        val requests = MutableSharedFlow<Tile.Input<Int, Int>>()
         val items = requests.toTiledList(listTiler)
 
         items.test {
@@ -258,70 +216,70 @@ class TileKtTest {
             requests.emit(Tile.Request.On(query = 1))
             assertEquals(
                 1.testRange.toList(),
-                awaitItem().flatten()
+                awaitItem()
             )
 
             // Request page 3
             requests.emit(Tile.Request.On(query = 3))
             assertEquals(
                 (1.testRange + 3.testRange).toList(),
-                awaitItem().flatten()
+                awaitItem()
             )
 
             // Request page 8
             requests.emit(Tile.Request.On(query = 8))
             assertEquals(
                 (1.testRange + 3.testRange + 8.testRange).toList(),
-                awaitItem().flatten()
+                awaitItem()
             )
 
             // Reverse sort by page
             requests.emit(Tile.Order.Sorted(comparator = Comparator<Int>(Int::compareTo).reversed()))
             assertEquals(
                 (8.testRange + 3.testRange + 1.testRange).toList(),
-                awaitItem().flatten()
+                awaitItem()
             )
 
             // Limit results to 2 pages
-            requests.emit(Tile.Limiter.List(check = { it.size >= 2 }))
+            requests.emit(Tile.Limiter(check = { it.size >= 20 }))
             assertEquals(
                 (8.testRange + 3.testRange).toList(),
-                awaitItem().flatten()
+                awaitItem()
             )
 
             // Limit results to 3 pages
-            requests.emit(Tile.Limiter.List(check = { it.size >= 3 }))
+            requests.emit(Tile.Limiter(check = { it.size >= 30 }))
             assertEquals(
                 (8.testRange + 3.testRange + 1.testRange).toList(),
-                awaitItem().flatten()
+                awaitItem()
             )
 
             // Sort ascending
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
             assertEquals(
                 (1.testRange + 3.testRange + 8.testRange).toList(),
-                awaitItem().flatten()
+                awaitItem()
             )
 
             // Request 4
             requests.emit(Tile.Request.On(query = 4))
             assertEquals(
                 (1.testRange + 3.testRange + 4.testRange).toList(),
-                awaitItem().flatten()
+                awaitItem()
             )
 
             // Sort ascending pivoted around most recently requested (4)
             requests.emit(Tile.Order.PivotSorted(comparator = Comparator(Int::compareTo)))
             assertEquals(
                 (3.testRange + 4.testRange + 8.testRange).toList(),
-                awaitItem().flatten()
+                awaitItem()
             )
 
             // Sort ascending in absolute terms
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
             assertEquals(
                 (1.testRange + 3.testRange + 4.testRange).toList(),
-                awaitItem().flatten()
+                awaitItem()
             )
 
             cancelAndIgnoreRemainingEvents()

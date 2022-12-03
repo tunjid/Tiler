@@ -16,34 +16,42 @@
 
 package com.tunjid.demo.common.ui.numbers
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+
 data class NumberTile(
     val number: Int,
     val color: Int,
-    val page: Int
 )
+val NumberTile.key get() = "tile-$number"
 
-sealed class Item(open val page: Int) {
-
-    data class Tile(
-        val numberTile: NumberTile
-    ) : Item(numberTile.page)
-
-    data class Header(
-        override val page: Int,
-        val color: Int,
-    ) : Item(page)
-
-    val key: Any
-        get() = when (this) {
-            is Tile -> "tile-${numberTile.page}-${numberTile.number}"
-            is Header -> "header-$page"
+@Composable
+fun NumberTile(
+    modifier: Modifier = Modifier,
+    numberTile: NumberTile
+) {
+    Button(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+        border = BorderStroke(width = 2.dp, color = Color(numberTile.color)),
+        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.surface),
+        onClick = { /*TODO*/ },
+        content = {
+            Text(
+                text = numberTile.number.toString(),
+                color = Color(numberTile.color)
+            )
         }
+    )
 }
-
-val Any.isStickyHeaderKey get() = this is String && this.startsWith("header")
-
-val Any?.pageFromKey get() = when (this) {
-    is String -> split("-").getOrNull(1)?.toIntOrNull() ?: 0
-    else -> 0
-}
-

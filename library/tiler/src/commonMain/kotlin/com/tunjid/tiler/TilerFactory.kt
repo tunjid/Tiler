@@ -33,11 +33,11 @@ import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.transformWhile
 
-internal fun <Query, Item, Output> tilerFactory(
-    limiter: Tile.Limiter<Query, Item, Output>,
+internal fun <Query, Item> tilerFactory(
+    limiter: Tile.Limiter<Query, Item>,
     order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
-    fetcher: suspend (Query) -> Flow<Item>
-): (Flow<Tile.Input<Query, Item>>) -> Flow<Tiler<Query, Item, Output>> = { requests ->
+    fetcher: suspend (Query) -> Flow<List<Item>>
+): (Flow<Tile.Input<Query, Item>>) -> Flow<Tiler<Query, Item>> = { requests ->
     requests
         .groupByQuery(fetcher)
         .flatMapMerge(
@@ -46,7 +46,7 @@ internal fun <Query, Item, Output> tilerFactory(
         )
         .scan(
             initial = Tiler(limiter = limiter, order = order),
-            operation = Tiler<Query, Item, Output>::add
+            operation = Tiler<Query, Item>::add
         )
         .filter { it.shouldEmit }
 }
@@ -59,7 +59,7 @@ internal fun <Query, Item, Output> tilerFactory(
  * of the resultant [Flow].
  */
 private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
-    fetcher: suspend (Query) -> Flow<Item>
+    fetcher: suspend (Query) -> Flow<List<Item>>
 ): Flow<Flow<Tile.Output<Query, Item>>> = channelFlow channelFlow@{
     val queriesToValves = mutableMapOf<Query, InputValve<Query, Item>>()
 
@@ -68,10 +68,12 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
             is Tile.Order -> this@channelFlow.channel.send(
                 flowOf(Tile.Output.FlattenChange(order = input))
             )
+
             is Tile.Request.Evict -> {
                 queriesToValves[input.query]?.push?.invoke(input)
                 queriesToValves.remove(input.query)
             }
+
             is Tile.Request.Off -> queriesToValves[input.query]?.push?.invoke(input)
             is Tile.Request.On -> when (val existingValve = queriesToValves[input.query]) {
                 null -> {
@@ -82,12 +84,11 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
                     queriesToValves[input.query] = valve
                     this@channelFlow.channel.send(valve.flow)
                 }
+
                 else -> existingValve.push(input)
             }
-            is Tile.Limiter.List -> this@channelFlow.channel.send(
-                flowOf(Tile.Output.LimiterChange(limiter = input))
-            )
-            is Tile.Limiter.Map -> this@channelFlow.channel.send(
+
+            is Tile.Limiter -> this@channelFlow.channel.send(
                 flowOf(Tile.Output.LimiterChange(limiter = input))
             )
         }
@@ -99,7 +100,7 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
  */
 private class InputValve<Query, Item>(
     query: Query,
-    fetcher: suspend (Query) -> Flow<Item>
+    fetcher: suspend (Query) -> Flow<List<Item>>
 ) {
 
     private val mutableSharedFlow = MutableSharedFlow<Tile.Request<Query, Item>>()
@@ -122,10 +123,10 @@ private class InputValve<Query, Item>(
                 is Tile.Request.Off<Query, Item> -> emptyFlow()
                 // Start collecting from the fetcher, keeping track of when the flow was turned on
                 is Tile.Request.On<Query, Item> -> fetcher.invoke(input.query)
-                    .map<Item, Tile.Output<Query, Item>> { item ->
+                    .map<List<Item>, Tile.Output<Query, Item>> { items ->
                         Tile.Output.Data(
                             query = input.query,
-                            tile = Tile(item = item, flowOnAt = toggledAt)
+                            tile = Tile(items = items, flowOnAt = toggledAt)
                         )
                     }
                     .onStart { emit(Tile.Output.TurnedOn(query = query)) }

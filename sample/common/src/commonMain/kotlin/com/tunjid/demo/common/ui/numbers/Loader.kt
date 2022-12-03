@@ -16,39 +16,43 @@
 
 package com.tunjid.demo.common.ui.numbers
 
-import com.tunjid.demo.common.ui.numbers.advanced.PageQuery
-import com.tunjid.demo.common.ui.numbers.advanced.StartAscending
-import com.tunjid.demo.common.ui.numbers.advanced.ascendingPageComparator
+import com.tunjid.tiler.ListTiler
 import com.tunjid.tiler.Tile
+import com.tunjid.tiler.TiledList
+import com.tunjid.tiler.emptyTiledList
 import com.tunjid.tiler.tiledList
-import com.tunjid.tiler.tiledMap
 import com.tunjid.tiler.toTiledList
-import com.tunjid.tiler.toTiledMap
+import com.tunjid.tiler.transform
 import com.tunjid.utilities.PivotRequest
 import com.tunjid.utilities.PivotResult
-import com.tunjid.utilities.ReactiveMap
 import com.tunjid.utilities.pivotWith
 import com.tunjid.utilities.toRequests
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+
+const val StartAscending = true
+
+val ascendingPageComparator = compareBy(PageQuery::page)
+val descendingPageComparator = ascendingPageComparator.reversed()
+
+data class PageQuery(
+    val page: Int,
+    val isAscending: Boolean
+)
 
 data class State(
     val isAscending: Boolean = StartAscending,
     val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
     val loadSummary: String = "",
-    val items: List<NumberTile> = listOf()
+    val items: TiledList<PageQuery, NumberTile> = emptyTiledList()
 )
 
 val Pivot = PivotRequest<PageQuery>(
@@ -62,28 +66,33 @@ class Loader(
 ) {
     private val currentQuery = MutableStateFlow(PageQuery(page = 0, isAscending = true))
     private val pivots = currentQuery.pivotWith(Pivot)
-    private val loads = pivots.toRequests<PageQuery, List<NumberTile>>()
+    private val order = currentQuery.map {
+        Tile.Order.PivotSorted<PageQuery, NumberTile>(comparator = if (it.isAscending) ascendingPageComparator else descendingPageComparator)
+    }
+    private val tiledList = merge(
+        pivots.toRequests(),
+        order
+    )
         .toTiledList(
             numberTiler(
                 itemsPerPage = 10,
                 isDark = false,
             )
         )
-        .map(List<List<NumberTile>>::flatten)
-//        .map(::ReactiveMap)
         .shareIn(scope, SharingStarted.WhileSubscribed())
-
 
     val state = combine(
         currentQuery,
         pivots,
-        loads,
-    ) { pageQuery, pivotResult, loads ->
+        tiledList,
+    ) { pageQuery, pivotResult, tiledList ->
         State(
             isAscending = pageQuery.isAscending,
             currentPage = pageQuery.page,
             loadSummary = pivotResult.loadSummary,
-            items = loads
+            items = tiledList.transform(
+                transformer = { distinctBy(NumberTile::key) }
+            )
         )
     }
         .stateIn(
@@ -92,22 +101,10 @@ class Loader(
             initialValue = State()
         )
 
-//    init {
-//        loads
-//            .flatMapLatest { it.keyFlow }
-//            .distinctUntilChanged()
-//            .onEach {
-//                println("On page ${it.page}")
-//                currentQuery.update { query ->
-//                    query.copy(page = it.page)
-//                }
-//            }
-//            .launchIn(scope)
-//    }
-
     fun setCurrentPage(page: Int) = currentQuery.update { query ->
         query.copy(page = page)
     }
+
     fun toggleOrder() = currentQuery.update { query ->
         query.copy(isAscending = !query.isAscending)
     }
@@ -122,13 +119,12 @@ private val PivotResult<PageQuery>.loadSummary
 private fun numberTiler(
     itemsPerPage: Int,
     isDark: Boolean,
-): (Flow<Tile.Input.List<PageQuery, List<NumberTile>>>) -> Flow<List<List<NumberTile>>> =
+): ListTiler<PageQuery, NumberTile> =
     tiledList(
-        limiter = Tile.Limiter.List { pages -> pages.size > 4 },
+        limiter = Tile.Limiter { items -> items.size > 40 },
         order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
         fetcher = { (page, isAscending) ->
             page.colorShiftingTiles(itemsPerPage, isDark)
                 .map { if (isAscending) it else it.asReversed() }
-//                .onEach { println("Emitted $page") }
         }
     )

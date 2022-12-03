@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-package com.tunjid.demo.common.ui
+package com.tunjid.utilities
 
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import com.tunjid.demo.common.ui.numbers.Loader
-import com.tunjid.demo.common.ui.numbers.NumberTiles
+import com.tunjid.tiler.TiledList
 
-@Composable
-fun Root() {
-    Text("HI4")
-    val scope = rememberCoroutineScope()
-    val loader = remember { Loader(scope) }
-    NumberTiles(loader)
+/**
+ * A [TiledList] implementation that associates each [Item] with its [Query] with a [Pair]
+ */
+internal class MutablePairedTiledList<Query, Item>(
+    val queryItemPairs: MutableList<Pair<Query, Item>> = mutableListOf(),
+) : AbstractList<Item>(), TiledList<Query, Item> {
+
+    override val size: Int get() = queryItemPairs.size
+
+    override fun get(index: Int): Item = queryItemPairs[index].second
+
+    override fun queryFor(index: Int): Query = queryItemPairs[index].first
+
 }
