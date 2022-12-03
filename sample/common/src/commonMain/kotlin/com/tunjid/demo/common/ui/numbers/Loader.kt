@@ -91,7 +91,7 @@ class Loader(
             currentPage = pageQuery.page,
             loadSummary = pivotResult.loadSummary,
             items = tiledList.filterTransform(
-                transformer = { distinctBy(NumberTile::key) }
+                filterTransformer = { distinctBy(NumberTile::key) }
             )
         )
     }
