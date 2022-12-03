@@ -54,7 +54,11 @@ fun org.gradle.api.Project.androidConfiguration(
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = versionCatalog.findVersion("androidxCompose").get().requiredVersion
+        val composeCompilerVersion = versionCatalog
+            .findVersion("androidxComposeCompiler")
+            .get()
+            .requiredVersion
+        kotlinCompilerExtensionVersion = composeCompilerVersion
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
