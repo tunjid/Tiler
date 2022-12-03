@@ -16,7 +16,8 @@
 
 package com.tunjid.tiler
 
-import com.tunjid.utilities.TransformedTiledList
+import com.tunjid.utilities.MutablePairedTiledList
+import com.tunjid.utilities.FilterTransformedTiledList
 
 /**
  * A [List] where each item is backed by a [Query].
@@ -32,6 +33,24 @@ interface TiledList<Query, Item> : List<Item> {
     fun queryFor(index: Int): Query
 }
 
+/**
+ * A [TiledList] with mutation facilities
+ */
+interface MutableTiledList<Query, Item> : TiledList<Query, Item> {
+    /**
+     * Returns the query that fetched an [Item]
+     */
+    fun add(index: Int, query: Query, item: Item)
+
+    fun add(query: Query, item: Item): Boolean
+
+    fun addAll(query: Query, items: Collection<Item>): Boolean
+
+    fun addAll(index: Int, query: Query, items: Collection<Item>): Boolean
+
+    fun remove(index: Int): Item
+}
+
 fun <Query, Item> emptyTiledList(): TiledList<Query, Item> =
     object : TiledList<Query, Item>, List<Item> by emptyList() {
         override fun queryFor(index: Int): Query {
@@ -39,12 +58,21 @@ fun <Query, Item> emptyTiledList(): TiledList<Query, Item> =
         }
     }
 
+fun <Query, Item> mutableTiledList(): MutableTiledList<Query, Item> =
+    MutablePairedTiledList()
+
 /**
- * Transforms a [TiledList] to another
+ * filters a [TiledList] with the [filterTransformer] provided.
+ * Every item in the returned list must be present in the original list ([this])
  */
-fun <Query, Item> TiledList<Query, Item>.transform(
-    transformer: List<Item>.() -> List<Item>
-): TiledList<Query, Item> = TransformedTiledList(
+fun <Query, Item> TiledList<Query, Item>.filterTransform(
+    filterTransformer: List<Item>.() -> List<Item>
+): TiledList<Query, Item> = FilterTransformedTiledList(
     originalList = this,
-    transformedList = transformer(this)
+    transformedList = filterTransformer(this)
 )
+
+fun <Query, Item> buildTiledList(
+    builderAction: TiledList<Query, Item>.() -> Unit
+): TiledList<Query, Item> = mutableTiledList<Query, Item>()
+    .also(builderAction::invoke)

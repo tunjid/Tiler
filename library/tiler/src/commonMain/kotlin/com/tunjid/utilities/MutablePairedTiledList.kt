@@ -16,19 +16,39 @@
 
 package com.tunjid.utilities
 
+import com.tunjid.tiler.MutableTiledList
 import com.tunjid.tiler.TiledList
 
 /**
  * A [TiledList] implementation that associates each [Item] with its [Query] with a [Pair]
  */
-internal class MutablePairedTiledList<Query, Item>(
-    val queryItemPairs: MutableList<Pair<Query, Item>> = mutableListOf(),
-) : AbstractList<Item>(), TiledList<Query, Item> {
+internal class MutablePairedTiledList<Query, Item> :
+    AbstractList<Item>(), MutableTiledList<Query, Item> {
+
+    private val queryItemPairs: MutableList<Pair<Query, Item>> = mutableListOf()
 
     override val size: Int get() = queryItemPairs.size
 
     override fun get(index: Int): Item = queryItemPairs[index].second
+    override fun add(index: Int, query: Query, item: Item) =
+        queryItemPairs.add(index, query to item)
+
+    override fun add(query: Query, item: Item): Boolean =
+        queryItemPairs.add(query to item)
+
+    override fun addAll(query: Query, items: Collection<Item>): Boolean =
+        queryItemPairs.addAll(elements = query.pairWith(items))
+
+    override fun addAll(index: Int, query: Query, items: Collection<Item>): Boolean =
+        queryItemPairs.addAll(index = index, elements = query.pairWith(items))
+
+    override fun remove(index: Int): Item =
+        queryItemPairs.removeAt(index).second
 
     override fun queryFor(index: Int): Query = queryItemPairs[index].first
 
 }
+
+private fun <Item, Query> Query.pairWith(
+    items: Collection<Item>
+) = items.map { this to it }
