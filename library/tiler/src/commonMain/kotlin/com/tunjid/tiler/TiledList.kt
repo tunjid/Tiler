@@ -73,6 +73,6 @@ fun <Query, Item> TiledList<Query, Item>.filterTransform(
 )
 
 fun <Query, Item> buildTiledList(
-    builderAction: TiledList<Query, Item>.() -> Unit
+    builderAction: MutableTiledList<Query, Item>.() -> Unit
 ): TiledList<Query, Item> = mutableTiledList<Query, Item>()
     .also(builderAction::invoke)
