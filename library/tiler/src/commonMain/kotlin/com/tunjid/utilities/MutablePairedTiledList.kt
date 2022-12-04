@@ -22,10 +22,11 @@ import com.tunjid.tiler.TiledList
 /**
  * A [TiledList] implementation that associates each [Item] with its [Query] with a [Pair]
  */
-internal class MutablePairedTiledList<Query, Item> :
-    AbstractList<Item>(), MutableTiledList<Query, Item> {
+internal class MutablePairedTiledList<Query, Item>(
+    vararg pairs: Pair<Query, Item>
+) : AbstractList<Item>(), MutableTiledList<Query, Item> {
 
-    private val queryItemPairs: MutableList<Pair<Query, Item>> = mutableListOf()
+    private val queryItemPairs: MutableList<Pair<Query, Item>> = mutableListOf(*pairs)
 
     override val size: Int get() = queryItemPairs.size
 

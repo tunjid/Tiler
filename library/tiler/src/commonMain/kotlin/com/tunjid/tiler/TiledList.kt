@@ -20,7 +20,7 @@ import com.tunjid.utilities.MutablePairedTiledList
 import com.tunjid.utilities.FilterTransformedTiledList
 
 /**
- * A [List] where each item is backed by a [Query].
+ * A [List] where each item is backed by the [Query] that fetched it.
  *
  * Note that [TiledList] instances should not be large. They should only contain enough
  * items to fill the device viewport a few items over to accommodate a user's scroll.
@@ -28,7 +28,7 @@ import com.tunjid.utilities.FilterTransformedTiledList
  */
 interface TiledList<Query, Item> : List<Item> {
     /**
-     * Returns the query that fetched an [Item]
+     * Returns the query that fetched an [Item] at a specified index.
      */
     fun queryFor(index: Int): Query
 }
@@ -51,15 +51,38 @@ interface MutableTiledList<Query, Item> : TiledList<Query, Item> {
     fun remove(index: Int): Item
 }
 
+/**
+ * Returns an empty [TiledList] instance
+ */
 fun <Query, Item> emptyTiledList(): TiledList<Query, Item> =
     object : TiledList<Query, Item>, List<Item> by emptyList() {
-        override fun queryFor(index: Int): Query {
+        override fun queryFor(index: Int): Query =
             throw IndexOutOfBoundsException("The TiledList is empty")
-        }
     }
 
-fun <Query, Item> mutableTiledList(): MutableTiledList<Query, Item> =
-    MutablePairedTiledList()
+/**
+ * Returns a read-only [TiledList] instance
+ */
+fun <Query, Item> tiledList(
+    vararg pairs: Pair<Query, Item>
+): TiledList<Query, Item> =
+    MutablePairedTiledList(*pairs)
+
+/**
+ * Returns a [MutableTiledList] instance
+ */
+fun <Query, Item> mutableTiledList(
+    vararg pairs: Pair<Query, Item>
+): MutableTiledList<Query, Item> =
+    MutablePairedTiledList(*pairs)
+
+/**
+ * Builds a new read-only List by populating a MutableList using the given builderAction and returning a read-only list with the same elements.
+ */
+fun <Query, Item> buildTiledList(
+    builderAction: MutableTiledList<Query, Item>.() -> Unit
+): TiledList<Query, Item> = mutableTiledList<Query, Item>()
+    .also(builderAction::invoke)
 
 /**
  * filters a [TiledList] with the [filterTransformer] provided.
@@ -71,8 +94,3 @@ fun <Query, Item> TiledList<Query, Item>.filterTransform(
     originalList = this,
     transformedList = filterTransformer(this)
 )
-
-fun <Query, Item> buildTiledList(
-    builderAction: MutableTiledList<Query, Item>.() -> Unit
-): TiledList<Query, Item> = mutableTiledList<Query, Item>()
-    .also(builderAction::invoke)
