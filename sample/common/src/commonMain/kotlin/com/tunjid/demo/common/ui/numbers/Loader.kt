@@ -62,6 +62,7 @@ val Pivot = PivotRequest<PageQuery>(
 )
 
 class Loader(
+    isDark: Boolean,
     scope: CoroutineScope
 ) {
     private val currentQuery = MutableStateFlow(PageQuery(page = 0, isAscending = true))
@@ -76,7 +77,7 @@ class Loader(
         .toTiledList(
             numberTiler(
                 itemsPerPage = 10,
-                isDark = false,
+                isDark = isDark,
             )
         )
         .shareIn(scope, SharingStarted.WhileSubscribed())

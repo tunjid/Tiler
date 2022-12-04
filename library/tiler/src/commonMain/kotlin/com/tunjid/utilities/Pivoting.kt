@@ -19,6 +19,7 @@ package com.tunjid.utilities
 import com.tunjid.tiler.Tile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.scan
@@ -51,17 +52,20 @@ data class PivotResult<Query>(
 )
 
 fun <Query> PivotRequest<Query>.pivotAround(query: Query): PivotResult<Query> {
-    val on = query.meetQuota(
+    val on = query.meetOnQuota(
         size = onCount,
         increment = nextQuery,
         decrement = previousQuery
     )
 
-    val offLimit = offCount / 2
     // Keep queries on either end of the active pages in memory
-    val off = previousQuery.toSequence(on.firstOrNull()?.let(previousQuery)).take(offLimit)
-        .plus(nextQuery.toSequence(on.lastOrNull()?.let(nextQuery)).take(offLimit))
-        .toList()
+    val off = meetOffQuota(
+        size = offCount,
+        leftStart = on.firstOrNull(),
+        rightStart = on.lastOrNull(),
+        increment = nextQuery,
+        decrement = previousQuery
+    )
 
     return PivotResult(
         on = on,
@@ -73,16 +77,38 @@ fun <Query> PivotRequest<Query>.pivotAround(query: Query): PivotResult<Query> {
 /**
  * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query]
  */
-fun <Query> Flow<Query>.pivotWith(request: PivotRequest<Query>): Flow<PivotResult<Query>> =
+fun <Query> Flow<Query>.pivotWith(pivotRequest: PivotRequest<Query>): Flow<PivotResult<Query>> =
     distinctUntilChanged()
         .scan(PivotResult<Query>()) { previousResult, currentQuery ->
-            val newRequest = request.pivotAround(currentQuery)
-            newRequest.copy(
-                // Evict everything not in the current active and inactive range
-                evict = (previousResult.on + previousResult.off) - (newRequest.on + newRequest.off).toSet()
-            )
+            reducePivotResult(pivotRequest, currentQuery, previousResult)
         }
         .distinctUntilChanged()
+
+/**
+ * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query] and [pivotRequestFlow]
+ */
+fun <Query> Flow<Query>.pivotWith(pivotRequestFlow: Flow<PivotRequest<Query>>): Flow<PivotResult<Query>> =
+    distinctUntilChanged()
+        .combine(
+            pivotRequestFlow.distinctUntilChanged(),
+            ::Pair
+        )
+        .scan(PivotResult<Query>()) { previousResult, (currentQuery, request) ->
+            reducePivotResult(request, currentQuery, previousResult)
+        }
+        .distinctUntilChanged()
+
+private fun <Query> reducePivotResult(
+    request: PivotRequest<Query>,
+    currentQuery: Query,
+    previousResult: PivotResult<Query>
+): PivotResult<Query> {
+    val newRequest = request.pivotAround(currentQuery)
+    return newRequest.copy(
+        // Evict everything not in the current active and inactive range
+        evict = (previousResult.on + previousResult.off) - (newRequest.on + newRequest.off).toSet()
+    )
+}
 
 fun <Query, Item> Flow<PivotResult<Query>>.toRequests() =
     flatMapLatest { managedRequest ->
@@ -98,9 +124,9 @@ fun <Query, Item> Flow<PivotResult<Query>>.toRequests() =
     }
 
 /**
- * Returns a [List] of [Query] that tries to meet the quota defined by [size]
+ * Returns a [List] of [Query] that tries to meet the quota defined by [size] for on Requests
  */
-private fun <Query> Query.meetQuota(
+private fun <Query> Query.meetOnQuota(
     size: Int,
     increment: Query.() -> Query?,
     decrement: Query.() -> Query?,
@@ -117,6 +143,38 @@ private fun <Query> Query.meetQuota(
         }
         else decrement(result.first()).let {
             if (it != null) result.add(index = 0, element = it)
+            else hasLeft = false
+        }
+        i++
+    }
+    return result
+}
+
+/**
+ * Returns a [List] of [Query] that tries to meet the quota defined by [size] for off requests
+ */
+private fun <Query> meetOffQuota(
+    size: Int,
+    leftStart: Query?,
+    rightStart: Query?,
+    increment: Query.() -> Query?,
+    decrement: Query.() -> Query?,
+): List<Query> {
+    val result = mutableListOf<Query>()
+    var left = leftStart
+    var right = rightStart
+    var hasRight = true
+    var hasLeft = true
+
+    var i = 0
+    while (result.size < size && (hasRight || hasLeft)) {
+        if (i % 2 != 0) {
+            right = right?.let(increment)
+            if (right != null) result.add(element = right)
+            else hasRight = false
+        } else {
+            left = left?.let(decrement)
+            if (left != null) result.add(index = 0, element = left)
             else hasLeft = false
         }
         i++
