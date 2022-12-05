@@ -16,6 +16,7 @@
 
 package com.tunjid.demo.common.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -25,8 +26,13 @@ import com.tunjid.demo.common.ui.numbers.NumberTiles
 
 @Composable
 fun Root() {
-    Text("HI4")
+    val isDark = isSystemInDarkTheme()
     val scope = rememberCoroutineScope()
-    val loader = remember { Loader(scope) }
+    val loader = remember {
+        Loader(
+            isDark = isDark,
+            scope = scope
+        )
+    }
     NumberTiles(loader)
 }

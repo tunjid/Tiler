@@ -26,7 +26,7 @@ import com.tunjid.tiler.filterTransform
 import com.tunjid.utilities.PivotRequest
 import com.tunjid.utilities.PivotResult
 import com.tunjid.utilities.pivotWith
-import com.tunjid.utilities.toRequests
+import com.tunjid.utilities.toTileInputs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -42,6 +42,7 @@ const val StartAscending = true
 val ascendingPageComparator = compareBy(PageQuery::page)
 val descendingPageComparator = ascendingPageComparator.reversed()
 
+// Query for items describing the page and sort order
 data class PageQuery(
     val page: Int,
     val isAscending: Boolean
@@ -55,28 +56,36 @@ data class State(
     val items: TiledList<PageQuery, NumberTile> = emptyTiledList()
 )
 
-val Pivot = PivotRequest<PageQuery>(
+// PivotRequest specifying 5 pages should be observed concurrently, and an extra 4 kept in memory
+val pagePivotRequest = PivotRequest<PageQuery>(
     onCount = 5,
+    offCount = 4,
     nextQuery = { copy(page = page + 1) },
     previousQuery = { copy(page = page - 1).takeIf { it.page >= 0 } }
 )
 
 class Loader(
+    isDark: Boolean,
     scope: CoroutineScope
 ) {
     private val currentQuery = MutableStateFlow(PageQuery(page = 0, isAscending = true))
-    private val pivots = currentQuery.pivotWith(Pivot)
-    private val order = currentQuery.map {
-        Tile.Order.PivotSorted<PageQuery, NumberTile>(comparator = if (it.isAscending) ascendingPageComparator else descendingPageComparator)
+    private val pivots = currentQuery.pivotWith(pagePivotRequest)
+    private val orderInputs = currentQuery.map {
+        Tile.Order.PivotSorted<PageQuery, NumberTile>(
+            comparator = when {
+                it.isAscending -> ascendingPageComparator
+                else -> descendingPageComparator
+            }
+        )
     }
     private val tiledList = merge(
-        pivots.toRequests(),
-        order
+        pivots.toTileInputs(),
+        orderInputs
     )
         .toTiledList(
             numberTiler(
                 itemsPerPage = 10,
-                isDark = false,
+                isDark = isDark,
             )
         )
         .shareIn(scope, SharingStarted.WhileSubscribed())
@@ -123,8 +132,7 @@ private fun numberTiler(
     tiledList(
         limiter = Tile.Limiter { items -> items.size > 40 },
         order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
-        fetcher = { (page, isAscending) ->
-            page.colorShiftingTiles(itemsPerPage, isDark)
-                .map { if (isAscending) it else it.asReversed() }
+        fetcher = { pageQuery ->
+            pageQuery.colorShiftingTiles(itemsPerPage, isDark)
         }
     )
