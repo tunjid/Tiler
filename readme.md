@@ -201,13 +201,18 @@ For an example where `n` is a function of grid size in a grid list, check out [A
 
 An example where `n` is fixed at 2 follows:
 
+The above algorithm is called "pivoting" as items displayed are pivoted around the user's current scrolling position.
+An use of it is shown below:
+
 ```kotlin
 
+// Query for items describing the page and sort order
 data class PageQuery(
   val page: Int,
   val isAscending: Boolean
 )
 
+// PivotRequest specifying 5 pages should be observed concurrently, and an extra 4 kept in memory
 val pagePivotRequest = PivotRequest<PageQuery>(
   onCount = 5,
   nextQuery = { copy(page = page + 1) },
@@ -220,7 +225,7 @@ class Loader(
 ) {
   private val currentQuery = MutableStateFlow(PageQuery(page = 0, isAscending = true))
   private val pivots = currentQuery.pivotWith(pagePivotRequest)
-  private val order = currentQuery.map {
+  private val orderInputs = currentQuery.map {
     Tile.Order.PivotSorted<PageQuery, NumberTile>(
       comparator = when {
         it.isAscending -> ascendingPageComparator
@@ -230,7 +235,7 @@ class Loader(
   }
   private val tiledList = merge(
     pivots.toRequests(),
-    order
+    orderInputs
   )
     .toTiledList(
       numberTiler(
@@ -276,9 +281,8 @@ private fun numberTiler(
   tiledList(
     limiter = Tile.Limiter { items -> items.size > 40 },
     order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
-    fetcher = { (page, isAscending) ->
-      page.colorShiftingTiles(itemsPerPage, isDark)
-        .map { if (isAscending) it else it.asReversed() }
+    fetcher = { pageQuery ->
+      pageQuery.colorShiftingTiles(itemsPerPage, isDark)
     }
   )
 ```

@@ -26,9 +26,9 @@ fun Int.pageRange(itemsPerPage: Int): IntRange {
     return start.until(start + itemsPerPage)
 }
 
-fun Int.colorShiftingTiles(itemsPerPage: Int, isDark: Boolean) =
+fun PageQuery.colorShiftingTiles(itemsPerPage: Int, isDark: Boolean) =
     percentageAndIndex().map { (percentage, count) ->
-        pageRange(itemsPerPage).mapIndexed { index, number ->
+        page.pageRange(itemsPerPage).mapIndexed { index, number ->
             NumberTile(
                 number = number,
                 color = interpolateColors(
@@ -45,6 +45,7 @@ fun Int.colorShiftingTiles(itemsPerPage: Int, isDark: Boolean) =
             )
         }
     }
+        .map { if (isAscending) it else it.asReversed() }
 
 private fun percentageAndIndex(
     changeDelayMillis: Long = 500L

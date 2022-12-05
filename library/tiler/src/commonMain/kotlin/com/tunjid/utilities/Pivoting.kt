@@ -110,7 +110,7 @@ private fun <Query> reducePivotResult(
     )
 }
 
-fun <Query, Item> Flow<PivotResult<Query>>.toRequests() =
+fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs() =
     flatMapLatest { managedRequest ->
         // There's a mild efficiency hit here to make this more readable.
         // A simple list concatenation would be faster.
