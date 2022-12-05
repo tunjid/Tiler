@@ -44,11 +44,13 @@ internal data class Tiler<Query, Item>(
             },
             queryToTiles = queryToTiles.apply { put(output.query, output.tile) }
         )
+
         is Tile.Output.TurnedOn -> copy(
             // Only emit if there is cached data
             shouldEmit = queryToTiles.contains(output.query),
             metadata = metadata.copy(mostRecentlyTurnedOn = output.query)
         )
+
         is Tile.Output.Eviction -> copy(
             shouldEmit = true,
             metadata = metadata.copy(
@@ -56,6 +58,7 @@ internal data class Tiler<Query, Item>(
             ),
             queryToTiles = queryToTiles.apply { remove(output.query) }
         )
+
         is Tile.Output.FlattenChange -> copy(
             shouldEmit = true,
             order = output.order,
@@ -63,6 +66,7 @@ internal data class Tiler<Query, Item>(
                 sortedQueries = metadata.sortedQueries.sortedWith(output.order.comparator)
             )
         )
+
         is Tile.Output.LimiterChange -> copy(
             limiter = output.limiter
         )

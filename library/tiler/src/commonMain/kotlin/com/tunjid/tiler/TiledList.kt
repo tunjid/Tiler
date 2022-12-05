@@ -16,8 +16,8 @@
 
 package com.tunjid.tiler
 
-import com.tunjid.utilities.MutablePairedTiledList
 import com.tunjid.utilities.FilterTransformedTiledList
+import com.tunjid.utilities.MutablePairedTiledList
 
 /**
  * A [List] where each item is backed by the [Query] that fetched it.
