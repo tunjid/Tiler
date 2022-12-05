@@ -23,7 +23,7 @@ Tiling is a kotlin multiplatform experiment for loading chunks of structured dat
 Tiling is achieved with a Tiler; a pure function that has the ability to adapt any generic method of the form:
 
 ```kotlin
-fun <T> items(query: Query): Flow<T>
+fun <T> items(query: Query): Flow<List<T>>
 ```
 
 into a paginated API.
