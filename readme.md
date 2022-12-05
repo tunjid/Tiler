@@ -33,17 +33,16 @@ It does this by exposing a functional reactive API most similar to a `Map` where
 * The keys are the queries (`Query`) for data
 * The values are dynamic sets of data returned over time as the result of the `Query` key.
 
+The output of tiling is a `TiledList`, a `List` implementation that allows for looking up the query that fetched each item. It is defined as:
 
-  | `typealias`              | type                                                            | Output             |
-  |--------------------------|-----------------------------------------------------------------|--------------------|
-  | `ListTiler<Query, Item>` | `(Flow<Tile.Input.List<Query, Item>>) -> Flow<List<Item>>`      | A flattened `List` |
-  | `MapTiler<Query, Item>`  | `(Flow<Tile.Input.Map<Query, Item>>) -> Flow<Map<Query, Item>>` | `Map<Key, Value>`  |
-
-## Get it
-
-`Tiler` is available on mavenCentral with the latest version indicated by the badge at the top of this readme file.
-
-`implementation com.tunjid.tiler:tiler:version`
+```Kotlin
+interface TiledList<Query, Item> : List<Item> {
+    /**
+     * Returns the query that fetched an [Item] at a specified index.
+     */
+    fun queryFor(index: Int): Query
+}
+```
 
 ## Demo
 
@@ -67,6 +66,11 @@ An example is in the [Me](https://github.com/tunjid/me/blob/main/common/feature-
 the entire paginated data set. An example is in the sample in this
 [repository](https://github.com/tunjid/Tiler/blob/develop/common/src/commonMain/kotlin/com/tunjid/demo/common/ui/numbers/advanced/NumberFetching.kt).
 
+## Get it
+
+`Tiler` is available on mavenCentral with the latest version indicated by the badge at the top of this readme file.
+
+`implementation com.tunjid.tiler:tiler:version`
 
 ## API surface
 
@@ -75,17 +79,9 @@ the entire paginated data set. An example is in the sample in this
 Tiling prioritizes access to the data you've paged through, allowing you to read all paginated data at once, or a subset of it
 (using `Input.Limiter`). This allows you to trivially transform the data you've fetched after the fact.
 
-Tilers are implemented as plain functions. Given a `Flow` of `Input`, you can either choose to get your data as:
+Tilers are implemented as plain functions. Given a `Flow` of `Input`, tiling transforms them into a `Flow<TiledList<Query, Item>>` with `tiledList`.
 
-* A `Flow<List<Item>>` with `tiledList`
-* A `Flow<Map<Query, Item>>` with `tiledMap`
-
-The choice between the two depends largely on the operations you want to perform on the output before consuming it.
-A `MapTiler` could be used when you want a clear separation of the chunks of data,
-for example to add headers or to group information in a single component. Alternatively, you can use a `ListTiler`
-and call `List<Item>.groupBy {...}` if you find that more ergonomic. The `Map<Query, Item>` in the `Flow` produced from the `MapTiler` is guaranteed to have a stable iteration order defined by
-the `Input.Order` passed to it. More on this below.
-
+The resulting `TiledList` should be kept at under 100 items. You can then transform this list however way you want.
 
 ## Managing requested data
 
@@ -206,79 +202,85 @@ For an example where `n` is a function of grid size in a grid list, check out [A
 An example where `n` is fixed at 2 follows:
 
 ```kotlin
-import Tile
-import tiledList
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.scan
 
-data class LoadMetadata(
-  val pivotPage: Int = 0,
-  // Pages actively being collected and loaded from
-  val on: List<Int> = listOf(),
-  // Pages whose emissions are in memory, but are not being collected from
-  val off: List<Int> = listOf(),
-  // Pages to remove from memory
-  val evict: List<Int> = listOf(),
+data class PageQuery(
+  val page: Int,
+  val isAscending: Boolean
 )
 
-private fun LoadMetadata.toRequests(): Flow<Tile.Input.List<Int, List<Int>>> =
-  listOf<List<Tile.Input.List<Int, List<Int>>>>(
-    evict.map { Tile.Request.Evict(it) },
-    off.map { Tile.Request.Off(it) },
-    on.map { Tile.Request.On(it) },
+val pagePivotRequest = PivotRequest<PageQuery>(
+  onCount = 5,
+  nextQuery = { copy(page = page + 1) },
+  previousQuery = { copy(page = page - 1).takeIf { it.page >= 0 } }
+)
+
+class Loader(
+  isDark: Boolean,
+  scope: CoroutineScope
+) {
+  private val currentQuery = MutableStateFlow(PageQuery(page = 0, isAscending = true))
+  private val pivots = currentQuery.pivotWith(pagePivotRequest)
+  private val order = currentQuery.map {
+    Tile.Order.PivotSorted<PageQuery, NumberTile>(
+      comparator = when {
+        it.isAscending -> ascendingPageComparator
+        else -> descendingPageComparator
+      }
+    )
+  }
+  private val tiledList = merge(
+    pivots.toRequests(),
+    order
   )
-    .flatten()
-    .asFlow()
-
-class ManagedNumberFetcher {
-  private val requests = MutableStateFlow(0)
-
-  val managedRequests: Flow<Tile.Input.List<Int, List<Int>>> = requests
-    .scan(LoadMetadata()) { previousMetadata, currentPage ->
-      // Load 5 pages pivoted around the current page at once
-      val on: List<Int> = ((currentPage - 2)..(currentPage + 2))
-        .filter { it >= 0 }
-        .toList()
-      // Keep 2 pages on either end of the active pages in memory
-      val off: List<Int> = (((currentPage - 5)..(currentPage - 3)) + ((currentPage + 3)..(currentPage + 5)))
-        .filter { it >= 0 }
-      LoadMetadata(
-        on = on,
-        off = off,
-        pivotPage = currentPage,
-        // Evict everything not in the curren active and inactive range
-        evict = (previousMetadata.on + previousMetadata.off) - (on + off).toSet()
+    .toTiledList(
+      numberTiler(
+        itemsPerPage = 10,
+        isDark = isDark,
       )
-    }
-    .distinctUntilChanged()
-    .flatMapLatest(LoadMetadata::toRequests)
+    )
+    .shareIn(scope, SharingStarted.WhileSubscribed())
 
-  private val tiledList: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
-    // Sort items in ascending order, pivoted around the current page
-    order = Tile.Order.PivotSorted(comparator = Int::compareTo),
-    // Output at most 200 items at once to allow for cheap data transformations regardless of paged dataset size
-    limiter = Tile.Limiter.List { it.size > 200 },
-    fetcher = { page ->
-      // Fetch 50 numbers for each page
-      val start = page * 50
-      val numbers = start.until(start + 50)
-      flowOf(numbers.toList())
-    }
-  )
+  val state = combine(
+    currentQuery,
+    pivots,
+    tiledList,
+  ) { pageQuery, pivotResult, tiledList ->
+    State(
+      isAscending = pageQuery.isAscending,
+      currentPage = pageQuery.page,
+      loadSummary = pivotResult.loadSummary,
+      items = tiledList.filterTransform(
+        filterTransformer = { distinctBy(NumberTile::key) }
+      )
+    )
+  }
+    .stateIn(
+      scope = scope,
+      started = SharingStarted.WhileSubscribed(),
+      initialValue = State()
+    )
 
-  val listItems: Flow<List<Int>> = tiledList.invoke(managedRequests)
-    .map(List<List<Int>>::flatten)
+  fun setCurrentPage(page: Int) = currentQuery.update { query ->
+    query.copy(page = page)
+  }
 
-  fun setCurrentPage(page: Int) {
-    requests.value = page
+  fun toggleOrder() = currentQuery.update { query ->
+    query.copy(isAscending = !query.isAscending)
   }
 }
+
+private fun numberTiler(
+  itemsPerPage: Int,
+  isDark: Boolean,
+): ListTiler<PageQuery, NumberTile> =
+  tiledList(
+    limiter = Tile.Limiter { items -> items.size > 40 },
+    order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
+    fetcher = { (page, isAscending) ->
+      page.colorShiftingTiles(itemsPerPage, isDark)
+        .map { if (isAscending) it else it.asReversed() }
+    }
+  )
 ```
 
 In the above, only flows for 5 pages are collected at any one time. 4 more pages are kept in memory for quick
@@ -291,12 +293,12 @@ Pages that are far away from the current page (more than 4 pages away) are remov
 As tiling loads from multiple flows simultaneously, performance is a function of 2 things:
 
 * How often the backing `Flow` for each `Input.Request` emits
-* The time and space complexity of the transformations applied to the output `List<Item>` or `Map<Query, Item>`.
+* The time and space complexity of the transformations applied to the output `TiledList<Query, Item>`.
 
-In the case of a former, the `Flow` should only emit if the backing dataset has actually changed. This prevents unneccessary emissions downstream.
+In the case of a former, the `Flow` should only emit if the backing dataset has actually changed. This prevents unnecessary emissions downstream.
 
-In the case of the latter, by using `Input.Limiter` on the output of the tiler, you can guarantee transformations on the output are a function `O(N)`,
-where `N` is the amount defined by the `Input.Limiter`.
+In the case of the latter, by using `Input.Limiter` and keeping the size of the `TiledList` under 100 items, you can
+create an efficient paging pipeline.
 
 For example if tiling is done for the UI, with a viewport that can display 20 items at once, 20 items can be fetched per page, and 100 (20 * 5) pages can be observed at concurrently. Using `Input.Limiter.List { it.size > 100 }`, only 100 items will be sent to the UI at once. The items can be transformed with algorithms of `O(N)` to `O(N^2)` time and space complexity trivially as regardless of the size of the actual paginated set, only 100 items will be transformed at any one time.
 

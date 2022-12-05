@@ -55,7 +55,7 @@ data class State(
     val items: TiledList<PageQuery, NumberTile> = emptyTiledList()
 )
 
-val Pivot = PivotRequest<PageQuery>(
+val pagePivotRequest = PivotRequest<PageQuery>(
     onCount = 5,
     nextQuery = { copy(page = page + 1) },
     previousQuery = { copy(page = page - 1).takeIf { it.page >= 0 } }
@@ -66,9 +66,14 @@ class Loader(
     scope: CoroutineScope
 ) {
     private val currentQuery = MutableStateFlow(PageQuery(page = 0, isAscending = true))
-    private val pivots = currentQuery.pivotWith(Pivot)
+    private val pivots = currentQuery.pivotWith(pagePivotRequest)
     private val order = currentQuery.map {
-        Tile.Order.PivotSorted<PageQuery, NumberTile>(comparator = if (it.isAscending) ascendingPageComparator else descendingPageComparator)
+        Tile.Order.PivotSorted<PageQuery, NumberTile>(
+            comparator = when {
+                it.isAscending -> ascendingPageComparator
+                else -> descendingPageComparator
+            }
+        )
     }
     private val tiledList = merge(
         pivots.toRequests(),
