@@ -16,7 +16,14 @@
 
 package com.tunjid.utilities
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -60,7 +67,7 @@ class PivotingKtTest {
 
     @Test
     fun flow_of_queries_can_be_pivoted() = runTest {
-        val requests = listOf(
+        val queries = listOf(
             0,
             1,
             2,
@@ -68,90 +75,205 @@ class PivotingKtTest {
             4,
         ).asFlow()
 
+        val pivotResults = queries.pivotWith(pivotRequest).toList()
+
         assertEquals(
-            expected = listOf(
-                PivotResult(),
-                PivotResult(
-                    currentQuery = 0,
-                    on = listOf(0, 1, 2),
-                    off = listOf(3, 4, 5, 6),
-                    evict = emptyList(),
-                ),
-                PivotResult(
-                    currentQuery = 1,
-                    on = listOf(0, 1, 2),
-                    off = listOf(3, 4, 5, 6),
-                    evict = emptyList(),
-                ),
-                PivotResult(
-                    currentQuery = 2,
-                    on = listOf(1, 2, 3),
-                    off = listOf(0, 4, 5, 6),
-                    evict = emptyList(),
-                ),
-                PivotResult(
-                    currentQuery = 3,
-                    on = listOf(2, 3, 4),
-                    off = listOf(0, 1, 5, 6),
-                    evict = emptyList(),
-                ),
-                PivotResult(
-                    currentQuery = 4,
-                    on = listOf(3, 4, 5),
-                    off = listOf(1, 2, 6, 7),
-                    evict = listOf(0),
-                ),
+            PivotResult(),
+            pivotResults[0]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 0,
+                on = listOf(0, 1, 2),
+                off = listOf(3, 4, 5, 6),
+                evict = emptyList(),
             ),
-            actual = requests.pivotWith(pivotRequest).toList()
+            pivotResults[1]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 1,
+                on = listOf(0, 1, 2),
+                off = listOf(3, 4, 5, 6),
+                evict = emptyList(),
+            ),
+            pivotResults[2]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 2,
+                on = listOf(1, 2, 3),
+                off = listOf(0, 4, 5, 6),
+                evict = emptyList(),
+            ),
+            pivotResults[3]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 3,
+                on = listOf(2, 3, 4),
+                off = listOf(0, 1, 5, 6),
+                evict = emptyList(),
+            ),
+            pivotResults[4]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 4,
+                on = listOf(3, 4, 5),
+                off = listOf(1, 2, 6, 7),
+                evict = listOf(0),
+            ),
+            pivotResults[5]
         )
     }
 
     @Test
     fun flow_of_queries_can_be_pivoted_with_jumps() = runTest {
-        val requests = listOf(
+        val queries = listOf(
             0,
             3,
             7,
             17,
             0,
         ).asFlow()
+        val pivotResults = queries.pivotWith(pivotRequest).toList()
 
         assertEquals(
-            expected = listOf(
-                PivotResult(),
-                PivotResult(
-                    currentQuery = 0,
-                    on = listOf(0, 1, 2),
-                    off = listOf(3, 4, 5, 6),
-                    evict = emptyList(),
-                ),
-                PivotResult(
-                    currentQuery = 3,
-                    on = listOf(2, 3, 4),
-                    off = listOf(0, 1, 5, 6),
-                    evict = emptyList(),
-                ),
-                PivotResult(
-                    currentQuery = 7,
-                    on = listOf(6, 7, 8),
-                    off = listOf(4, 5, 9, 10),
-                    evict = listOf(2, 3, 0, 1),
-                ),
-                PivotResult(
-                    currentQuery = 17,
-                    on = listOf(16, 17, 18),
-                    off = listOf(14, 15, 19, 20),
-                    evict = listOf(6, 7, 8, 4, 5, 9, 10),
-                ),
+            PivotResult(),
+            pivotResults[0]
+        )
 
-                PivotResult(
-                    currentQuery = 0,
-                    on = listOf(0, 1, 2),
-                    off = listOf(3, 4, 5, 6),
-                    evict = listOf(16, 17, 18, 14, 15, 19, 20),
-                ),
+        assertEquals(
+            PivotResult(
+                currentQuery = 0,
+                on = listOf(0, 1, 2),
+                off = listOf(3, 4, 5, 6),
+                evict = emptyList(),
+            ), pivotResults[1]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 3,
+                on = listOf(2, 3, 4),
+                off = listOf(0, 1, 5, 6),
+                evict = emptyList(),
+            ), pivotResults[2]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 7,
+                on = listOf(6, 7, 8),
+                off = listOf(4, 5, 9, 10),
+                evict = listOf(2, 3, 0, 1),
+            ), pivotResults[3]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 17,
+                on = listOf(16, 17, 18),
+                off = listOf(14, 15, 19, 20),
+                evict = listOf(6, 7, 8, 4, 5, 9, 10),
+            ), pivotResults[4]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 0,
+                on = listOf(0, 1, 2),
+                off = listOf(3, 4, 5, 6),
+                evict = listOf(16, 17, 18, 14, 15, 19, 20),
+            ), pivotResults[5]
+        )
+    }
+
+    @Test
+    fun flow_of_queries_can_be_pivoted_with_flow_of_pivot_requests() = runTest {
+        val queriesAndRequests = listOf(
+            0,
+            1,
+            pivotRequest.copy(onCount = 5),
+            2,
+            pivotRequest,
+        )
+            .asFlow()
+            .onEach { delay(100) }
+
+            .shareIn(
+                scope = this,
+                started = SharingStarted.Lazily,
+                replay = 6
+            )
+
+        val queries = queriesAndRequests.filterIsInstance<Int>()
+            .onStart { emit(0) }
+        val pivotRequests = queriesAndRequests
+            .filterIsInstance<PivotRequest<Int>>()
+            .onStart { emit(pivotRequest) }
+
+        val pivotResults = queries.pivotWith(pivotRequests)
+            .take(6)
+            .toList()
+
+        assertEquals(
+            PivotResult(),
+            pivotResults[0]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 0,
+                on = listOf(0, 1, 2),
+                off = listOf(3, 4, 5, 6),
+                evict = emptyList(),
+            ), pivotResults[1]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 1,
+                on = listOf(0, 1, 2),
+                off = listOf(3, 4, 5, 6),
+                evict = emptyList(),
+            ), pivotResults[2]
+        )
+
+        // The expanded pivot request should allow for more on queries
+        assertEquals(
+            PivotResult(
+                currentQuery = 1,
+                on = listOf(0, 1, 2, 3, 4),
+                off = listOf(5, 6, 7, 8),
+                evict = emptyList(),
+            ), pivotResults[3]
+        )
+
+        assertEquals(
+            PivotResult(
+                currentQuery = 2,
+                on = listOf(0, 1, 2, 3, 4),
+                off = listOf(5, 6, 7, 8),
+                evict = emptyList(),
+            ), pivotResults[4]
+        )
+
+        // The contracted pivot request should allow for less on queries
+        assertEquals(
+            PivotResult(
+                currentQuery = 2,
+                on = listOf(1, 2, 3),
+                off = listOf(0, 4, 5, 6),
+                evict = listOf(7, 8),
             ),
-            actual = requests.pivotWith(pivotRequest).toList()
+            pivotResults[5]
         )
     }
 }

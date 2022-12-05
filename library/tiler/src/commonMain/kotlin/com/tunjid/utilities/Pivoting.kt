@@ -93,8 +93,8 @@ fun <Query> Flow<Query>.pivotWith(pivotRequestFlow: Flow<PivotRequest<Query>>): 
             pivotRequestFlow.distinctUntilChanged(),
             ::Pair
         )
-        .scan(PivotResult<Query>()) { previousResult, (currentQuery, request) ->
-            reducePivotResult(request, currentQuery, previousResult)
+        .scan(PivotResult<Query>()) { previousResult, (currentQuery, pivotRequest) ->
+            reducePivotResult(pivotRequest, currentQuery, previousResult)
         }
         .distinctUntilChanged()
 
@@ -181,12 +181,3 @@ private fun <Query> meetOffQuota(
     }
     return result
 }
-
-/**
- * Generates a sequence of [Query] from [this]
- */
-private inline fun <Query> (Query.() -> Query?).toSequence(seed: Query?) =
-    generateSequence(
-        seed = seed,
-        nextFunction = this
-    )
