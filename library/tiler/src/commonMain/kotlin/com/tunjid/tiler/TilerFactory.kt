@@ -19,13 +19,13 @@ package com.tunjid.tiler
 import com.tunjid.utilities.epochMillis
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -39,7 +39,7 @@ internal fun <Query, Item> tilerFactory(
     fetcher: suspend (Query) -> Flow<List<Item>>
 ): (Flow<Tile.Input<Query, Item>>) -> Flow<Tiler<Query, Item>> = { requests ->
     requests
-        .groupByQuery(fetcher)
+        .toOutput(fetcher)
         .flatMapMerge(
             concurrency = Int.MAX_VALUE,
             transform = { it }
@@ -58,14 +58,14 @@ internal fun <Query, Item> tilerFactory(
  * Each [Tile.Input] is mapped to an instance of an [InputValve] which manages the lifecycle
  * of the resultant [Flow].
  */
-private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
+private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
     fetcher: suspend (Query) -> Flow<List<Item>>
-): Flow<Flow<Tile.Output<Query, Item>>> = channelFlow channelFlow@{
+): Flow<Flow<Tile.Output<Query, Item>>> = flow channelFlow@{
     val queriesToValves = mutableMapOf<Query, InputValve<Query, Item>>()
 
-    this@groupByQuery.collect { input ->
+    this@toOutput.collect { input ->
         when (input) {
-            is Tile.Order -> this@channelFlow.channel.send(
+            is Tile.Order -> emit(
                 flowOf(Tile.Output.FlattenChange(order = input))
             )
 
@@ -82,13 +82,13 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.groupByQuery(
                         fetcher = fetcher,
                     )
                     queriesToValves[input.query] = valve
-                    this@channelFlow.channel.send(valve.flow)
+                    emit(valve.flow)
                 }
 
                 else -> existingValve.push(input)
             }
 
-            is Tile.Limiter -> this@channelFlow.channel.send(
+            is Tile.Limiter -> emit(
                 flowOf(Tile.Output.LimiterChange(limiter = input))
             )
         }
