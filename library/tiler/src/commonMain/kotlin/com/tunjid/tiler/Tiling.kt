@@ -54,7 +54,6 @@ private fun <Query, Item> Map<Query, List<Item>>.listTiling(
         is Tile.Order.PivotSorted -> {
             if (sortedQueries.isEmpty()) return emptyTiledList()
 
-            println("Pivot Query: ${metadata.pivotQuery}")
             val pivotQuery: Query = metadata.pivotQuery ?: return emptyTiledList()
             val startIndex = sortedQueries.binarySearch(pivotQuery, order.comparator)
 

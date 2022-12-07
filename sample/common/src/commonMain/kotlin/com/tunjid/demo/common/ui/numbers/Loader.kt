@@ -140,8 +140,11 @@ class Loader(
 }
 
 private val PivotResult<PageQuery>.loadSummary
-    get() = "Active pages: ${on.map { it.page }}\nPages in memory: ${off.map { it.page }}\n" +
-            "Evicted: ${evict.map { it.page }}"
+    get() = """
+Active pages: ${on.map { it.page }.sorted()}
+Pages in memory: ${off.map { it.page }.sorted()}
+Evicted: ${evict.map { it.page }.sorted()}
+        """.trim()
 
 /**
  * Fetches a [Map] of [PageQuery] to [NumberTile] where the [NumberTile] instances self update
