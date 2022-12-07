@@ -53,15 +53,15 @@ data class PivotResult<Query>(
 
 fun <Query> PivotRequest<Query>.pivotAround(
     query: Query
-): PivotResult<Query> = QuotaContext(query).let { loopContext ->
+): PivotResult<Query> = PivotContext(query).let { loopContext ->
     PivotResult(
-        on = mutableListOf(query).meetQuota(
+        on = mutableListOf(query).meetSizeQuota(
             maxSize = onCount,
             context = loopContext,
             increment = nextQuery,
             decrement = previousQuery
         ),
-        off = mutableListOf<Query>().meetQuota(
+        off = mutableListOf<Query>().meetSizeQuota(
             maxSize = offCount,
             context = loopContext,
             increment = nextQuery,
@@ -119,9 +119,12 @@ fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.Request<Que
             .asFlow()
     }
 
-private fun <Query> MutableList<Query>.meetQuota(
+/**
+ * Meets the size quota defined by [maxSize] if possible using the provided [PivotContext]
+ */
+private fun <Query> MutableList<Query>.meetSizeQuota(
     maxSize: Int,
-    context: QuotaContext<Query>,
+    context: PivotContext<Query>,
     increment: Query.() -> Query?,
     decrement: Query.() -> Query?,
 ): List<Query> {
@@ -138,7 +141,7 @@ private fun <Query> MutableList<Query>.meetQuota(
     return this.asReversed()
 }
 
-private class QuotaContext<Query>(start: Query) {
+private class PivotContext<Query>(start: Query) {
     var left: Query? = start
     var right: Query? = start
 }

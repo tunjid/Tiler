@@ -70,12 +70,11 @@ class Loader(
         gridSizes.map(::pivotRequest)
     )
     private val orderInputs = currentQuery
-        .map { it.isAscending }
-        .distinctUntilChanged()
-        .map { isAscending ->
+        .map { pageQuery ->
             Tile.Order.PivotSorted<PageQuery, NumberTile>(
+                query = pageQuery,
                 comparator = when {
-                    isAscending -> ascendingPageComparator
+                    pageQuery.isAscending -> ascendingPageComparator
                     else -> descendingPageComparator
                 }
             )
@@ -153,7 +152,10 @@ private fun numberTiler(
 ): ListTiler<PageQuery, NumberTile> =
     tiledList(
         limiter = Tile.Limiter { items -> items.size > 40 },
-        order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
+        order = Tile.Order.PivotSorted(
+            query = PageQuery(page = 0, isAscending = true),
+            comparator = ascendingPageComparator
+        ),
         fetcher = { pageQuery ->
             pageQuery.colorShiftingTiles(itemsPerPage, isDark)
         }

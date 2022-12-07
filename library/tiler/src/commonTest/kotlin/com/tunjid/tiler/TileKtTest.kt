@@ -277,8 +277,13 @@ class TileKtTest {
                 awaitItem()
             )
 
-            // Sort ascending pivoted around most recently requested (4)
-            requests.emit(Tile.Order.PivotSorted(comparator = Comparator(Int::compareTo)))
+            // Sort ascending pivoted around most recently requested
+            requests.emit(
+                Tile.Order.PivotSorted(
+                    query = 4,
+                    comparator = Comparator(Int::compareTo)
+                )
+            )
             assertEquals(
                 (3.testRange + 4.testRange + 8.testRange).toList(),
                 awaitItem()

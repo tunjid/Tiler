@@ -49,9 +49,9 @@ class TilerKtTest {
     }
 
     @Test
-    fun pivots_around_most_recent_when_limit_exists() {
+    fun pivots_around_specific_query_when_limit_exists() {
         val tiles =
-            ((1..9).mapIndexed { index, int ->
+            (1..9).mapIndexed { index, int ->
                 listOf(
                     Tile.Output.Data(
                         query = int,
@@ -60,18 +60,16 @@ class TilerKtTest {
                             items = int.testRange.toList()
                         )
                     ),
-                    Tile.Output.UpdatePivot(
-                        query = int
-                    )
                 )
             }
                 .flatten()
-                    + listOf(Tile.Output.UpdatePivot(query = 4))
-                    )
                 .fold(
                     initial = Tiler(
                         limiter = Tile.Limiter { items -> items.size >= 50 },
-                        order = Tile.Order.PivotSorted(comparator = Int::compareTo)
+                        order = Tile.Order.PivotSorted(
+                            query = 4,
+                            comparator = Int::compareTo
+                        )
                     ),
                     operation = Tiler<Int, Int>::add
                 )

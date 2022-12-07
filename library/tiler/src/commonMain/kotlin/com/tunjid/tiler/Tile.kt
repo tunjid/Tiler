@@ -44,6 +44,9 @@ data class Tile<Query, Item : Any?>(
      */
     sealed interface Input<Query, Item>
 
+    /**
+     * Requests for controlling the output of a [Query]
+     */
     sealed interface ValveRequest<Query, Item>
 
     /**
@@ -103,11 +106,11 @@ data class Tile<Query, Item : Any?>(
         ) : Order<Query, Item>(), Input<Query, Item>
 
         /**
-         * Sort items with the specified [comparator] but pivoted around the last query a
-         * [Tile.Request.On] was sent for. This allows for showing items that have more priority
-         * over others in the current context
+         * Sort items with the specified [comparator] but pivoted around a specific query.
+         * This allows for showing items that have more priority over others in the current context
          */
         data class PivotSorted<Query, Item>(
+            val query: Query,
             override val comparator: Comparator<Query>,
         ) : Order<Query, Item>(), Input<Query, Item>
 

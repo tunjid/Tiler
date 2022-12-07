@@ -21,9 +21,17 @@ package com.tunjid.tiler
  */
 internal data class Tiler<Query, Item>(
     val limiter: Tile.Limiter<Query, Item>,
-    val shouldEmit: Boolean = false,
-    val metadata: Tile.Metadata<Query> = Tile.Metadata(),
     val order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
+    val metadata: Tile.Metadata<Query> = Tile.Metadata(
+        pivotQuery = when (order) {
+            is Tile.Order.Custom,
+            is Tile.Order.Sorted,
+            is Tile.Order.Unspecified -> null
+
+            is Tile.Order.PivotSorted -> order.query
+        }
+    ),
+    val shouldEmit: Boolean = false,
     // I'd rather this be immutable, electing against it for performance reasons
     val queryToTiles: MutableMap<Query, Tile<Query, Item>> = mutableMapOf(),
 ) {
@@ -50,6 +58,7 @@ internal data class Tiler<Query, Item>(
                 shouldEmit = metadata.pivotQuery != output.query,
                 metadata = metadata.copy(pivotQuery = output.query)
             )
+
             else -> throw IllegalArgumentException("The Tiler is not configured for pivoting")
         }
 
@@ -65,6 +74,13 @@ internal data class Tiler<Query, Item>(
             shouldEmit = true,
             order = output.order,
             metadata = metadata.copy(
+                pivotQuery = when (output.order) {
+                    is Tile.Order.Custom,
+                    is Tile.Order.Sorted,
+                    is Tile.Order.Unspecified -> null
+
+                    is Tile.Order.PivotSorted -> output.order.query
+                },
                 sortedQueries = metadata.sortedQueries.sortedWith(output.order.comparator)
             )
         )
