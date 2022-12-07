@@ -21,7 +21,7 @@ import com.tunjid.tiler.Tile
 import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.emptyTiledList
 import com.tunjid.tiler.filterTransform
-import com.tunjid.tiler.tiledList
+import com.tunjid.tiler.listTiler
 import com.tunjid.tiler.toTiledList
 import com.tunjid.tiler.utilities.PivotRequest
 import com.tunjid.tiler.utilities.PivotResult
@@ -65,10 +65,16 @@ class Loader(
     scope: CoroutineScope
 ) {
     private val currentQuery = MutableStateFlow(PageQuery(page = 0, isAscending = true))
-    private val gridSizes = MutableStateFlow(1)
+
+    // Number of columns in the grid
+    private val numberOfColumns = MutableStateFlow(1)
+
+    // Pivot around the user's scroll position
     private val pivots = currentQuery.pivotWith(
-        gridSizes.map(::pivotRequest)
+        numberOfColumns.map(::pivotRequest)
     )
+
+    // Allows for changing the order dynamically
     private val orderInputs = currentQuery
         .map { pageQuery ->
             Tile.Order.PivotSorted<PageQuery, NumberTile>(
@@ -80,9 +86,12 @@ class Loader(
             )
         }
         .distinctUntilChanged()
-    private val limitInputs = gridSizes.map { gridSize ->
+
+    // Change limit to account for dynamic view port size
+    private val limitInputs = numberOfColumns.map { gridSize ->
         Tile.Limiter<PageQuery, NumberTile> { items -> items.size > 40 * gridSize }
     }
+
     private val tiledList = merge(
         pivots.toTileInputs(),
         orderInputs,
@@ -124,15 +133,19 @@ class Loader(
         query.copy(isAscending = !query.isAscending)
     }
 
-    fun setGridSize(gridSize: Int) = gridSizes.update {
-        gridSize
+    fun setNumberOfColumns(numberOfColumns: Int) = this.numberOfColumns.update {
+        numberOfColumns
     }
 
+    // Avoid breaking object equality in [PivotRequest] by using vals
     private val nextQuery: PageQuery.() -> PageQuery? = { copy(page = page + 1) }
     private val previousQuery: PageQuery.() -> PageQuery? = { copy(page = page - 1).takeIf { it.page >= 0 } }
 
-    private fun pivotRequest(gridSize: Int) = PivotRequest(
-        onCount = 5 * gridSize,
+    /**
+     * Pivoted tiling with the grid size as a dynamic input parameter
+     */
+    private fun pivotRequest(numberOfColumns: Int) = PivotRequest(
+        onCount = 5 * numberOfColumns,
         offCount = 4,
         nextQuery = nextQuery,
         previousQuery = previousQuery
@@ -153,7 +166,7 @@ private fun numberTiler(
     itemsPerPage: Int,
     isDark: Boolean,
 ): ListTiler<PageQuery, NumberTile> =
-    tiledList(
+    listTiler(
         limiter = Tile.Limiter { items -> items.size > 40 },
         order = Tile.Order.PivotSorted(
             query = PageQuery(page = 0, isAscending = true),

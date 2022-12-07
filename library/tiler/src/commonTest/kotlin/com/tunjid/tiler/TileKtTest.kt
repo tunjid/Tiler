@@ -40,7 +40,7 @@ class TileKtTest {
     @BeforeTest
     fun setUp() {
         tileFlowMap = mutableMapOf()
-        listTiler = tiledList(
+        listTiler = listTiler(
             order = Tile.Order.Sorted(Int::compareTo)
         ) { page ->
             tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }

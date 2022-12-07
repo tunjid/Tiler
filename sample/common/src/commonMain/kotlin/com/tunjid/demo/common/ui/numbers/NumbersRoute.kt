@@ -75,7 +75,7 @@ fun NumberTiles(
                     items = tiledItems,
                     key = NumberTile::key,
                     span = {
-                        loader.setGridSize(maxLineSpan)
+                        loader.setNumberOfColumns(maxLineSpan)
                         if (it.number % state.itemsPerPage == 0) GridItemSpan(maxLineSpan)
                         else GridItemSpan(1)
                     },

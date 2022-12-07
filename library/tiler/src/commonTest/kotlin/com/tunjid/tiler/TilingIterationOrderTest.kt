@@ -102,7 +102,7 @@ class ListMapTilingSamenessTest {
 
 private fun Flow<Tile.Request<Int, Int>>.orderWith(
     orderFactory: () -> Tile.Order<Int, Int>
-): Flow<List<Int>> = tiledList(
+): Flow<List<Int>> = listTiler(
     // Take 3 pages of items
     limiter = Tile.Limiter { it.size >= 30 },
     order = orderFactory(),

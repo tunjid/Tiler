@@ -37,7 +37,7 @@ class Tile<Query, Item : Any?> {
     )
 
     /**
-     * Defines input parameters for the [tiledList] function
+     * Defines input parameters for the [listTiler] function
      */
     sealed interface Input<Query, Item>
 
@@ -47,7 +47,7 @@ class Tile<Query, Item : Any?> {
     sealed interface ValveRequest<Query, Item>
 
     /**
-     * [Tile.Input] type for managing data in the [tiledList] function
+     * [Tile.Input] type for managing data in the [listTiler] function
      */
     sealed class Request<Query, Item> : Input<Query, Item> {
         abstract val query: Query
@@ -122,7 +122,7 @@ class Tile<Query, Item : Any?> {
     }
 
     /**
-     * Limits the output of the [tiledList] for [tiledList] functions
+     * Limits the output of the [listTiler] for [listTiler] functions
      */
     data class Limiter<Query, Item>(
         val check: (TiledList<Query, Item>) -> Boolean
@@ -159,14 +159,14 @@ class Tile<Query, Item : Any?> {
  * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [TiledList] of [Item]s
  */
 fun <Query, Item> Flow<Tile.Input<Query, Item>>.toTiledList(
-    transform: ListTiler<Query, Item>
-): Flow<TiledList<Query, Item>> = transform(this)
+    listTiler: ListTiler<Query, Item>
+): Flow<TiledList<Query, Item>> = listTiler(this)
 
 
 /**
  * Converts a [Flow] of [Query] into a [Flow] of [TiledList] [Item]
  */
-fun <Query, Item> tiledList(
+fun <Query, Item> listTiler(
     limiter: Tile.Limiter<Query, Item> = Tile.Limiter { false },
     order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<List<Item>>
