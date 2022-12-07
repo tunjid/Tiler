@@ -60,13 +60,13 @@ class TilerKtTest {
                             items = int.testRange.toList()
                         )
                     ),
-                    Tile.Output.TurnedOn(
+                    Tile.Output.UpdatePivot(
                         query = int
                     )
                 )
             }
                 .flatten()
-                    + listOf(Tile.Output.TurnedOn(query = 4))
+                    + listOf(Tile.Output.UpdatePivot(query = 4))
                     )
                 .fold(
                     initial = Tiler(

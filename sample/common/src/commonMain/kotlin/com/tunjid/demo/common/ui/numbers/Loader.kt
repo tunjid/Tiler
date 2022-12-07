@@ -20,9 +20,9 @@ import com.tunjid.tiler.ListTiler
 import com.tunjid.tiler.Tile
 import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.emptyTiledList
+import com.tunjid.tiler.filterTransform
 import com.tunjid.tiler.tiledList
 import com.tunjid.tiler.toTiledList
-import com.tunjid.tiler.filterTransform
 import com.tunjid.tiler.utilities.PivotRequest
 import com.tunjid.tiler.utilities.PivotResult
 import com.tunjid.tiler.utilities.pivotWith
@@ -31,18 +31,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.update
 
-const val StartAscending = true
-private const val ItemsPerPage = 10
+private const val ITEMS_PER_PAGE = 10
 
 val ascendingPageComparator = compareBy(PageQuery::page)
 val descendingPageComparator = ascendingPageComparator.reversed()
@@ -52,12 +48,12 @@ data class PageQuery(
     val page: Int,
     val isAscending: Boolean
 ) {
-    override fun toString(): String = "p: $page; asc: $isAscending"
+    override fun toString(): String = "page: $page; asc: $isAscending"
 }
 
 data class State(
-    val isAscending: Boolean = StartAscending,
-    val itemsPerPage: Int = ItemsPerPage,
+    val isAscending: Boolean = true,
+    val itemsPerPage: Int = ITEMS_PER_PAGE,
     val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
     val loadSummary: String = "",
@@ -73,14 +69,17 @@ class Loader(
     private val pivots = currentQuery.pivotWith(
         gridSizes.map(::pivotRequest)
     )
-    private val orderInputs = currentQuery.map {
-        Tile.Order.PivotSorted<PageQuery, NumberTile>(
-            comparator = when {
-                it.isAscending -> ascendingPageComparator
-                else -> descendingPageComparator
-            }
-        )
-    }
+    private val orderInputs = currentQuery
+        .map { it.isAscending }
+        .distinctUntilChanged()
+        .map { isAscending ->
+            Tile.Order.PivotSorted<PageQuery, NumberTile>(
+                comparator = when {
+                    isAscending -> ascendingPageComparator
+                    else -> descendingPageComparator
+                }
+            )
+        }
         .distinctUntilChanged()
     private val limitInputs = gridSizes.map { gridSize ->
         Tile.Limiter<PageQuery, NumberTile> { items -> items.size > 40 * gridSize }
@@ -92,7 +91,7 @@ class Loader(
     )
         .toTiledList(
             numberTiler(
-                itemsPerPage = ItemsPerPage,
+                itemsPerPage = ITEMS_PER_PAGE,
                 isDark = isDark,
             )
         )

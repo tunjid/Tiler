@@ -54,8 +54,9 @@ private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
         is Tile.Order.PivotSorted -> {
             if (sortedQueries.isEmpty()) return emptyTiledList()
 
-            val mostRecentQuery: Query = metadata.mostRecentlyTurnedOn ?: return emptyTiledList()
-            val startIndex = sortedQueries.binarySearch(mostRecentQuery, order.comparator)
+            println("Pivot Query: ${metadata.pivotQuery}")
+            val pivotQuery: Query = metadata.pivotQuery ?: return emptyTiledList()
+            val startIndex = sortedQueries.binarySearch(pivotQuery, order.comparator)
 
             if (startIndex < 0) return emptyTiledList()
 

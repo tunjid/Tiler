@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapConcat
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.scan
 
 /**
@@ -111,14 +110,12 @@ private fun <Query> reducePivotResult(
 
 fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.Request<Query, Item>> =
     flatMapConcat { managedRequest ->
-        // There's a mild efficiency hit here to make this more readable.
-        // A simple list concatenation would be faster.
-        listOf<List<Tile.Request<Query, Item>>>(
-            managedRequest.on.map { Tile.Request.On(it) },
-            managedRequest.off.map { Tile.Request.Off(it) },
-            managedRequest.evict.map { Tile.Request.Evict(it) },
-        )
-            .flatten()
+        buildList<Tile.Request<Query, Item>> {
+            managedRequest.on.forEach { add(Tile.Request.On(it)) }
+            managedRequest.off.forEach { add(Tile.Request.Off(it)) }
+            managedRequest.evict.forEach { add(Tile.Request.Evict(it)) }
+            managedRequest.on.lastOrNull()?.let { add(Tile.Request.PivotAround(it)) }
+        }
             .asFlow()
     }
 
@@ -140,7 +137,6 @@ private fun <Query> MutableList<Query>.meetQuota(
     }
     return this.asReversed()
 }
-
 
 private class QuotaContext<Query>(start: Query) {
     var left: Query? = start

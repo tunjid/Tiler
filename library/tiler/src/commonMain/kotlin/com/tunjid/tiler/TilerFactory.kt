@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.transformWhile
@@ -88,6 +87,10 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
                 else -> existingValve.push(input)
             }
 
+            is Tile.Request.PivotAround -> emit(
+                flowOf(Tile.Output.UpdatePivot(query = input.query))
+            )
+
             is Tile.Limiter -> emit(
                 flowOf(Tile.Output.LimiterChange(limiter = input))
             )
@@ -103,9 +106,9 @@ private class InputValve<Query, Item>(
     fetcher: suspend (Query) -> Flow<List<Item>>
 ) {
 
-    private val mutableSharedFlow = MutableSharedFlow<Tile.Request<Query, Item>>()
+    private val mutableSharedFlow = MutableSharedFlow<Tile.ValveRequest<Query, Item>>()
 
-    val push: suspend (Tile.Request<Query, Item>) -> Unit = { request ->
+    val push: suspend (Tile.ValveRequest<Query, Item>) -> Unit = { request ->
         // Suspend till the downstream is connected
         mutableSharedFlow.subscriptionCount.first { it > 0 }
         mutableSharedFlow.emit(request)
@@ -129,7 +132,6 @@ private class InputValve<Query, Item>(
                             tile = Tile(items = items, flowOnAt = toggledAt)
                         )
                     }
-                    .onStart { emit(Tile.Output.TurnedOn(query = query)) }
             }
         }
         .transformWhile { toggle: Tile.Output<Query, Item> ->

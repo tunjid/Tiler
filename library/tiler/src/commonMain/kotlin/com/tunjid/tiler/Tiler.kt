@@ -45,11 +45,13 @@ internal data class Tiler<Query, Item>(
             queryToTiles = queryToTiles.apply { put(output.query, output.tile) }
         )
 
-        is Tile.Output.TurnedOn -> copy(
-            // Only emit if there is cached data
-            shouldEmit = queryToTiles.contains(output.query),
-            metadata = metadata.copy(mostRecentlyTurnedOn = output.query)
-        )
+        is Tile.Output.UpdatePivot -> when (order) {
+            is Tile.Order.PivotSorted -> copy(
+                shouldEmit = metadata.pivotQuery != output.query,
+                metadata = metadata.copy(pivotQuery = output.query)
+            )
+            else -> throw IllegalArgumentException("The Tiler is not configured for pivoting")
+        }
 
         is Tile.Output.Eviction -> copy(
             shouldEmit = true,
