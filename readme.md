@@ -46,7 +46,7 @@ interface TiledList<Query, Item> : List<Item> {
 
 ## Demo
 
-The demo app is cheekily implemented as a grid of tiles with dynamic colors:
+The demo app is cheekily implemented as a dynamic grid of tiles with dynamic colors that update many times per second:
 
 ![Demo image](https://github.com/tunjid/tiler/blob/develop/misc/demo.gif)
 
@@ -55,6 +55,10 @@ The demo app is cheekily implemented as a grid of tiles with dynamic colors:
 
 As tiling is a pure function that operates on a reactive stream, its configuration can be changed on the fly.
 This lends it well to the following situations:
+
+* Offline-first apps: Tiling delivers targeted updates to only queries that have changed. This works well for
+  apps which write to the database as the source of truth, and need the UI to update immediately. For example
+  a viral tweet whose like count updates several times a second.
 
 * Adaptive pagination: The amount of items paginated through can be adjusted dynamically to account for app window
 resizing by turning [on](https://github.com/tunjid/Tiler#inputrequest) more pages and increasing the 
@@ -79,7 +83,7 @@ the entire paginated data set. An example is in the sample in this
 Tiling prioritizes access to the data you've paged through, allowing you to read all paginated data at once, or a subset of it
 (using `Input.Limiter`). This allows you to trivially transform the data you've fetched after the fact.
 
-Tilers are implemented as plain functions. Given a `Flow` of `Input`, tiling transforms them into a `Flow<TiledList<Query, Item>>` with `tiledList`.
+Tilers are implemented as plain functions. Given a `Flow` of `Input`, tiling transforms them into a `Flow<TiledList<Query, Item>>` with a `ListTiler`.
 
 The resulting `TiledList` should be kept at under 100 items. You can then transform this list however way you want.
 
@@ -101,6 +105,9 @@ of `Inputs`.
   also evicts the items previously fetched by the `query` from memory. Requesting this is idempotent; multiple requests
   have no side effects.
 
+* PivotAround: Only valid when using the `PivotSorted` `Order`, this allows for returing a `TiledList` from results
+  around a certain `Query`.
+
 ### `Input.Limiter`
 
 Can be used to select a subset of items tiled instead of the entire paginated set. For example, assuming 1000 items have been
@@ -109,15 +116,15 @@ The `Limiter` allows for selecting an arbitrary amount of items as the situation
 
 ### `Input.Order`
 
-Defines the heuristic for selecting tiled items into the output container.
+Defines the heuristic for selecting tiled items into the output `TiledList`.
 
 * Unspecified: Items will be returned in an undefined order. This is the default.
 
 * Sorted: Sort items with a specified query `comparator`.
 
-* PivotSorted: Sort items with the specified `comparator` but pivoted around the last query a
-  `Tile.Request.On` was sent for. This allows for showing items that have more priority over others in the current
-  context for example in a list being scrolled. In other words assume tiles have been fetched for queries 1 - 10 but a
+* PivotSorted: Sort items with the specified `comparator` but pivoted around a specific `Query`.
+  This allows for showing items that have more priority over others in the current context
+  like example in a list being scrolled. In other words assume tiles have been fetched for queries 1 - 10 but a
   user can see pages 5 and 6. The UI need only to be aware of pages 4, 5, 6, and 7. This allows for a rolling window of
   queries based on a user's scroll position.
 
@@ -145,7 +152,7 @@ import kotlinx.coroutines.flow.map
 class NumberFetcher {
   private val requests = MutableStateFlow(0)
 
-  private val tiledList: (Flow<Tile.Input.List<Int, List<Int>>>) -> Flow<List<List<Int>>> = tiledList(
+  private val listTiler: ListTiler<Int, Int> = tiledList(
     // Sort items in ascending order
     order = Tile.Order.Sorted(comparator = Int::compareTo),
     fetcher = { page ->
@@ -157,7 +164,7 @@ class NumberFetcher {
   )
 
   // All paginated items in a single list
-  val listItems: Flow<List<Int>> = tiledList.invoke(
+  val listItems: Flow<TiledList<Int, Int>> = listTiler.invoke(
     requests.map { Tile.Request.On(it) }
   )
     .map(List<List<Int>>::flatten)
@@ -199,10 +206,11 @@ Where `n` is an arbitrary number that may be defined by how many items are visib
 
 For an example where `n` is a function of grid size in a grid list, check out [ArchiveLoading.kt](https://github.com/tunjid/me/blob/main/common/feature-archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveLoading.kt) in the [me](https://github.com/tunjid/me) project.
 
-An example where `n` is fixed at 2 follows:
-
 The above algorithm is called "pivoting" as items displayed are pivoted around the user's current scrolling position.
-An use of it is shown below:
+
+Consider a list of numbers shown in a grid. The view port may be  dynamically resized, and the sort order may be toggled.
+
+Since tiling is dynamic at it's core, a pipeline can be built to allow for this dynamic behavior by pivoting around the user's current position with the grid size as a dynamic input parameter as shown below:
 
 ```kotlin
 
@@ -212,34 +220,46 @@ data class PageQuery(
   val isAscending: Boolean
 )
 
-// PivotRequest specifying 5 pages should be observed concurrently, and an extra 4 kept in memory
-val pagePivotRequest = PivotRequest<PageQuery>(
-  onCount = 5,
-  nextQuery = { copy(page = page + 1) },
-  previousQuery = { copy(page = page - 1).takeIf { it.page >= 0 } }
-)
-
 class Loader(
   isDark: Boolean,
   scope: CoroutineScope
 ) {
   private val currentQuery = MutableStateFlow(PageQuery(page = 0, isAscending = true))
-  private val pivots = currentQuery.pivotWith(pagePivotRequest)
-  private val orderInputs = currentQuery.map {
-    Tile.Order.PivotSorted<PageQuery, NumberTile>(
-      comparator = when {
-        it.isAscending -> ascendingPageComparator
-        else -> descendingPageComparator
-      }
-    )
+
+  // Number of columns in the grid
+  private val numberOfColumns = MutableStateFlow(1)
+
+  // Pivot around the user's scroll position
+  private val pivots = currentQuery.pivotWith(
+    numberOfColumns.map(::pivotRequest)
+  )
+
+  // Allows for changing the order dynamically
+  private val orderInputs = currentQuery
+    .map { pageQuery ->
+      Tile.Order.PivotSorted<PageQuery, NumberTile>(
+        query = pageQuery,
+        comparator = when {
+          pageQuery.isAscending -> ascendingPageComparator
+          else -> descendingPageComparator
+        }
+      )
+    }
+    .distinctUntilChanged()
+
+  // Change limit to account for dynamic view port size
+  private val limitInputs = numberOfColumns.map { gridSize ->
+    Tile.Limiter<PageQuery, NumberTile> { items -> items.size > 40 * gridSize }
   }
+
   private val tiledList = merge(
-    pivots.toRequests(),
-    orderInputs
+    pivots.toTileInputs(),
+    orderInputs,
+    limitInputs,
   )
     .toTiledList(
       numberTiler(
-        itemsPerPage = 10,
+        itemsPerPage = ITEMS_PER_PAGE,
         isDark = isDark,
       )
     )
@@ -253,7 +273,7 @@ class Loader(
     State(
       isAscending = pageQuery.isAscending,
       currentPage = pageQuery.page,
-      loadSummary = pivotResult.loadSummary,
+      tilingSummary = pivotResult.loadSummary,
       items = tiledList.filterTransform(
         filterTransformer = { distinctBy(NumberTile::key) }
       )
@@ -272,15 +292,36 @@ class Loader(
   fun toggleOrder() = currentQuery.update { query ->
     query.copy(isAscending = !query.isAscending)
   }
+
+  fun setNumberOfColumns(numberOfColumns: Int) = this.numberOfColumns.update {
+    numberOfColumns
+  }
+
+  // Avoid breaking object equality in [PivotRequest] by using vals
+  private val nextQuery: PageQuery.() -> PageQuery? = { copy(page = page + 1) }
+  private val previousQuery: PageQuery.() -> PageQuery? = { copy(page = page - 1).takeIf { it.page >= 0 } }
+
+  /**
+   * Pivoted tiling with the grid size as a dynamic input parameter
+   */
+  private fun pivotRequest(numberOfColumns: Int) = PivotRequest(
+    onCount = 5 * numberOfColumns,
+    offCount = 4,
+    nextQuery = nextQuery,
+    previousQuery = previousQuery
+  )
 }
 
 private fun numberTiler(
   itemsPerPage: Int,
   isDark: Boolean,
 ): ListTiler<PageQuery, NumberTile> =
-  tiledList(
+  listTiler(
     limiter = Tile.Limiter { items -> items.size > 40 },
-    order = Tile.Order.PivotSorted(comparator = ascendingPageComparator),
+    order = Tile.Order.PivotSorted(
+      query = PageQuery(page = 0, isAscending = true),
+      comparator = ascendingPageComparator
+    ),
     fetcher = { pageQuery ->
       pageQuery.colorShiftingTiles(itemsPerPage, isDark)
     }

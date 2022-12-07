@@ -40,7 +40,7 @@ class TileKtTest {
     @BeforeTest
     fun setUp() {
         tileFlowMap = mutableMapOf()
-        listTiler = tiledList(
+        listTiler = listTiler(
             order = Tile.Order.Sorted(Int::compareTo)
         ) { page ->
             tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }
@@ -277,8 +277,13 @@ class TileKtTest {
                 awaitItem()
             )
 
-            // Sort ascending pivoted around most recently requested (4)
-            requests.emit(Tile.Order.PivotSorted(comparator = Comparator(Int::compareTo)))
+            // Sort ascending pivoted around most recently requested
+            requests.emit(
+                Tile.Order.PivotSorted(
+                    query = 4,
+                    comparator = Comparator(Int::compareTo)
+                )
+            )
             assertEquals(
                 (3.testRange + 4.testRange + 8.testRange).toList(),
                 awaitItem()

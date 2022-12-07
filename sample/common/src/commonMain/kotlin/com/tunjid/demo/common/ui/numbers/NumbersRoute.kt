@@ -18,10 +18,14 @@ package com.tunjid.demo.common.ui.numbers
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material.Card
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
@@ -33,22 +37,12 @@ import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-
 
 @Composable
 fun NumberTiles(
@@ -57,18 +51,15 @@ fun NumberTiles(
     val state by loader.state.collectAsState()
     val isAscending = state.isAscending
     val tiledItems = state.items
-    val distinctItems by  remember(tiledItems) {
-        derivedStateOf { tiledItems.distinct() }
-    }
-    val loadSummary: Flow<String> = remember {
-        loader.state.map { it.loadSummary }.distinctUntilChanged()
-    }
 
     val scaffoldState = rememberScaffoldState()
-    val listState = rememberLazyListState()
+    val lazyState = rememberLazyGridState()
 
     Scaffold(
         scaffoldState = scaffoldState,
+        bottomBar = {
+            TilingSummary(state.tilingSummary)
+        },
         floatingActionButton = {
             Fab(
                 onClick = { loader.toggleOrder() },
@@ -76,12 +67,18 @@ fun NumberTiles(
             )
         }
     ) {
-        LazyColumn(
-            state = listState,
+        LazyVerticalGrid(
+            state = lazyState,
+            columns = GridCells.Adaptive(200.dp),
             content = {
                 items(
-                    items = distinctItems,
+                    items = tiledItems,
                     key = NumberTile::key,
+                    span = {
+                        loader.setNumberOfColumns(maxLineSpan)
+                        if (it.number % state.itemsPerPage == 0) GridItemSpan(maxLineSpan)
+                        else GridItemSpan(1)
+                    },
                     itemContent = { numberTile ->
                         NumberTile(
                             Modifier.animateItemPlacement(),
@@ -95,9 +92,12 @@ fun NumberTiles(
 
     LaunchedEffect(tiledItems) {
         snapshotFlow {
-            val visibleItems = listState.layoutInfo.visibleItemsInfo
-            val middleIndex = visibleItems.getOrNull(visibleItems.size / 2)?.index ?: return@snapshotFlow null
-            val item = distinctItems[middleIndex]
+            if (tiledItems.isEmpty()) return@snapshotFlow null
+            val visibleItems = lazyState.layoutInfo.visibleItemsInfo
+            if (visibleItems.isEmpty()) return@snapshotFlow null
+
+            val middleIndex = visibleItems.getOrNull(0)?.index ?: return@snapshotFlow null
+            val item = tiledItems[middleIndex]
             val indexInTiledList = tiledItems.indexOf(item)
             tiledItems.queryFor(indexInTiledList)
         }
@@ -105,28 +105,6 @@ fun NumberTiles(
             .distinctUntilChanged()
             .collect {
                 loader.setCurrentPage(it.page)
-            }
-    }
-
-    // In the docs: https://developer.android.com/reference/kotlin/androidx/compose/material/SnackbarHostState
-    //
-    // `snackbarHostState.showSnackbar` is a suspending function that queues snack bars to be shown.
-    // If it is called multiple times, the showing snackbar is not dismissed,
-    // rather the new snackbar is added to the queue to be shown when the current one is dismissed.
-    //
-    // I however want to only have 1 snackbar in the queue at any one time, so I keep a ref
-    // to the prev job to manually cancel it.
-    val coroutineScope = rememberCoroutineScope()
-    var currentSnackbarJob by remember { mutableStateOf<Job?>(null) }
-    LaunchedEffect(loadSummary, scaffoldState.snackbarHostState) {
-        loadSummary
-            .collect {
-                currentSnackbarJob?.cancel()
-                currentSnackbarJob = coroutineScope.launch {
-                    scaffoldState.snackbarHostState.showSnackbar(
-                        message = it
-                    )
-                }
             }
     }
 }
@@ -160,4 +138,20 @@ private fun Fab(
             }
         }
     )
+}
+
+
+@Composable
+private fun TilingSummary(summary: String) {
+    val modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = 8.dp)
+    Card(
+        modifier = modifier,
+    ) {
+        Text(
+            modifier = modifier,
+            text = summary
+        )
+    }
 }

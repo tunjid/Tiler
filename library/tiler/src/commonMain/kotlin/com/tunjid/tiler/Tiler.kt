@@ -21,11 +21,19 @@ package com.tunjid.tiler
  */
 internal data class Tiler<Query, Item>(
     val limiter: Tile.Limiter<Query, Item>,
-    val shouldEmit: Boolean = false,
-    val metadata: Tile.Metadata<Query> = Tile.Metadata(),
     val order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
+    val metadata: Tile.Metadata<Query> = Tile.Metadata(
+        pivotQuery = when (order) {
+            is Tile.Order.Custom,
+            is Tile.Order.Sorted,
+            is Tile.Order.Unspecified -> null
+
+            is Tile.Order.PivotSorted -> order.query
+        }
+    ),
+    val shouldEmit: Boolean = false,
     // I'd rather this be immutable, electing against it for performance reasons
-    val queryToTiles: MutableMap<Query, Tile<Query, Item>> = mutableMapOf(),
+    val queryToTiles: MutableMap<Query, List<Item>> = mutableMapOf(),
 ) {
 
     fun add(output: Tile.Output<Query, Item>): Tiler<Query, Item> = when (output) {
@@ -42,14 +50,17 @@ internal data class Tiler<Query, Item>(
                     mostRecentlyEmitted = output.query,
                 )
             },
-            queryToTiles = queryToTiles.apply { put(output.query, output.tile) }
+            queryToTiles = queryToTiles.apply { put(output.query, output.items) }
         )
 
-        is Tile.Output.TurnedOn -> copy(
-            // Only emit if there is cached data
-            shouldEmit = queryToTiles.contains(output.query),
-            metadata = metadata.copy(mostRecentlyTurnedOn = output.query)
-        )
+        is Tile.Output.UpdatePivot -> when (order) {
+            is Tile.Order.PivotSorted -> copy(
+                shouldEmit = metadata.pivotQuery != output.query,
+                metadata = metadata.copy(pivotQuery = output.query)
+            )
+
+            else -> throw IllegalArgumentException("The Tiler is not configured for pivoting")
+        }
 
         is Tile.Output.Eviction -> copy(
             shouldEmit = true,
@@ -59,10 +70,17 @@ internal data class Tiler<Query, Item>(
             queryToTiles = queryToTiles.apply { remove(output.query) }
         )
 
-        is Tile.Output.FlattenChange -> copy(
+        is Tile.Output.OrderChange -> copy(
             shouldEmit = true,
             order = output.order,
             metadata = metadata.copy(
+                pivotQuery = when (output.order) {
+                    is Tile.Order.Custom,
+                    is Tile.Order.Sorted,
+                    is Tile.Order.Unspecified -> null
+
+                    is Tile.Order.PivotSorted -> output.order.query
+                },
                 sortedQueries = metadata.sortedQueries.sortedWith(output.order.comparator)
             )
         )
