@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package com.tunjid.utilities
+package com.tunjid.tiler.utilities
 
 import com.tunjid.tiler.Tile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.scan
 
@@ -51,25 +52,22 @@ data class PivotResult<Query>(
     val evict: List<Query> = listOf(),
 )
 
-fun <Query> PivotRequest<Query>.pivotAround(query: Query): PivotResult<Query> {
-    val on = query.meetOnQuota(
-        size = onCount,
-        increment = nextQuery,
-        decrement = previousQuery
-    )
-
-    // Keep queries on either end of the active pages in memory
-    val off = meetOffQuota(
-        size = offCount,
-        leftStart = on.firstOrNull(),
-        rightStart = on.lastOrNull(),
-        increment = nextQuery,
-        decrement = previousQuery
-    )
-
-    return PivotResult(
-        on = on,
-        off = off,
+fun <Query> PivotRequest<Query>.pivotAround(
+    query: Query
+): PivotResult<Query> = QuotaContext(query).let { loopContext ->
+    PivotResult(
+        on = mutableListOf(query).meetQuota(
+            maxSize = onCount,
+            context = loopContext,
+            increment = nextQuery,
+            decrement = previousQuery
+        ),
+        off = mutableListOf<Query>().meetQuota(
+            maxSize = offCount,
+            context = loopContext,
+            increment = nextQuery,
+            decrement = previousQuery
+        ),
         currentQuery = query
     )
 }
@@ -104,17 +102,18 @@ private fun <Query> reducePivotResult(
     previousResult: PivotResult<Query>
 ): PivotResult<Query> {
     val newRequest = request.pivotAround(currentQuery)
+    val toRemove = (newRequest.on + newRequest.off).toSet()
     return newRequest.copy(
         // Evict everything not in the current active and inactive range
-        evict = (previousResult.on + previousResult.off) - (newRequest.on + newRequest.off).toSet()
+        evict = (previousResult.off + previousResult.on).filterNot(toRemove::contains)
     )
 }
 
-fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs() =
-    flatMapLatest { managedRequest ->
+fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.Request<Query, Item>> =
+    flatMapConcat { managedRequest ->
         // There's a mild efficiency hit here to make this more readable.
         // A simple list concatenation would be faster.
-        sequenceOf<List<Tile.Request<Query, Item>>>(
+        listOf<List<Tile.Request<Query, Item>>>(
             managedRequest.on.map { Tile.Request.On(it) },
             managedRequest.off.map { Tile.Request.Off(it) },
             managedRequest.evict.map { Tile.Request.Evict(it) },
@@ -123,61 +122,27 @@ fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs() =
             .asFlow()
     }
 
-/**
- * Returns a [List] of [Query] that tries to meet the quota defined by [size] for on Requests
- */
-private fun <Query> Query.meetOnQuota(
-    size: Int,
+private fun <Query> MutableList<Query>.meetQuota(
+    maxSize: Int,
+    context: QuotaContext<Query>,
     increment: Query.() -> Query?,
     decrement: Query.() -> Query?,
 ): List<Query> {
-    val result = mutableListOf(this)
-    var hasRight = true
-    var hasLeft = true
-
-    var i = 0
-    while (result.size < size && (hasRight || hasLeft)) {
-        if (i % 2 != 0) increment(result.last()).let {
-            if (it != null) result.add(element = it)
-            else hasRight = false
+    while (size < maxSize && (context.left != null || context.right != null)) {
+        if (context.right != null) {
+            context.right = context.right?.let(increment)
+            context.right?.let(::add)
         }
-        else decrement(result.first()).let {
-            if (it != null) result.add(index = 0, element = it)
-            else hasLeft = false
+        if (context.left != null && size < maxSize) {
+            context.left = context.left?.let(decrement)
+            context.left?.let(::add)
         }
-        i++
     }
-    return result
+    return this.asReversed()
 }
 
-/**
- * Returns a [List] of [Query] that tries to meet the quota defined by [size] for off requests
- */
-private fun <Query> meetOffQuota(
-    size: Int,
-    leftStart: Query?,
-    rightStart: Query?,
-    increment: Query.() -> Query?,
-    decrement: Query.() -> Query?,
-): List<Query> {
-    val result = mutableListOf<Query>()
-    var left = leftStart
-    var right = rightStart
-    var hasRight = true
-    var hasLeft = true
 
-    var i = 0
-    while (result.size < size && (hasRight || hasLeft)) {
-        if (i % 2 != 0) {
-            right = right?.let(increment)
-            if (right != null) result.add(element = right)
-            else hasRight = false
-        } else {
-            left = left?.let(decrement)
-            if (left != null) result.add(index = 0, element = left)
-            else hasLeft = false
-        }
-        i++
-    }
-    return result
+private class QuotaContext<Query>(start: Query) {
+    var left: Query? = start
+    var right: Query? = start
 }

@@ -19,9 +19,11 @@ package com.tunjid.demo.common.ui.numbers
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
@@ -33,7 +35,6 @@ import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,7 +50,6 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-
 @Composable
 fun NumberTiles(
     loader: Loader
@@ -57,18 +57,19 @@ fun NumberTiles(
     val state by loader.state.collectAsState()
     val isAscending = state.isAscending
     val tiledItems = state.items
-    val distinctItems by  remember(tiledItems) {
-        derivedStateOf { tiledItems.distinct() }
-    }
     val loadSummary: Flow<String> = remember {
         loader.state.map { it.loadSummary }.distinctUntilChanged()
     }
 
     val scaffoldState = rememberScaffoldState()
-    val listState = rememberLazyListState()
+    val lazyState = rememberLazyGridState()
 
     Scaffold(
         scaffoldState = scaffoldState,
+        bottomBar = {
+            Text(state.loadSummary)
+
+        },
         floatingActionButton = {
             Fab(
                 onClick = { loader.toggleOrder() },
@@ -76,12 +77,18 @@ fun NumberTiles(
             )
         }
     ) {
-        LazyColumn(
-            state = listState,
+        LazyVerticalGrid(
+            state = lazyState,
+            columns = GridCells.Adaptive(200.dp),
             content = {
                 items(
-                    items = distinctItems,
+                    items = tiledItems,
                     key = NumberTile::key,
+                    span = {
+                        loader.setGridSize(maxLineSpan)
+                        if (it.number % state.itemsPerPage == 0) GridItemSpan(maxLineSpan)
+                        else GridItemSpan(1)
+                    },
                     itemContent = { numberTile ->
                         NumberTile(
                             Modifier.animateItemPlacement(),
@@ -95,9 +102,12 @@ fun NumberTiles(
 
     LaunchedEffect(tiledItems) {
         snapshotFlow {
-            val visibleItems = listState.layoutInfo.visibleItemsInfo
-            val middleIndex = visibleItems.getOrNull(visibleItems.size / 2)?.index ?: return@snapshotFlow null
-            val item = distinctItems[middleIndex]
+            if (tiledItems.isEmpty()) return@snapshotFlow null
+            val visibleItems = lazyState.layoutInfo.visibleItemsInfo
+            if (visibleItems.isEmpty()) return@snapshotFlow null
+
+            val middleIndex = visibleItems.getOrNull(0)?.index ?: return@snapshotFlow null
+            val item = tiledItems[middleIndex]
             val indexInTiledList = tiledItems.indexOf(item)
             tiledItems.queryFor(indexInTiledList)
         }
