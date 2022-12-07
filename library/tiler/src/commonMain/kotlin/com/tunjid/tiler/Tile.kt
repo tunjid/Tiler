@@ -140,7 +140,7 @@ data class Tile<Query, Item : Any?>(
             val tile: Tile<Query, Item>
         ) : Output<Query, Item>()
 
-        data class FlattenChange<Query, Item>(
+        data class OrderChange<Query, Item>(
             val order: Order<Query, Item>
         ) : Output<Query, Item>()
 

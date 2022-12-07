@@ -70,7 +70,7 @@ internal data class Tiler<Query, Item>(
             queryToTiles = queryToTiles.apply { remove(output.query) }
         )
 
-        is Tile.Output.FlattenChange -> copy(
+        is Tile.Output.OrderChange -> copy(
             shouldEmit = true,
             order = output.order,
             metadata = metadata.copy(

@@ -65,7 +65,7 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
     this@toOutput.collect { input ->
         when (input) {
             is Tile.Order -> emit(
-                flowOf(Tile.Output.FlattenChange(order = input))
+                flowOf(Tile.Output.OrderChange(order = input))
             )
 
             is Tile.Request.Evict -> {
@@ -99,7 +99,7 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
 }
 
 /**
- * Allows for turning on and off a Flow
+ * Allows for turning on, off and terminating the [Flow] specified by a given fetcher
  */
 private class InputValve<Query, Item>(
     query: Query,
