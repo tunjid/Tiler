@@ -46,7 +46,7 @@ interface TiledList<Query, Item> : List<Item> {
 
 ## Demo
 
-The demo app is cheekily implemented as a grid of tiles with dynamic colors:
+The demo app is cheekily implemented as a dynamic grid of tiles with dynamic colors that update many times per second:
 
 ![Demo image](https://github.com/tunjid/tiler/blob/develop/misc/demo.gif)
 
@@ -55,6 +55,10 @@ The demo app is cheekily implemented as a grid of tiles with dynamic colors:
 
 As tiling is a pure function that operates on a reactive stream, its configuration can be changed on the fly.
 This lends it well to the following situations:
+
+* Offline-first apps: Tiling delivers targeted updates to only queries that have changed. This works well for
+  apps which write to the database as the source of truth, and need the UI to update immediately. For example
+  a viral tweet whose like count updates several times a second.
 
 * Adaptive pagination: The amount of items paginated through can be adjusted dynamically to account for app window
 resizing by turning [on](https://github.com/tunjid/Tiler#inputrequest) more pages and increasing the 
@@ -79,7 +83,7 @@ the entire paginated data set. An example is in the sample in this
 Tiling prioritizes access to the data you've paged through, allowing you to read all paginated data at once, or a subset of it
 (using `Input.Limiter`). This allows you to trivially transform the data you've fetched after the fact.
 
-Tilers are implemented as plain functions. Given a `Flow` of `Input`, tiling transforms them into a `Flow<TiledList<Query, Item>>` with `tiledList`.
+Tilers are implemented as plain functions. Given a `Flow` of `Input`, tiling transforms them into a `Flow<TiledList<Query, Item>>` with a `ListTiler`.
 
 The resulting `TiledList` should be kept at under 100 items. You can then transform this list however way you want.
 
@@ -101,6 +105,9 @@ of `Inputs`.
   also evicts the items previously fetched by the `query` from memory. Requesting this is idempotent; multiple requests
   have no side effects.
 
+* PivotAround: Only valid when using the `PivotSorted` `Order`, this allows for returing a `TiledList` from results
+  around a certain `Query`.
+
 ### `Input.Limiter`
 
 Can be used to select a subset of items tiled instead of the entire paginated set. For example, assuming 1000 items have been
@@ -109,15 +116,15 @@ The `Limiter` allows for selecting an arbitrary amount of items as the situation
 
 ### `Input.Order`
 
-Defines the heuristic for selecting tiled items into the output container.
+Defines the heuristic for selecting tiled items into the output `TiledList`.
 
 * Unspecified: Items will be returned in an undefined order. This is the default.
 
 * Sorted: Sort items with a specified query `comparator`.
 
-* PivotSorted: Sort items with the specified `comparator` but pivoted around the last query a
-  `Tile.Request.On` was sent for. This allows for showing items that have more priority over others in the current
-  context for example in a list being scrolled. In other words assume tiles have been fetched for queries 1 - 10 but a
+* PivotSorted: Sort items with the specified `comparator` but pivoted around a specific `Query`.
+  This allows for showing items that have more priority over others in the current context
+  like example in a list being scrolled. In other words assume tiles have been fetched for queries 1 - 10 but a
   user can see pages 5 and 6. The UI need only to be aware of pages 4, 5, 6, and 7. This allows for a rolling window of
   queries based on a user's scroll position.
 
