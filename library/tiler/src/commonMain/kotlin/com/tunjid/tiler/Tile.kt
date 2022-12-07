@@ -24,10 +24,7 @@ typealias ListTiler<Query, Item> = (Flow<Tile.Input<Query, Item>>) -> Flow<Tiled
 /**
  * class holding metadata about a [Query] for an [Item], the [Item], and when the [Query] was sent
  */
-data class Tile<Query, Item : Any?>(
-    val flowOnAt: Long,
-    val items: List<Item>,
-) {
+class Tile<Query, Item : Any?> {
 
     /**
      * Holds information regarding properties that may be useful when flattening a [Map] of [Query]
@@ -119,7 +116,7 @@ data class Tile<Query, Item : Any?>(
          */
         data class Custom<Query, Item>(
             override val comparator: Comparator<Query>,
-            val transform: Metadata<Query>.(Map<Query, Tile<Query, Item>>) -> TiledList<Query, Item>,
+            val transform: Metadata<Query>.(Map<Query, List<Item>>) -> TiledList<Query, Item>,
         ) : Order<Query, Item>(), Input<Query, Item>
 
     }
@@ -137,7 +134,7 @@ data class Tile<Query, Item : Any?>(
     internal sealed class Output<Query, Item> {
         data class Data<Query, Item>(
             val query: Query,
-            val tile: Tile<Query, Item>
+            val items: List<Item>
         ) : Output<Query, Item>()
 
         data class OrderChange<Query, Item>(
@@ -167,7 +164,7 @@ fun <Query, Item> Flow<Tile.Input<Query, Item>>.toTiledList(
 
 
 /**
- * Converts a [Flow] of [Query] into a [Flow] of [List] [Item]
+ * Converts a [Flow] of [Query] into a [Flow] of [TiledList] [Item]
  */
 fun <Query, Item> tiledList(
     limiter: Tile.Limiter<Query, Item> = Tile.Limiter { false },

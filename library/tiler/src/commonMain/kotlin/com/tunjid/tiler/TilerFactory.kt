@@ -16,7 +16,6 @@
 
 package com.tunjid.tiler
 
-import com.tunjid.utilities.epochMillis
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -118,7 +117,6 @@ private class InputValve<Query, Item>(
         .onSubscription { emit(Tile.Request.On(query = query)) }
         .distinctUntilChanged()
         .flatMapLatest { input ->
-            val toggledAt = epochMillis()
             when (input) {
                 // Eject the query downstream
                 is Tile.Request.Evict -> flowOf(Tile.Output.Eviction<Query, Item>(query = input.query))
@@ -129,7 +127,7 @@ private class InputValve<Query, Item>(
                     .map<List<Item>, Tile.Output<Query, Item>> { items ->
                         Tile.Output.Data(
                             query = input.query,
-                            tile = Tile(items = items, flowOnAt = toggledAt)
+                            items = items
                         )
                     }
             }

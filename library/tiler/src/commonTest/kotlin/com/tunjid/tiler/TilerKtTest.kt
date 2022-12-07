@@ -24,13 +24,10 @@ class TilerKtTest {
     fun maintains_all_items() {
         val tiled =
             (1..9)
-                .mapIndexed { index, int ->
+                .map { int ->
                     Tile.Output.Data(
                         query = int,
-                        tile = Tile(
-                            flowOnAt = index.toLong(),
-                            items = int.testRange.toList()
-                        )
+                        items = int.testRange.toList()
                     )
                 }
                 .fold(
@@ -51,14 +48,11 @@ class TilerKtTest {
     @Test
     fun pivots_around_specific_query_when_limit_exists() {
         val tiles =
-            (1..9).mapIndexed { index, int ->
+            (1..9).map { int ->
                 listOf(
                     Tile.Output.Data(
                         query = int,
-                        tile = Tile(
-                            flowOnAt = index.toLong(),
-                            items = int.testRange.toList()
-                        )
+                        items = int.testRange.toList()
                     ),
                 )
             }

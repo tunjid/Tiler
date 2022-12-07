@@ -33,7 +33,7 @@ internal data class Tiler<Query, Item>(
     ),
     val shouldEmit: Boolean = false,
     // I'd rather this be immutable, electing against it for performance reasons
-    val queryToTiles: MutableMap<Query, Tile<Query, Item>> = mutableMapOf(),
+    val queryToTiles: MutableMap<Query, List<Item>> = mutableMapOf(),
 ) {
 
     fun add(output: Tile.Output<Query, Item>): Tiler<Query, Item> = when (output) {
@@ -50,7 +50,7 @@ internal data class Tiler<Query, Item>(
                     mostRecentlyEmitted = output.query,
                 )
             },
-            queryToTiles = queryToTiles.apply { put(output.query, output.tile) }
+            queryToTiles = queryToTiles.apply { put(output.query, output.items) }
         )
 
         is Tile.Output.UpdatePivot -> when (order) {

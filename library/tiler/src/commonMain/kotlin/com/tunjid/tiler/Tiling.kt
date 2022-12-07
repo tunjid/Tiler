@@ -18,7 +18,7 @@ package com.tunjid.tiler
 
 import com.tunjid.utilities.MutablePairedTiledList
 
-internal fun <Query, Item> Map<Query, Tile<Query, Item>>.tileWith(
+internal fun <Query, Item> Map<Query, List<Item>>.tileWith(
     metadata: Tile.Metadata<Query>,
     order: Tile.Order<Query, Item>,
     limiter: Tile.Limiter<Query, Item>
@@ -28,7 +28,7 @@ internal fun <Query, Item> Map<Query, Tile<Query, Item>>.tileWith(
     limiter = limiter
 )
 
-private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
+private fun <Query, Item> Map<Query, List<Item>>.listTiling(
     metadata: Tile.Metadata<Query>,
     order: Tile.Order<Query, Item>,
     limiter: Tile.Limiter<Query, Item>
@@ -39,14 +39,14 @@ private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
     return when (order) {
         is Tile.Order.Unspecified -> queryToTiles.keys
             .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
-                val items = queryToTiles.getValue(query).items
+                val items = queryToTiles.getValue(query)
                 mutableTiledList.addAll(query = query, items = items)
                 mutableTiledList
             }
 
         is Tile.Order.Sorted -> sortedQueries
             .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
-                val items = queryToTiles.getValue(query).items
+                val items = queryToTiles.getValue(query)
                 mutableTiledList.addAll(query = query, items = items)
                 mutableTiledList
             }
@@ -63,7 +63,7 @@ private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
             var leftIndex = startIndex
             var rightIndex = startIndex
             var query = sortedQueries[startIndex]
-            var items = queryToTiles.getValue(query).items
+            var items = queryToTiles.getValue(query)
 
             val tiledList = MutablePairedTiledList<Query, Item>()
             tiledList.addAll(query = query, items = items)
@@ -72,12 +72,12 @@ private fun <Query, Item> Map<Query, Tile<Query, Item>>.listTiling(
             while (!limiter.check(tiledList) && (leftIndex >= 0 || rightIndex <= sortedQueries.lastIndex)) {
                 if (--leftIndex >= 0) {
                     query = sortedQueries[leftIndex]
-                    items = queryToTiles.getValue(query).items
+                    items = queryToTiles.getValue(query)
                     tiledList.addAll(index = 0, query = query, items = items)
                 }
                 if (++rightIndex <= sortedQueries.lastIndex) {
                     query = sortedQueries[rightIndex]
-                    items = queryToTiles.getValue(query).items
+                    items = queryToTiles.getValue(query)
                     tiledList.addAll(query = query, items = items)
                 }
             }
