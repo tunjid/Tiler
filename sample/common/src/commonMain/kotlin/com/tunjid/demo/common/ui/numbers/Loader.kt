@@ -56,7 +56,7 @@ data class State(
     val itemsPerPage: Int = ITEMS_PER_PAGE,
     val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
-    val loadSummary: String = "",
+    val tilingSummary: String = "",
     val items: TiledList<PageQuery, NumberTile> = emptyTiledList()
 )
 
@@ -104,7 +104,7 @@ class Loader(
         State(
             isAscending = pageQuery.isAscending,
             currentPage = pageQuery.page,
-            loadSummary = pivotResult.loadSummary,
+            tilingSummary = pivotResult.loadSummary,
             items = tiledList.filterTransform(
                 filterTransformer = { distinctBy(NumberTile::key) }
             )
