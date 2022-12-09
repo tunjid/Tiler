@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.tunjid.tiler.queryAtOrNull
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 
@@ -96,10 +97,8 @@ fun NumberTiles(
             val visibleItems = lazyState.layoutInfo.visibleItemsInfo
             if (visibleItems.isEmpty()) return@snapshotFlow null
 
-            val middleIndex = visibleItems.getOrNull(0)?.index ?: return@snapshotFlow null
-            val item = tiledItems[middleIndex]
-            val indexInTiledList = tiledItems.indexOf(item)
-            tiledItems.queryFor(indexInTiledList)
+            val firstIndex = visibleItems.getOrNull(0)?.index ?: return@snapshotFlow null
+            tiledItems.queryAtOrNull(firstIndex)
         }
             .filterNotNull()
             .distinctUntilChanged()

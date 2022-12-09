@@ -40,7 +40,7 @@ interface TiledList<Query, Item> : List<Item> {
     /**
      * Returns the query that fetched an [Item] at a specified index.
      */
-    fun queryFor(index: Int): Query
+    fun queryAt(index: Int): Query
 }
 ```
 

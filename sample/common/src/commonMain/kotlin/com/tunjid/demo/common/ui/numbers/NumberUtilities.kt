@@ -48,7 +48,7 @@ fun PageQuery.colorShiftingTiles(itemsPerPage: Int, isDark: Boolean) =
         .map { if (isAscending) it else it.asReversed() }
 
 private fun percentageAndIndex(
-    changeDelayMillis: Long = 500L
+    changeDelayMillis: Long = 100L
 ): Flow<Pair<Float, Int>> = flow {
     var percentage = 0f
     var index = 0

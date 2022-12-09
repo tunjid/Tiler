@@ -16,6 +16,7 @@
 
 package com.tunjid.tiler
 
+import com.tunjid.utilities.EmptyTiledList
 import com.tunjid.utilities.FilterTransformedTiledList
 import com.tunjid.utilities.MutablePairedTiledList
 
@@ -26,11 +27,11 @@ import com.tunjid.utilities.MutablePairedTiledList
  * items to fill the device viewport a few items over to accommodate a user's scroll.
  * This is typically under 100 items.
  */
-interface TiledList<Query, Item> : List<Item> {
+interface TiledList<out Query, out Item> : List<Item> {
     /**
      * Returns the query that fetched an [Item] at a specified index.
      */
-    fun queryFor(index: Int): Query
+    fun queryAt(index: Int): Query
 }
 
 /**
@@ -55,23 +56,20 @@ interface MutableTiledList<Query, Item> : TiledList<Query, Item> {
  * Returns an empty [TiledList] instance
  */
 fun <Query, Item> emptyTiledList(): TiledList<Query, Item> =
-    object : TiledList<Query, Item>, List<Item> by emptyList() {
-        override fun queryFor(index: Int): Query =
-            throw IndexOutOfBoundsException("The TiledList is empty")
-    }
+    EmptyTiledList
 
 /**
  * Returns a read-only [TiledList] instance
  */
-fun <Query, Item> tiledList(
+fun <Query, Item> tiledListOf(
     vararg pairs: Pair<Query, Item>
 ): TiledList<Query, Item> =
-    MutablePairedTiledList(*pairs)
+    if (pairs.isEmpty()) emptyTiledList() else MutablePairedTiledList(*pairs)
 
 /**
  * Returns a [MutableTiledList] instance
  */
-fun <Query, Item> mutableTiledList(
+fun <Query, Item> mutableTiledListOf(
     vararg pairs: Pair<Query, Item>
 ): MutableTiledList<Query, Item> =
     MutablePairedTiledList(*pairs)
@@ -81,12 +79,12 @@ fun <Query, Item> mutableTiledList(
  */
 fun <Query, Item> buildTiledList(
     builderAction: MutableTiledList<Query, Item>.() -> Unit
-): TiledList<Query, Item> = mutableTiledList<Query, Item>()
+): TiledList<Query, Item> = mutableTiledListOf<Query, Item>()
     .also(builderAction::invoke)
 
 /**
  * filters a [TiledList] with the [filterTransformer] provided.
- * Every item in the returned list must be present in the original list ([this])
+ * Every item in the returned list must also be present in the original list.
  */
 fun <Query, Item> TiledList<Query, Item>.filterTransform(
     filterTransformer: List<Item>.() -> List<Item>
@@ -94,3 +92,6 @@ fun <Query, Item> TiledList<Query, Item>.filterTransform(
     originalList = this,
     transformedList = filterTransformer(this)
 )
+
+fun <Query, Item> TiledList<Query, Item>.queryAtOrNull(index: Int) =
+    if (index in 0..lastIndex) queryAt(index) else null

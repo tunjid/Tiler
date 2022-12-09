@@ -38,7 +38,7 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
-private const val ITEMS_PER_PAGE = 10
+private const val ITEMS_PER_PAGE = 15
 
 val ascendingPageComparator = compareBy(PageQuery::page)
 val descendingPageComparator = ascendingPageComparator.reversed()
@@ -56,7 +56,7 @@ data class State(
     val itemsPerPage: Int = ITEMS_PER_PAGE,
     val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
-    val tilingSummary: String = "",
+    val pivotResult: PivotResult<PageQuery> = PivotResult(),
     val items: TiledList<PageQuery, NumberTile> = emptyTiledList()
 )
 
@@ -113,7 +113,7 @@ class Loader(
         State(
             isAscending = pageQuery.isAscending,
             currentPage = pageQuery.page,
-            tilingSummary = pivotResult.loadSummary,
+            pivotResult = pivotResult,
             items = tiledList.filterTransform(
                 filterTransformer = { distinctBy(NumberTile::key) }
             )
@@ -138,26 +138,33 @@ class Loader(
     }
 
     // Avoid breaking object equality in [PivotRequest] by using vals
-    private val nextQuery: PageQuery.() -> PageQuery? = { copy(page = page + 1) }
-    private val previousQuery: PageQuery.() -> PageQuery? = { copy(page = page - 1).takeIf { it.page >= 0 } }
+    private val nextQuery: PageQuery.() -> PageQuery? = {
+        copy(page = page + 1)
+    }
+    private val previousQuery: PageQuery.() -> PageQuery? = {
+        copy(page = page - 1).takeIf { it.page >= 0 }
+    }
 
     /**
      * Pivoted tiling with the grid size as a dynamic input parameter
      */
     private fun pivotRequest(numberOfColumns: Int) = PivotRequest(
-        onCount = 5 * numberOfColumns,
-        offCount = 4,
+        onCount = 4 * numberOfColumns,
+        offCount = 4 * numberOfColumns,
         nextQuery = nextQuery,
         previousQuery = previousQuery
     )
 }
 
-private val PivotResult<PageQuery>.loadSummary
-    get() = """
-Active pages: ${on.map { it.page }.sorted()}
-Pages in memory: ${off.map { it.page }.sorted()}
-Evicted: ${evict.map { it.page }.sorted()}
-        """.trim()
+val State.tilingSummary
+    get() =
+        """
+Items per page: $itemsPerPage
+Tiled list size: ${items.size}
+Active pages: ${pivotResult.on.map(PageQuery::page).sorted()}
+Pages in memory: ${pivotResult.off.map(PageQuery::page).sorted()}
+Evicted: ${pivotResult.evict.map(PageQuery::page).sorted()}
+""".trim()
 
 /**
  * Fetches a [Map] of [PageQuery] to [NumberTile] where the [NumberTile] instances self update

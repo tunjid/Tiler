@@ -34,7 +34,7 @@ internal class MutableMappedTiledList<Query, Item>(
     // n is typically < 6. This allows for practically constant time access.
     override fun get(index: Int): Item = infoForIndex(index).second
 
-    override fun queryFor(index: Int): Query = infoForIndex(index).first
+    override fun queryAt(index: Int): Query = infoForIndex(index).first
 
     private fun infoForIndex(index: Int): Pair<Query, Item> {
         var left = 0
