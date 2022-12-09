@@ -43,11 +43,10 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
 fun org.gradle.api.Project.androidConfiguration(
     extension: CommonExtension<*, *, *, *>
 ) = extension.apply {
-    compileSdk = 31
+    compileSdk = 33
 
     defaultConfig {
-        // Could have been 21, but I need sqlite 3.24.0 for upserts
-        minSdk = 30
+        minSdk = 21
     }
 
     buildFeatures {
@@ -84,7 +83,7 @@ fun org.gradle.api.Project.androidConfiguration(
 
 fun org.gradle.api.Project.coerceComposeVersion(configuration: Configuration) {
     configuration.resolutionStrategy.eachDependency {
-        if (requested.group.startsWith("androidx.compose")) {
+        if (requested.group.startsWith("androidx.compose") && !requested.group.contains("compiler")) {
             useVersion(versionCatalog.findVersion("androidxCompose").get().requiredVersion)
             because("I need the changes in lazyGrid")
         }
