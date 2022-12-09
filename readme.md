@@ -273,7 +273,7 @@ class Loader(
     State(
       isAscending = pageQuery.isAscending,
       currentPage = pageQuery.page,
-      tilingSummary = pivotResult.loadSummary,
+      pivotResult = pivotResult,
       items = tiledList.filterTransform(
         filterTransformer = { distinctBy(NumberTile::key) }
       )
@@ -298,15 +298,19 @@ class Loader(
   }
 
   // Avoid breaking object equality in [PivotRequest] by using vals
-  private val nextQuery: PageQuery.() -> PageQuery? = { copy(page = page + 1) }
-  private val previousQuery: PageQuery.() -> PageQuery? = { copy(page = page - 1).takeIf { it.page >= 0 } }
+  private val nextQuery: PageQuery.() -> PageQuery? = {
+    copy(page = page + 1)
+  }
+  private val previousQuery: PageQuery.() -> PageQuery? = {
+    copy(page = page - 1).takeIf { it.page >= 0 }
+  }
 
   /**
    * Pivoted tiling with the grid size as a dynamic input parameter
    */
   private fun pivotRequest(numberOfColumns: Int) = PivotRequest(
-    onCount = 5 * numberOfColumns,
-    offCount = 4,
+    onCount = 4 * numberOfColumns,
+    offCount = 4 * numberOfColumns,
     nextQuery = nextQuery,
     previousQuery = previousQuery
   )
@@ -328,10 +332,10 @@ private fun numberTiler(
   )
 ```
 
-In the above, only flows for 5 pages are collected at any one time. 4 more pages are kept in memory for quick
+In the above, only flows for 4 queries are collected at any one time for single columned screens. 4 more queries are kept in memory for quick
 resumption, and the rest are evicted from memory. As the user scrolls, `setCurrentPage` is called, and data is
 fetched for that page, and the surrounding pages.
-Pages that are far away from the current page (more than 4 pages away) are removed from memory.
+Pages that are far away from the current page (more than 6 pages away) are removed from memory.
 
 ## Efficiency & performance
 
