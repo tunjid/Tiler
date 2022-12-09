@@ -46,7 +46,7 @@ internal class MutablePairedTiledList<Query, Item>(
     override fun remove(index: Int): Item =
         queryItemPairs.removeAt(index).second
 
-    override fun queryFor(index: Int): Query = queryItemPairs[index].first
+    override fun queryAt(index: Int): Query = queryItemPairs[index].first
 
 }
 

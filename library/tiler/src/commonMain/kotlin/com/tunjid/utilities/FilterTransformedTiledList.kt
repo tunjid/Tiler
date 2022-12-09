@@ -33,10 +33,10 @@ internal class FilterTransformedTiledList<Query, Item>(
 
     override fun get(index: Int): Item = transformedList[index]
 
-    override fun queryFor(index: Int): Query {
+    override fun queryAt(index: Int): Query {
         val item = get(index)
         val originalIndex = originalList.indexOf(item)
-        return originalList.queryFor(originalIndex)
+        return originalList.queryAt(originalIndex)
     }
 
 }

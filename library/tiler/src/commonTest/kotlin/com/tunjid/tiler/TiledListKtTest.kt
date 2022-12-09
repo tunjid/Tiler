@@ -45,4 +45,13 @@ class TiledListKtTest {
             actual = tiledList.filterTransform { filter { it % 2 == 0 } }
         )
     }
+
+    @Test
+    fun empty_tiled_list_works() {
+        assertEquals(
+            expected = tiledListOf<Int, Int>(),
+            actual = emptyTiledList()
+        )
+    }
+
 }
