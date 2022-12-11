@@ -95,3 +95,14 @@ fun <Query, Item> TiledList<Query, Item>.filterTransform(
 
 fun <Query, Item> TiledList<Query, Item>.queryAtOrNull(index: Int) =
     if (index in 0..lastIndex) queryAt(index) else null
+
+operator fun <Query, Item> TiledList<Query, Item>.plus(
+    other: TiledList<Query, Item>
+): TiledList<Query, Item> = buildTiledList {
+    this@plus.forEachIndexed { index, item ->
+        add(this@plus.queryAt(index), item)
+    }
+    other.forEachIndexed { index, item ->
+        add(other.queryAt(index), item)
+    }
+}

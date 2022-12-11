@@ -21,14 +21,3 @@ internal val Int.testRange get() = this.times(10).rangeTo(this.times(10) + 9)
 internal fun Int.tiledTestRange() = buildTiledList {
     addAll(query = this@tiledTestRange, items = testRange.toList())
 }
-
-internal operator fun <Query, Item> TiledList<Query, Item>.plus(
-    other: TiledList<Query, Item>
-): TiledList<Query, Item> = buildTiledList {
-    this@plus.forEachIndexed { index, item ->
-        add(this@plus.queryAt(index), item)
-    }
-    other.forEachIndexed { index, item ->
-        add(other.queryAt(index), item)
-    }
-}
