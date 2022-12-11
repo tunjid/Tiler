@@ -74,24 +74,36 @@ fun <Query> PivotRequest<Query>.pivotAround(
 /**
  * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query]
  */
-fun <Query> Flow<Query>.pivotWith(pivotRequest: PivotRequest<Query>): Flow<PivotResult<Query>> =
+fun <Query> Flow<Query>.pivotWith(
+    pivotRequest: PivotRequest<Query>
+): Flow<PivotResult<Query>> =
     distinctUntilChanged()
         .scan(PivotResult<Query>()) { previousResult, currentQuery ->
-            reducePivotResult(pivotRequest, currentQuery, previousResult)
+            reducePivotResult(
+                request = pivotRequest,
+                currentQuery = currentQuery,
+                previousResult = previousResult
+            )
         }
         .distinctUntilChanged()
 
 /**
  * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query] and [pivotRequestFlow]
  */
-fun <Query> Flow<Query>.pivotWith(pivotRequestFlow: Flow<PivotRequest<Query>>): Flow<PivotResult<Query>> =
+fun <Query> Flow<Query>.pivotWith(
+    pivotRequestFlow: Flow<PivotRequest<Query>>
+): Flow<PivotResult<Query>> =
     distinctUntilChanged()
         .combine(
             pivotRequestFlow.distinctUntilChanged(),
             ::Pair
         )
         .scan(PivotResult<Query>()) { previousResult, (currentQuery, pivotRequest) ->
-            reducePivotResult(pivotRequest, currentQuery, previousResult)
+            reducePivotResult(
+                request = pivotRequest,
+                currentQuery = currentQuery,
+                previousResult = previousResult
+            )
         }
         .distinctUntilChanged()
 
@@ -138,6 +150,7 @@ private fun <Query> MutableList<Query>.meetSizeQuota(
             context.left?.let(::add)
         }
     }
+    // Reverse to the pivoted query is at the end of the list
     return this.asReversed()
 }
 

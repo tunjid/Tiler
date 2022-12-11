@@ -59,7 +59,10 @@ class TileKtTest {
             .take(requests.size)
             .toList()
 
-        assertEquals(1.testRange.toList(), emissions[0])
+        assertEquals(
+            expected = 1.tiledTestRange(),
+            actual = emissions[0]
+        )
     }
 
     @Test
@@ -76,16 +79,16 @@ class TileKtTest {
             .toList()
 
         assertEquals(
-            1.testRange.toList(),
-            emissions[0]
+            expected = 1.tiledTestRange(),
+            actual = emissions[0]
         )
         assertEquals(
-            (1.testRange + 3.testRange).toList(),
-            emissions[1]
+            expected = 1.tiledTestRange() + 3.tiledTestRange(),
+            actual = emissions[1]
         )
         assertEquals(
-            (1.testRange + 3.testRange + 8.testRange).toList(),
-            emissions[2]
+            expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
+            actual = emissions[2]
         )
     }
 
@@ -109,8 +112,8 @@ class TileKtTest {
             .toList()
 
         assertEquals(
-            (1.testRange + 3.testRange + 8.testRange).toList(),
-            emissions.last()
+            expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
+            actual = emissions.last()
         )
 
         val queries = requests
@@ -148,8 +151,8 @@ class TileKtTest {
             .toList()
 
         assertEquals(
-            (1.testRange + 3.testRange + 8.testRange).toList(),
-            emissions.last()
+            expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
+            actual = emissions.last()
         )
     }
 
@@ -169,8 +172,8 @@ class TileKtTest {
             .toList()
 
         assertEquals(
-            1.testRange.toList(),
-            emissions.last()
+            expected = 1.tiledTestRange(),
+            actual = emissions.last()
         )
 
         assertNull(withTimeoutOrNull(200) {
@@ -198,20 +201,20 @@ class TileKtTest {
             .toList()
 
         assertEquals(
-            1.testRange.toList(),
-            emissions[0]
+            expected = 1.tiledTestRange(),
+            actual = emissions[0]
         )
         assertEquals(
-            (1.testRange + 3.testRange).toList(),
-            emissions[1]
+            expected = 1.tiledTestRange() + 3.tiledTestRange(),
+            actual = emissions[1]
         )
         assertEquals(
-            3.testRange.toList(),
-            emissions[2]
+            expected = 3.tiledTestRange(),
+            actual = emissions[2]
         )
         assertEquals(
-            (1.testRange + 3.testRange).toList(),
-            emissions[3]
+            expected = 1.tiledTestRange() + 3.tiledTestRange(),
+            actual = emissions[3]
         )
     }
 
@@ -224,57 +227,57 @@ class TileKtTest {
             // Request page 1
             requests.emit(Tile.Request.On(query = 1))
             assertEquals(
-                1.testRange.toList(),
-                awaitItem()
+                expected = 1.tiledTestRange(),
+                actual = awaitItem()
             )
 
             // Request page 3
             requests.emit(Tile.Request.On(query = 3))
             assertEquals(
-                (1.testRange + 3.testRange).toList(),
-                awaitItem()
+                expected = 1.tiledTestRange() + 3.tiledTestRange(),
+                actual = awaitItem()
             )
 
             // Request page 8
             requests.emit(Tile.Request.On(query = 8))
             assertEquals(
-                (1.testRange + 3.testRange + 8.testRange).toList(),
-                awaitItem()
+                expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
+                actual = awaitItem()
             )
 
             // Reverse sort by page
-            requests.emit(Tile.Order.Sorted(comparator = Comparator<Int>(Int::compareTo).reversed()))
+            requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo).reversed()))
             assertEquals(
-                (8.testRange + 3.testRange + 1.testRange).toList(),
-                awaitItem()
+                expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
+                actual = awaitItem()
             )
 
             // Limit results to 2 pages
             requests.emit(Tile.Limiter(check = { it.size >= 20 }))
             assertEquals(
-                (8.testRange + 3.testRange).toList(),
-                awaitItem()
+                expected = 8.tiledTestRange() + 3.tiledTestRange(),
+                actual = awaitItem()
             )
 
             // Limit results to 3 pages
             requests.emit(Tile.Limiter(check = { it.size >= 30 }))
             assertEquals(
-                (8.testRange + 3.testRange + 1.testRange).toList(),
-                awaitItem()
+                expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
+                actual = awaitItem()
             )
 
             // Sort ascending
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
             assertEquals(
-                (1.testRange + 3.testRange + 8.testRange).toList(),
-                awaitItem()
+                expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
+                actual = awaitItem()
             )
 
             // Request 4
             requests.emit(Tile.Request.On(query = 4))
             assertEquals(
-                (1.testRange + 3.testRange + 4.testRange).toList(),
-                awaitItem()
+                expected = 1.tiledTestRange() + 3.tiledTestRange() + 4.tiledTestRange(),
+                actual = awaitItem()
             )
 
             // Sort ascending pivoted around most recently requested
@@ -285,14 +288,14 @@ class TileKtTest {
                 )
             )
             assertEquals(
-                (3.testRange + 4.testRange + 8.testRange).toList(),
+                3.tiledTestRange() + 4.tiledTestRange() + 8.tiledTestRange(),
                 awaitItem()
             )
 
             // Sort ascending in absolute terms
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
             assertEquals(
-                (1.testRange + 3.testRange + 4.testRange).toList(),
+                1.tiledTestRange() + 3.tiledTestRange() + 4.tiledTestRange(),
                 awaitItem()
             )
 

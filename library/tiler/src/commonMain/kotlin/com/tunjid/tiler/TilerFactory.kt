@@ -119,7 +119,11 @@ private class InputValve<Query, Item>(
         .flatMapLatest { input ->
             when (input) {
                 // Eject the query downstream
-                is Tile.Request.Evict -> flowOf(Tile.Output.Eviction<Query, Item>(query = input.query))
+                is Tile.Request.Evict -> flowOf(
+                    Tile.Output.Eviction<Query, Item>(
+                        query = input.query
+                    )
+                )
                 // Stop collecting from the fetcher
                 is Tile.Request.Off<Query, Item> -> emptyFlow()
                 // Start collecting from the fetcher, keeping track of when the flow was turned on

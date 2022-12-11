@@ -41,18 +41,18 @@ class ListMapTilingSamenessTest {
             .toList()
 
         assertEquals(
-            1.testRange.toList(),
-            emissions[0]
+            expected = 1.tiledTestRange(),
+            actual = emissions[0]
         )
 
         assertEquals(
-            (1.testRange + 3.testRange).toList(),
-            emissions[1]
+            expected = 1.tiledTestRange() + 3.tiledTestRange(),
+            actual = emissions[1]
         )
 
         assertEquals(
-            (1.testRange + 3.testRange + 8.testRange).toList(),
-            emissions[2]
+            expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
+            actual = emissions[2]
         )
     }
 
@@ -74,28 +74,28 @@ class ListMapTilingSamenessTest {
             .toList()
 
         assertEquals(
-            4.testRange.toList(),
-            emissions[0]
+            expected = 4.tiledTestRange(),
+            actual = emissions[0]
         )
 
         assertEquals(
-            (3.testRange + 4.testRange).toList(),
-            emissions[1]
+            expected = 3.tiledTestRange() + 4.tiledTestRange(),
+            actual = emissions[1]
         )
 
         assertEquals(
-            (3.testRange + 4.testRange + 8.testRange).toList(),
-            emissions[2]
+            expected = 3.tiledTestRange() + 4.tiledTestRange() + 8.tiledTestRange(),
+            actual = emissions[2]
         )
 
         assertEquals(
-            (3.testRange + 4.testRange + 5.testRange).toList(),
-            emissions[3]
+            expected = 3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
+            actual = emissions[3]
         )
 
         assertEquals(
-            (3.testRange + 4.testRange + 5.testRange).toList(),
-            emissions[4]
+            expected = 3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
+            actual = emissions[4]
         )
     }
 }
