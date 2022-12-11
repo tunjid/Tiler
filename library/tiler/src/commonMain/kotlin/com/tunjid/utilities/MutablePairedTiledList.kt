@@ -28,9 +28,11 @@ internal class MutablePairedTiledList<Query, Item>(
 
     private val queryItemPairs: MutableList<Pair<Query, Item>> = mutableListOf(*pairs)
 
-    override val size: Int get() = queryItemPairs.size
+    override fun queryAt(index: Int): Query = queryItemPairs[index].first
 
+    override val size: Int get() = queryItemPairs.size
     override fun get(index: Int): Item = queryItemPairs[index].second
+
     override fun add(index: Int, query: Query, item: Item) =
         queryItemPairs.add(index, query to item)
 
@@ -46,7 +48,10 @@ internal class MutablePairedTiledList<Query, Item>(
     override fun remove(index: Int): Item =
         queryItemPairs.removeAt(index).second
 
-    override fun queryAt(index: Int): Query = queryItemPairs[index].first
+    override fun equals(other: Any?): Boolean =
+        other is TiledList<*, *>
+                && super.equals(other)
+                && (0..lastIndex).all { other.queryAt(it) == queryAt(it) }
 
 }
 

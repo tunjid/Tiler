@@ -40,7 +40,9 @@ class TilerKtTest {
                 .output()
 
         assertEquals(
-            (1..9).map(Int::testRange).flatten(),
+            (1..9)
+                .map(Int::tiledTestRange)
+                .fold(tiledListOf(), TiledList<Int, Int>::plus),
             tiled
         )
     }
@@ -70,7 +72,9 @@ class TilerKtTest {
                 .output()
 
         assertEquals(
-            (2..6).map(Int::testRange).flatten(),
+            (2..6)
+                .map(Int::tiledTestRange)
+                .fold(tiledListOf(), TiledList<Int, Int>::plus),
             tiles
         )
     }

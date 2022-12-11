@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.tunjid.tiler.queryAtOrNull
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 fun NumberTiles(
@@ -97,10 +98,11 @@ fun NumberTiles(
             val visibleItems = lazyState.layoutInfo.visibleItemsInfo
             if (visibleItems.isEmpty()) return@snapshotFlow null
 
-            val firstIndex = visibleItems.getOrNull(0)?.index ?: return@snapshotFlow null
+            val firstIndex = visibleItems.getOrNull(visibleItems.size / 2)?.index ?: return@snapshotFlow null
             tiledItems.queryAtOrNull(firstIndex)
         }
             .filterNotNull()
+            .onEach { println(it) }
             .distinctUntilChanged()
             .collect {
                 loader.setCurrentPage(it.page)

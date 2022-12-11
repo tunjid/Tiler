@@ -29,7 +29,7 @@ class TiledListKtTest {
             addAll(3, 3.testRange.toList())
         }
         assertEquals(
-            expected = (1.testRange + 3.testRange).toList(),
+            expected = 1.tiledTestRange() + 3.tiledTestRange(),
             actual = tiledList
         )
     }
@@ -41,7 +41,8 @@ class TiledListKtTest {
             addAll(3, 3.testRange.toList())
         }
         assertEquals(
-            expected = (1.testRange + 3.testRange).toList().filter { it % 2 == 0 },
+            expected = (1.tiledTestRange() + 3.tiledTestRange())
+                .filterTransform { filter { it % 2 == 0 } },
             actual = tiledList.filterTransform { filter { it % 2 == 0 } }
         )
     }
