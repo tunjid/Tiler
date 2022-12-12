@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.scan
 
@@ -32,6 +33,8 @@ data class PivotRequest<Query>(
     val onCount: Int,
     /** The amount of queries to keep in memory, but not collect from. */
     val offCount: Int = onCount,
+    /** The [Comparator] used for sorting queries while pivoting. */
+    val comparator: Comparator<Query>,
     /** A function to get the query consecutive to an existing query in ascending order. */
     val nextQuery: Query.() -> Query?,
     /** A function to get the query consecutive to an existing query in descending order. */
@@ -42,7 +45,9 @@ data class PivotRequest<Query>(
  * A summary of [Query] parameters that are pivoted around [currentQuery]
  */
 data class PivotResult<Query>(
-    val currentQuery: Query? = null,
+    val currentQuery: Query,
+    /** The [Comparator] used for sorting queries while pivoting. */
+    val comparator: Comparator<Query>,
     /** Pages actively being collected and loaded from. */
     val on: List<Query> = listOf(),
     /** Pages whose emissions are in memory, but are not being collected from. */
@@ -51,26 +56,6 @@ data class PivotResult<Query>(
     val evict: List<Query> = listOf(),
 )
 
-fun <Query> PivotRequest<Query>.pivotAround(
-    query: Query
-): PivotResult<Query> = PivotContext(query).let { loopContext ->
-    PivotResult(
-        on = mutableListOf(query).meetSizeQuota(
-            maxSize = onCount,
-            context = loopContext,
-            increment = nextQuery,
-            decrement = previousQuery
-        ),
-        off = mutableListOf<Query>().meetSizeQuota(
-            maxSize = offCount,
-            context = loopContext,
-            increment = nextQuery,
-            decrement = previousQuery
-        ),
-        currentQuery = query
-    )
-}
-
 /**
  * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query]
  */
@@ -78,13 +63,16 @@ fun <Query> Flow<Query>.pivotWith(
     pivotRequest: PivotRequest<Query>
 ): Flow<PivotResult<Query>> =
     distinctUntilChanged()
-        .scan(PivotResult<Query>()) { previousResult, currentQuery ->
+        .scan<Query, PivotResult<Query>?>(
+            initial = null
+        ) { previousResult, currentQuery ->
             reducePivotResult(
                 request = pivotRequest,
                 currentQuery = currentQuery,
                 previousResult = previousResult
             )
         }
+        .filterNotNull()
         .distinctUntilChanged()
 
 /**
@@ -98,38 +86,70 @@ fun <Query> Flow<Query>.pivotWith(
             pivotRequestFlow.distinctUntilChanged(),
             ::Pair
         )
-        .scan(PivotResult<Query>()) { previousResult, (currentQuery, pivotRequest) ->
+        .scan<Pair<Query, PivotRequest<Query>>, PivotResult<Query>?>(
+            initial = null
+        ) { previousResult, (currentQuery, pivotRequest) ->
             reducePivotResult(
                 request = pivotRequest,
                 currentQuery = currentQuery,
                 previousResult = previousResult
             )
         }
+        .filterNotNull()
         .distinctUntilChanged()
 
-private fun <Query> reducePivotResult(
-    request: PivotRequest<Query>,
-    currentQuery: Query,
-    previousResult: PivotResult<Query>
-): PivotResult<Query> {
-    val newRequest = request.pivotAround(currentQuery)
-    val toRemove = (newRequest.on + newRequest.off).toSet()
-    return newRequest.copy(
-        // Evict everything not in the current active and inactive range
-        evict = (previousResult.off + previousResult.on).filterNot(toRemove::contains)
-    )
-}
-
-fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.Request<Query, Item>> =
+fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.Input<Query, Item>> =
     flatMapConcat { managedRequest ->
-        buildList<Tile.Request<Query, Item>> {
+        buildList<Tile.Input<Query, Item>> {
             managedRequest.on.forEach { add(Tile.Request.On(it)) }
             managedRequest.off.forEach { add(Tile.Request.Off(it)) }
             managedRequest.evict.forEach { add(Tile.Request.Evict(it)) }
-            managedRequest.on.lastOrNull()?.let { add(Tile.Request.PivotAround(it)) }
+            managedRequest.on.lastOrNull()?.let {
+                add(Tile.Order.PivotSorted(query = it, comparator = managedRequest.comparator))
+            }
         }
             .asFlow()
     }
+internal fun <Query> PivotRequest<Query>.pivotAround(
+    query: Query
+): PivotResult<Query> = PivotContext(query).let { loopContext ->
+    PivotResult(
+        currentQuery = query,
+        comparator = comparator,
+        on = mutableListOf(query).meetSizeQuota(
+            maxSize = onCount,
+            context = loopContext,
+            increment = nextQuery,
+            decrement = previousQuery
+        ),
+        off = mutableListOf<Query>().meetSizeQuota(
+            maxSize = offCount,
+            context = loopContext,
+            increment = nextQuery,
+            decrement = previousQuery
+        ),
+    )
+}
+
+private fun <Query> reducePivotResult(
+    currentQuery: Query,
+    request: PivotRequest<Query>,
+    previousResult: PivotResult<Query>?
+): PivotResult<Query> {
+    val newRequest = request.pivotAround(currentQuery)
+    val toRemove = (newRequest.on + newRequest.off).toSet()
+    val previousQueries = when (previousResult) {
+        null -> emptyList()
+        else -> previousResult.off + previousResult.on
+    }
+    return newRequest.copy(
+        // Evict everything not in the current active and inactive range
+        evict = when {
+            previousQueries.isEmpty() -> previousQueries
+            else -> previousQueries.filterNot(toRemove::contains)
+        }
+    )
+}
 
 /**
  * Meets the size quota defined by [maxSize] if possible using the provided [PivotContext]

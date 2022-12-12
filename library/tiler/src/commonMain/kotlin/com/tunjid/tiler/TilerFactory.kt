@@ -43,7 +43,12 @@ internal fun <Query, Item> tilerFactory(
             transform = { it }
         )
         .scan(
-            initial = Tiler(limiter = limiter, order = order),
+            initial = Tiler(
+                metadata = Tile.Metadata(
+                    limiter = limiter,
+                    order = order
+                )
+            ),
             operation = Tiler<Query, Item>::add
         )
         .filter { it.shouldEmit }
@@ -86,10 +91,6 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
                 else -> existingValve.push(input)
             }
 
-            is Tile.Request.PivotAround -> emit(
-                flowOf(Tile.Output.UpdatePivot(query = input.query))
-            )
-
             is Tile.Limiter -> emit(
                 flowOf(Tile.Output.LimiterChange(limiter = input))
             )
@@ -105,9 +106,9 @@ private class InputValve<Query, Item>(
     fetcher: suspend (Query) -> Flow<List<Item>>
 ) {
 
-    private val mutableSharedFlow = MutableSharedFlow<Tile.ValveRequest<Query, Item>>()
+    private val mutableSharedFlow = MutableSharedFlow<Tile.Request<Query, Item>>()
 
-    val push: suspend (Tile.ValveRequest<Query, Item>) -> Unit = { request ->
+    val push: suspend (Tile.Request<Query, Item>) -> Unit = { request ->
         // Suspend till the downstream is connected
         mutableSharedFlow.subscriptionCount.first { it > 0 }
         mutableSharedFlow.emit(request)

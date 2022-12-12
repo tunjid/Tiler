@@ -30,9 +30,10 @@ class Tile<Query, Item : Any?> {
      * Holds information regarding properties that may be useful when flattening a [Map] of [Query]
      * to [Tile] into a [List]
      */
-    data class Metadata<Query> internal constructor(
+    data class Metadata<Query, Item> internal constructor(
         val sortedQueries: List<Query> = listOf(),
-        val pivotQuery: Query? = null,
+        val order: Order<Query, Item> = Order.Unspecified(),
+        val limiter: Limiter<Query, Item> = Limiter { false },
         val mostRecentlyEmitted: Query? = null,
     )
 
@@ -40,11 +41,6 @@ class Tile<Query, Item : Any?> {
      * Defines input parameters for the [listTiler] function
      */
     sealed interface Input<Query, Item>
-
-    /**
-     * Requests for controlling the output of a [Query]
-     */
-    sealed interface ValveRequest<Query, Item>
 
     /**
      * [Tile.Input] type for managing data in the [listTiler] function
@@ -56,7 +52,7 @@ class Tile<Query, Item : Any?> {
          * Starts collecting from the backing [Flow] for the specified [query].
          * Requesting this is idempotent; multiple requests have no side effects.
          */
-        data class On<Query, Item>(override val query: Query) : Request<Query, Item>(), ValveRequest<Query, Item>
+        data class On<Query, Item>(override val query: Query) : Request<Query, Item>()
 
         /**
          * Stops collecting from the backing [Flow] for the specified [query].
@@ -64,20 +60,14 @@ class Tile<Query, Item : Any?> {
          * in the [List] of items returned
          * Requesting this is idempotent; multiple requests have no side effects.
          */
-        data class Off<Query, Item>(override val query: Query) : Request<Query, Item>(), ValveRequest<Query, Item>
+        data class Off<Query, Item>(override val query: Query) : Request<Query, Item>()
 
         /**
          * Stops collecting from the backing [Flow] for the specified [query] and also evicts
          * the items previously fetched by the [query] from memory.
          * Requesting this is idempotent; multiple requests have no side effects.
          */
-        data class Evict<Query, Item>(override val query: Query) : Request<Query, Item>(), ValveRequest<Query, Item>
-
-        /**
-         * Pivots the produced [TiledList] around [query]. This is only valid when using the [Order.PivotSorted]
-         * [Order].
-         */
-        data class PivotAround<Query, Item>(override val query: Query) : Request<Query, Item>()
+        data class Evict<Query, Item>(override val query: Query) : Request<Query, Item>()
     }
 
     /**
@@ -116,7 +106,7 @@ class Tile<Query, Item : Any?> {
          */
         data class Custom<Query, Item>(
             override val comparator: Comparator<Query>,
-            val transform: Metadata<Query>.(Map<Query, List<Item>>) -> TiledList<Query, Item>,
+            val transform: Metadata<Query, Item>.(Map<Query, List<Item>>) -> TiledList<Query, Item>,
         ) : Order<Query, Item>(), Input<Query, Item>
 
     }
@@ -146,10 +136,6 @@ class Tile<Query, Item : Any?> {
         ) : Output<Query, Item>()
 
         data class Eviction<Query, Item>(
-            val query: Query,
-        ) : Output<Query, Item>()
-
-        data class UpdatePivot<Query, Item>(
             val query: Query,
         ) : Output<Query, Item>()
     }
