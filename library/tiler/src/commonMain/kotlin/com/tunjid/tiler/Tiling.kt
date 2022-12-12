@@ -19,33 +19,21 @@ package com.tunjid.tiler
 import com.tunjid.utilities.MutablePairedTiledList
 
 internal fun <Query, Item> Map<Query, List<Item>>.tileWith(
-    metadata: Tile.Metadata<Query>,
-    order: Tile.Order<Query, Item>,
-    limiter: Tile.Limiter<Query, Item>
-): TiledList<Query, Item> = listTiling(
-    metadata = metadata,
-    order = order,
-    limiter = limiter
-)
-
-private fun <Query, Item> Map<Query, List<Item>>.listTiling(
-    metadata: Tile.Metadata<Query>,
-    order: Tile.Order<Query, Item>,
-    limiter: Tile.Limiter<Query, Item>
+    metadata: Tile.Metadata<Query, Item>,
 ): TiledList<Query, Item> {
     val queryToTiles = this
     val sortedQueries = metadata.sortedQueries
 
-    return when (order) {
+    return when (val order = metadata.order) {
         is Tile.Order.Unspecified -> queryToTiles.keys
-            .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
+            .foldWhile(MutablePairedTiledList(), metadata.limiter.check) { mutableTiledList, query ->
                 val items = queryToTiles.getValue(query)
                 mutableTiledList.addAll(query = query, items = items)
                 mutableTiledList
             }
 
         is Tile.Order.Sorted -> sortedQueries
-            .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
+            .foldWhile(MutablePairedTiledList(), metadata.limiter.check) { mutableTiledList, query ->
                 val items = queryToTiles.getValue(query)
                 mutableTiledList.addAll(query = query, items = items)
                 mutableTiledList
@@ -54,7 +42,7 @@ private fun <Query, Item> Map<Query, List<Item>>.listTiling(
         is Tile.Order.PivotSorted -> {
             if (sortedQueries.isEmpty()) return emptyTiledList()
 
-            val pivotQuery: Query = metadata.pivotQuery ?: return emptyTiledList()
+            val pivotQuery: Query = order.query ?: return emptyTiledList()
             val startIndex = sortedQueries.binarySearch(pivotQuery, order.comparator)
 
             if (startIndex < 0) return emptyTiledList()
@@ -68,7 +56,7 @@ private fun <Query, Item> Map<Query, List<Item>>.listTiling(
             tiledList.addAll(query = query, items = items)
 
 
-            while (!limiter.check(tiledList) && (leftIndex >= 0 || rightIndex <= sortedQueries.lastIndex)) {
+            while (!metadata.limiter.check(tiledList) && (leftIndex >= 0 || rightIndex <= sortedQueries.lastIndex)) {
                 if (--leftIndex >= 0) {
                     query = sortedQueries[leftIndex]
                     items = queryToTiles.getValue(query)

@@ -47,16 +47,14 @@ val descendingPageComparator = ascendingPageComparator.reversed()
 data class PageQuery(
     val page: Int,
     val isAscending: Boolean
-) {
-    override fun toString(): String = "page: $page; asc: $isAscending"
-}
+)
 
 data class State(
     val isAscending: Boolean = true,
     val itemsPerPage: Int = ITEMS_PER_PAGE,
     val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
-    val pivotResult: PivotResult<PageQuery> = PivotResult(),
+    val tilingSummary: String,
     val items: TiledList<PageQuery, NumberTile> = emptyTiledList()
 )
 
@@ -71,7 +69,11 @@ class Loader(
 
     // Pivot around the user's scroll position
     private val pivots = currentQuery.pivotWith(
-        numberOfColumns.map(::pivotRequest)
+        combine(
+            currentQuery.map { it.isAscending },
+            numberOfColumns,
+            ::pivotRequest
+        )
     )
 
     // Allows for changing the order dynamically
@@ -113,7 +115,10 @@ class Loader(
         State(
             isAscending = pageQuery.isAscending,
             currentPage = pageQuery.page,
-            pivotResult = pivotResult,
+            tilingSummary = pivotResult.tilingSummary(
+                itemsPerPage = ITEMS_PER_PAGE,
+                listSize = tiledList.size
+            ),
             items = tiledList.filterTransform(
                 filterTransformer = { distinctBy(NumberTile::key) }
             )
@@ -122,7 +127,7 @@ class Loader(
         .stateIn(
             scope = scope,
             started = SharingStarted.WhileSubscribed(),
-            initialValue = State()
+            initialValue = State(tilingSummary = "")
         )
 
     fun setCurrentPage(page: Int) = currentQuery.update { query ->
@@ -148,22 +153,28 @@ class Loader(
     /**
      * Pivoted tiling with the grid size as a dynamic input parameter
      */
-    private fun pivotRequest(numberOfColumns: Int) = PivotRequest(
+    private fun pivotRequest(
+        isAscending: Boolean,
+        numberOfColumns: Int,
+    ) = PivotRequest(
         onCount = 4 * numberOfColumns,
         offCount = 4 * numberOfColumns,
         nextQuery = nextQuery,
-        previousQuery = previousQuery
+        previousQuery = previousQuery,
+        comparator = when {
+            isAscending -> ascendingPageComparator
+            else -> descendingPageComparator
+        }
     )
 }
 
-val State.tilingSummary
-    get() =
-        """
+fun PivotResult<PageQuery>.tilingSummary(itemsPerPage: Int, listSize: Int) =
+    """
 Items per page: $itemsPerPage
-Tiled list size: ${items.size}
-Active pages: ${pivotResult.on.map(PageQuery::page).sorted()}
-Pages in memory: ${pivotResult.off.map(PageQuery::page).sorted()}
-Evicted: ${pivotResult.evict.map(PageQuery::page).sorted()}
+Tiled list size: $listSize
+Active pages: ${on.map(PageQuery::page).sorted()}
+Pages in memory: ${off.map(PageQuery::page).sorted()}
+Evicted: ${evict.map(PageQuery::page).sorted()}
 """.trim()
 
 /**

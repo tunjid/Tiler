@@ -20,17 +20,7 @@ package com.tunjid.tiler
  * Produces [TiledList] from the current tiling state
  */
 internal data class Tiler<Query, Item>(
-    val limiter: Tile.Limiter<Query, Item>,
-    val order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
-    val metadata: Tile.Metadata<Query> = Tile.Metadata(
-        pivotQuery = when (order) {
-            is Tile.Order.Custom,
-            is Tile.Order.Sorted,
-            is Tile.Order.Unspecified -> null
-
-            is Tile.Order.PivotSorted -> order.query
-        }
-    ),
+    val metadata: Tile.Metadata<Query, Item>,
     val shouldEmit: Boolean = false,
     // I'd rather this be immutable, electing against it for performance reasons
     val queryToTiles: MutableMap<Query, List<Item>> = mutableMapOf(),
@@ -46,21 +36,12 @@ internal data class Tiler<Query, Item>(
                     sortedQueries = metadata.sortedQueries
                         .plus(output.query)
                         .distinct()
-                        .sortedWith(order.comparator),
+                        .sortedWith(metadata.order.comparator),
                     mostRecentlyEmitted = output.query,
                 )
             },
             queryToTiles = queryToTiles.apply { put(output.query, output.items) }
         )
-
-        is Tile.Output.UpdatePivot -> when (order) {
-            is Tile.Order.PivotSorted -> copy(
-                shouldEmit = metadata.pivotQuery != output.query,
-                metadata = metadata.copy(pivotQuery = output.query)
-            )
-
-            else -> throw IllegalArgumentException("The Tiler is not configured for pivoting")
-        }
 
         is Tile.Output.Eviction -> copy(
             shouldEmit = true,
@@ -71,28 +52,19 @@ internal data class Tiler<Query, Item>(
         )
 
         is Tile.Output.OrderChange -> copy(
-            shouldEmit = true,
-            order = output.order,
+            shouldEmit = metadata.order != output.order,
             metadata = metadata.copy(
-                pivotQuery = when (output.order) {
-                    is Tile.Order.Custom,
-                    is Tile.Order.Sorted,
-                    is Tile.Order.Unspecified -> null
-
-                    is Tile.Order.PivotSorted -> output.order.query
-                },
+                order = output.order,
                 sortedQueries = metadata.sortedQueries.sortedWith(output.order.comparator)
             )
         )
 
         is Tile.Output.LimiterChange -> copy(
-            limiter = output.limiter
+            metadata = metadata.copy(limiter = output.limiter)
         )
     }
 
     fun output(): TiledList<Query, Item> = queryToTiles.tileWith(
         metadata = metadata,
-        order = order,
-        limiter = limiter
     )
 }

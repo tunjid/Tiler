@@ -37,9 +37,12 @@ import kotlin.test.assertEquals
 
 class PivotingKtTest {
 
-    private val pivotRequest = PivotRequest<Int>(
+    private val comparator: Comparator<Int> = Comparator(Int::compareTo)
+
+    private val pivotRequest = PivotRequest(
         onCount = 3,
         offCount = 4,
+        comparator = comparator,
         nextQuery = { this + 1 },
         previousQuery = { (this - 1).takeIf { it >= 0 } },
     )
@@ -49,6 +52,7 @@ class PivotingKtTest {
         assertEquals(
             expected = PivotResult(
                 currentQuery = 7,
+                comparator = comparator,
                 on = listOf(6, 7, 8).sortedByFurthestDistanceFrom(7),
                 off = listOf(4, 5, 9, 10).sortedByFurthestDistanceFrom(7),
                 evict = emptyList(),
@@ -62,6 +66,7 @@ class PivotingKtTest {
         assertEquals(
             expected = PivotResult(
                 currentQuery = 0,
+                comparator = comparator,
                 on = listOf(0, 1, 2).sortedByFurthestDistanceFrom(0),
                 off = listOf(3, 4, 5, 6).sortedByFurthestDistanceFrom(0),
                 evict = emptyList(),
@@ -83,15 +88,22 @@ class PivotingKtTest {
         val pivotResults = queries.pivotWith(pivotRequest).toList()
 
         assertEquals(
-            PivotResult(),
+            PivotResult(
+                currentQuery = 0,
+                comparator = comparator,
+                on = listOf(0, 1, 2).sortedByFurthestDistanceFrom(0),
+                off = listOf(3, 4, 5, 6).sortedByFurthestDistanceFrom(0),
+                evict = emptyList(),
+            ),
             pivotResults[0]
         )
 
         assertEquals(
             PivotResult(
-                currentQuery = 0,
-                on = listOf(0, 1, 2).sortedByFurthestDistanceFrom(0),
-                off = listOf(3, 4, 5, 6).sortedByFurthestDistanceFrom(0),
+                currentQuery = 1,
+                comparator = comparator,
+                on = listOf(0, 1, 2).sortedByFurthestDistanceFrom(1),
+                off = listOf(3, 4, 5, 6).sortedByFurthestDistanceFrom(1),
                 evict = emptyList(),
             ),
             pivotResults[1]
@@ -99,9 +111,10 @@ class PivotingKtTest {
 
         assertEquals(
             PivotResult(
-                currentQuery = 1,
-                on = listOf(0, 1, 2).sortedByFurthestDistanceFrom(1),
-                off = listOf(3, 4, 5, 6).sortedByFurthestDistanceFrom(1),
+                currentQuery = 2,
+                comparator = comparator,
+                on = listOf(1, 2, 3).sortedByFurthestDistanceFrom(2),
+                off = listOf(0, 4, 5, 6).sortedByFurthestDistanceFrom(2),
                 evict = emptyList(),
             ),
             pivotResults[2]
@@ -109,9 +122,10 @@ class PivotingKtTest {
 
         assertEquals(
             PivotResult(
-                currentQuery = 2,
-                on = listOf(1, 2, 3).sortedByFurthestDistanceFrom(2),
-                off = listOf(0, 4, 5, 6).sortedByFurthestDistanceFrom(2),
+                currentQuery = 3,
+                comparator = comparator,
+                on = listOf(2, 3, 4).sortedByFurthestDistanceFrom(3),
+                off = listOf(0, 1, 5, 6).sortedByFurthestDistanceFrom(3),
                 evict = emptyList(),
             ),
             pivotResults[3]
@@ -119,22 +133,13 @@ class PivotingKtTest {
 
         assertEquals(
             PivotResult(
-                currentQuery = 3,
-                on = listOf(2, 3, 4).sortedByFurthestDistanceFrom(3),
-                off = listOf(0, 1, 5, 6).sortedByFurthestDistanceFrom(3),
-                evict = emptyList(),
-            ),
-            pivotResults[4]
-        )
-
-        assertEquals(
-            PivotResult(
                 currentQuery = 4,
+                comparator = comparator,
                 on = listOf(3, 4, 5).sortedByFurthestDistanceFrom(4),
                 off = listOf(1, 2, 6, 7).sortedByFurthestDistanceFrom(4),
                 evict = listOf(0),
             ),
-            pivotResults[5]
+            pivotResults[4]
         )
     }
 
@@ -150,53 +155,53 @@ class PivotingKtTest {
         val pivotResults = queries.pivotWith(pivotRequest).toList()
 
         assertEquals(
-            PivotResult(),
-            pivotResults[0]
+            PivotResult(
+                currentQuery = 0,
+                comparator = comparator,
+                on = listOf(0, 1, 2).sortedByFurthestDistanceFrom(0),
+                off = listOf(3, 4, 5, 6).sortedByFurthestDistanceFrom(0),
+                evict = emptyList(),
+            ), pivotResults[0]
         )
 
         assertEquals(
             PivotResult(
-                currentQuery = 0,
-                on = listOf(0, 1, 2).sortedByFurthestDistanceFrom(0),
-                off = listOf(3, 4, 5, 6).sortedByFurthestDistanceFrom(0),
+                currentQuery = 3,
+                comparator = comparator,
+                on = listOf(2, 3, 4).sortedByFurthestDistanceFrom(3),
+                off = listOf(0, 1, 5, 6).sortedByFurthestDistanceFrom(3),
                 evict = emptyList(),
             ), pivotResults[1]
         )
 
         assertEquals(
             PivotResult(
-                currentQuery = 3,
-                on = listOf(2, 3, 4).sortedByFurthestDistanceFrom(3),
-                off = listOf(0, 1, 5, 6).sortedByFurthestDistanceFrom(3),
-                evict = emptyList(),
+                currentQuery = 7,
+                comparator = comparator,
+                on = listOf(6, 7, 8).sortedByFurthestDistanceFrom(7),
+                off = listOf(4, 5, 9, 10).sortedByFurthestDistanceFrom(7),
+                evict = listOf(2, 3, 0, 1).sortedByFurthestDistanceFrom(3),
             ), pivotResults[2]
         )
 
         assertEquals(
             PivotResult(
-                currentQuery = 7,
-                on = listOf(6, 7, 8).sortedByFurthestDistanceFrom(7),
-                off = listOf(4, 5, 9, 10).sortedByFurthestDistanceFrom(7),
-                evict = listOf(2, 3, 0, 1).sortedByFurthestDistanceFrom(3),
+                currentQuery = 17,
+                comparator = comparator,
+                on = listOf(16, 17, 18).sortedByFurthestDistanceFrom(17),
+                off = listOf(14, 15, 19, 20).sortedByFurthestDistanceFrom(17),
+                evict = listOf(6, 7, 8, 4, 5, 9, 10).sortedByFurthestDistanceFrom(7),
             ), pivotResults[3]
         )
 
         assertEquals(
             PivotResult(
-                currentQuery = 17,
-                on = listOf(16, 17, 18).sortedByFurthestDistanceFrom(17),
-                off = listOf(14, 15, 19, 20).sortedByFurthestDistanceFrom(17),
-                evict = listOf(6, 7, 8, 4, 5, 9, 10).sortedByFurthestDistanceFrom(7),
-            ), pivotResults[4]
-        )
-
-        assertEquals(
-            PivotResult(
                 currentQuery = 0,
+                comparator = comparator,
                 on = listOf(0, 1, 2).sortedByFurthestDistanceFrom(0),
                 off = listOf(3, 4, 5, 6).sortedByFurthestDistanceFrom(0),
                 evict = listOf(16, 17, 18, 14, 15, 19, 20).sortedByFurthestDistanceFrom(17),
-            ), pivotResults[5]
+            ), pivotResults[4]
         )
     }
 
@@ -215,7 +220,7 @@ class PivotingKtTest {
             .shareIn(
                 scope = this,
                 started = SharingStarted.Lazily,
-                replay = 6
+                replay = 5
             )
 
         val queries = queriesAndRequests.filterIsInstance<Int>()
@@ -225,60 +230,60 @@ class PivotingKtTest {
             .onStart { emit(pivotRequest) }
 
         val pivotResults = queries.pivotWith(pivotRequests)
-            .take(6)
+            .take(5)
             .toList()
-
-        assertEquals(
-            PivotResult(),
-            pivotResults[0]
-        )
 
         assertEquals(
             PivotResult(
                 currentQuery = 0,
+                comparator = comparator,
                 on = listOf(0, 1, 2).sortedByFurthestDistanceFrom(0),
                 off = listOf(3, 4, 5, 6).sortedByFurthestDistanceFrom(0),
                 evict = emptyList(),
-            ), pivotResults[1]
+            ), pivotResults[0]
         )
 
         assertEquals(
             PivotResult(
                 currentQuery = 1,
+                comparator = comparator,
                 on = listOf(0, 1, 2).sortedByFurthestDistanceFrom(1),
                 off = listOf(3, 4, 5, 6).sortedByFurthestDistanceFrom(1),
                 evict = emptyList(),
-            ), pivotResults[2]
+            ), pivotResults[1]
         )
 
         // The expanded pivot request should allow for more on queries
         assertEquals(
             PivotResult(
                 currentQuery = 1,
+                comparator = comparator,
                 on = listOf(0, 1, 2, 3, 4).sortedByFurthestDistanceFrom(1),
                 off = listOf(5, 6, 7, 8).sortedByFurthestDistanceFrom(1),
                 evict = emptyList(),
-            ), pivotResults[3]
+            ), pivotResults[2]
         )
 
         assertEquals(
             PivotResult(
                 currentQuery = 2,
+                comparator = comparator,
                 on = listOf(0, 1, 2, 3, 4).sortedByFurthestDistanceFrom(2),
                 off = listOf(5, 6, 7, 8).sortedByFurthestDistanceFrom(2),
                 evict = emptyList(),
-            ), pivotResults[4]
+            ), pivotResults[3]
         )
 
         // The contracted pivot request should allow for less on queries
         assertEquals(
             PivotResult(
                 currentQuery = 2,
+                comparator = comparator,
                 on = listOf(1, 2, 3).sortedByFurthestDistanceFrom(2),
                 off = listOf(0, 4, 5, 6).sortedByFurthestDistanceFrom(2),
                 evict = listOf(7, 8).sortedByFurthestDistanceFrom(2),
             ),
-            pivotResults[5]
+            pivotResults[4]
         )
     }
 }
