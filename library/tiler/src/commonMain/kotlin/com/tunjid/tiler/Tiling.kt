@@ -18,60 +18,58 @@ package com.tunjid.tiler
 
 import com.tunjid.utilities.MutablePairedTiledList
 
-internal fun <Query, Item> Map<Query, List<Item>>.tileWith(
-    metadata: Tile.Metadata<Query, Item>,
+internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
+    queryItemsMap: Map<Query, List<Item>>,
 ): TiledList<Query, Item> {
-    val queryToTiles = this
-    val sortedQueries = metadata.sortedQueries
+    val orderedQueries = orderedQueries
 
-    return when (val order = metadata.order) {
-        is Tile.Order.Unspecified -> queryToTiles.keys
-            .foldWhile(MutablePairedTiledList(), metadata.limiter.check) { mutableTiledList, query ->
-                val items = queryToTiles.getValue(query)
+    return when (val order = order) {
+        is Tile.Order.Unspecified -> queryItemsMap.keys
+            .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
+                val items = queryItemsMap.getValue(query)
                 mutableTiledList.addAll(query = query, items = items)
                 mutableTiledList
             }
 
-        is Tile.Order.Sorted -> sortedQueries
-            .foldWhile(MutablePairedTiledList(), metadata.limiter.check) { mutableTiledList, query ->
-                val items = queryToTiles.getValue(query)
+        is Tile.Order.Sorted -> orderedQueries
+            .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
+                val items = queryItemsMap.getValue(query)
                 mutableTiledList.addAll(query = query, items = items)
                 mutableTiledList
             }
 
         is Tile.Order.PivotSorted -> {
-            if (sortedQueries.isEmpty()) return emptyTiledList()
+            if (orderedQueries.isEmpty()) return emptyTiledList()
 
             val pivotQuery: Query = order.query ?: return emptyTiledList()
-            val startIndex = sortedQueries.binarySearch(pivotQuery, order.comparator)
+            val startIndex = orderedQueries.binarySearch(pivotQuery, order.comparator)
 
             if (startIndex < 0) return emptyTiledList()
 
             var leftIndex = startIndex
             var rightIndex = startIndex
-            var query = sortedQueries[startIndex]
-            var items = queryToTiles.getValue(query)
+            var query = orderedQueries[startIndex]
+            var items = queryItemsMap.getValue(query)
 
             val tiledList = MutablePairedTiledList<Query, Item>()
             tiledList.addAll(query = query, items = items)
 
-
-            while (!metadata.limiter.check(tiledList) && (leftIndex >= 0 || rightIndex <= sortedQueries.lastIndex)) {
+            while (!limiter.check(tiledList) && (leftIndex >= 0 || rightIndex <= orderedQueries.lastIndex)) {
                 if (--leftIndex >= 0) {
-                    query = sortedQueries[leftIndex]
-                    items = queryToTiles.getValue(query)
+                    query = orderedQueries[leftIndex]
+                    items = queryItemsMap.getValue(query)
                     tiledList.addAll(index = 0, query = query, items = items)
                 }
-                if (++rightIndex <= sortedQueries.lastIndex) {
-                    query = sortedQueries[rightIndex]
-                    items = queryToTiles.getValue(query)
+                if (++rightIndex <= orderedQueries.lastIndex) {
+                    query = orderedQueries[rightIndex]
+                    items = queryItemsMap.getValue(query)
                     tiledList.addAll(query = query, items = items)
                 }
             }
             tiledList
         }
 
-        is Tile.Order.Custom -> order.transform(metadata, queryToTiles)
+        is Tile.Order.Custom -> order.transform(this, queryItemsMap)
     }
 }
 

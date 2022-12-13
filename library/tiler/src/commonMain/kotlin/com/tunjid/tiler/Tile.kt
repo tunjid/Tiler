@@ -31,7 +31,7 @@ class Tile<Query, Item : Any?> {
      * to [Tile] into a [List]
      */
     data class Metadata<Query, Item> internal constructor(
-        val sortedQueries: List<Query> = listOf(),
+        val orderedQueries: List<Query> = listOf(),
         val order: Order<Query, Item> = Order.Unspecified(),
         val limiter: Limiter<Query, Item> = Limiter { false },
         val mostRecentlyEmitted: Query? = null,
@@ -112,7 +112,8 @@ class Tile<Query, Item : Any?> {
     }
 
     /**
-     * Limits the output of the [listTiler] for [listTiler] functions
+     * Limits the output of the [listTiler] for [listTiler] functions.
+     * Note: Limiting is done with per query, not per item.
      */
     data class Limiter<Query, Item>(
         val check: (TiledList<Query, Item>) -> Boolean
