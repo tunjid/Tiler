@@ -99,17 +99,18 @@ fun <Query> Flow<Query>.pivotWith(
         .distinctUntilChanged()
 
 fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.Input<Query, Item>> =
-    flatMapConcat { managedRequest ->
+    flatMapConcat { pivotResult ->
         buildList<Tile.Input<Query, Item>> {
-            managedRequest.on.forEach { add(Tile.Request.On(it)) }
-            managedRequest.off.forEach { add(Tile.Request.Off(it)) }
-            managedRequest.evict.forEach { add(Tile.Request.Evict(it)) }
-            managedRequest.on.lastOrNull()?.let {
-                add(Tile.Order.PivotSorted(query = it, comparator = managedRequest.comparator))
+            pivotResult.evict.forEach { query -> add(Tile.Request.Evict(query)) }
+            pivotResult.off.forEach { query -> add(Tile.Request.Off(query)) }
+            pivotResult.on.forEach { query -> add(Tile.Request.On(query)) }
+            pivotResult.on.lastOrNull()?.let { query ->
+                add(Tile.Order.PivotSorted(query, pivotResult.comparator))
             }
         }
             .asFlow()
     }
+
 internal fun <Query> PivotRequest<Query>.pivotAround(
     query: Query
 ): PivotResult<Query> = PivotContext(query).let { loopContext ->

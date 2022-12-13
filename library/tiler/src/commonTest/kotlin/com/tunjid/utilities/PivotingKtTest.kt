@@ -16,10 +16,12 @@
 
 package com.tunjid.utilities
 
+import com.tunjid.tiler.Tile
 import com.tunjid.tiler.utilities.PivotRequest
 import com.tunjid.tiler.utilities.PivotResult
 import com.tunjid.tiler.utilities.pivotAround
 import com.tunjid.tiler.utilities.pivotWith
+import com.tunjid.tiler.utilities.toTileInputs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
@@ -39,7 +41,7 @@ class PivotingKtTest {
 
     private val comparator: Comparator<Int> = Comparator(Int::compareTo)
 
-    private val pivotRequest = PivotRequest(
+    private val pivotRequest: PivotRequest<Int> = PivotRequest(
         onCount = 3,
         offCount = 4,
         comparator = comparator,
@@ -285,6 +287,69 @@ class PivotingKtTest {
             ),
             pivotResults[4]
         )
+    }
+
+    @Test
+    fun pivoting_evicts_first_then_turns_off_before_turning_on_and_finally_ordering() = runTest {
+        val queries = listOf(
+            9,
+            5,
+        ).asFlow()
+
+        val inputs = queries.pivotWith(pivotRequest)
+            .toTileInputs<Int, Int>()
+            .toList()
+
+        val firstPivotResult = PivotResult(
+            currentQuery = 9,
+            comparator = comparator,
+            on = listOf(8, 9, 10).sortedByFurthestDistanceFrom(9),
+            off = listOf(6, 7, 11, 12).sortedByFurthestDistanceFrom(9),
+            evict = emptyList(),
+        )
+
+        val secondPivotResult = PivotResult(
+            currentQuery = 5,
+            comparator = comparator,
+            on = listOf(4, 5, 6).sortedByFurthestDistanceFrom(5),
+            off = listOf(2, 3, 7, 8).sortedByFurthestDistanceFrom(5),
+            evict = listOf(9, 10, 11, 12).sortedByFurthestDistanceFrom(5),
+        )
+
+        listOf<List<Tile.Input<Int, Int>>>(
+            firstPivotResult.evict.map { Tile.Request.Evict(it) },
+            firstPivotResult.off.map { Tile.Request.Off(it) },
+            firstPivotResult.on.map { Tile.Request.On(it) },
+            listOf(firstPivotResult.on.last().let { Tile.Order.PivotSorted(it, Int::compareTo) }),
+            secondPivotResult.evict.map { Tile.Request.Evict(it) },
+            secondPivotResult.off.map { Tile.Request.Off(it) },
+            secondPivotResult.on.map { Tile.Request.On(it) },
+            listOf(secondPivotResult.on.last().let { Tile.Order.PivotSorted(it, Int::compareTo) }),
+        )
+            .flatten()
+            .zip(inputs)
+            .forEach { (expected, actual) ->
+                when (expected) {
+                    is Tile.Order.Custom,
+                    is Tile.Limiter,
+                    is Tile.Order.Sorted,
+                    is Tile.Order.Unspecified -> throw IllegalArgumentException("Unexpected type")
+
+                    is Tile.Order.PivotSorted -> assertEquals(
+                        expected = expected.comparator.compare(0, expected.query),
+                        actual = with(actual as Tile.Order.PivotSorted<Int, Int>) {
+                            comparator.compare(0, query)
+                        },
+                    )
+
+                    is Tile.Request.Evict,
+                    is Tile.Request.Off,
+                    is Tile.Request.On -> assertEquals(
+                        expected = expected,
+                        actual = actual
+                    )
+                }
+            }
     }
 }
 
