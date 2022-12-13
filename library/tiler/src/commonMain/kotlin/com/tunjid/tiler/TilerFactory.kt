@@ -58,13 +58,13 @@ internal fun <Query, Item> tilerFactory(
  * Effectively a function of [Flow] [Tile.Input] to [Flow] [Tile.Output].
  * It keeps track of concurrent [Query]s allowing to pause, resume or discard of them at will.
  *
- * Each [Tile.Input] is mapped to an instance of an [InputValve] which manages the lifecycle
+ * Each [Tile.Input] is mapped to an instance of an [QueryFlowValve] which manages the lifecycle
  * of the resultant [Flow].
  */
 private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
     fetcher: suspend (Query) -> Flow<List<Item>>
-): Flow<Flow<Tile.Output<Query, Item>>> = flow channelFlow@{
-    val queriesToValves = mutableMapOf<Query, InputValve<Query, Item>>()
+): Flow<Flow<Tile.Output<Query, Item>>> = flow flow@{
+    val queriesToValves = mutableMapOf<Query, QueryFlowValve<Query, Item>>()
 
     this@toOutput.collect { input ->
         when (input) {
@@ -80,7 +80,7 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
             is Tile.Request.Off -> queriesToValves[input.query]?.push?.invoke(input)
             is Tile.Request.On -> when (val existingValve = queriesToValves[input.query]) {
                 null -> {
-                    val valve = InputValve(
+                    val valve = QueryFlowValve(
                         query = input.query,
                         fetcher = fetcher,
                     )
@@ -101,7 +101,7 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
 /**
  * Allows for turning on, off and terminating the [Flow] specified by a given fetcher
  */
-private class InputValve<Query, Item>(
+private class QueryFlowValve<Query, Item>(
     query: Query,
     fetcher: suspend (Query) -> Flow<List<Item>>
 ) {
