@@ -22,49 +22,89 @@ package com.tunjid.tiler
 internal data class Tiler<Query, Item>(
     val metadata: Tile.Metadata<Query, Item>,
     val shouldEmit: Boolean = false,
-    // I'd rather this be immutable, electing against it for performance reasons
-    val queryToTiles: MutableMap<Query, List<Item>> = mutableMapOf(),
-) {
+    val queryItemsMap: Map<Query, List<Item>> = mapOf(),
+)
 
-    fun add(output: Tile.Output<Query, Item>): Tiler<Query, Item> = when (output) {
-        is Tile.Output.Data -> copy(
-            shouldEmit = true,
-            // Only sort queries when they output the first time to amortize the cost of sorting.
-            metadata = when {
-                queryToTiles.contains(output.query) -> metadata.copy(mostRecentlyEmitted = output.query)
-                else -> metadata.copy(
-                    sortedQueries = metadata.sortedQueries
-                        .plus(output.query)
-                        .distinct()
-                        .sortedWith(metadata.order.comparator),
-                    mostRecentlyEmitted = output.query,
-                )
-            },
-            queryToTiles = queryToTiles.apply { put(output.query, output.items) }
-        )
-
-        is Tile.Output.Eviction -> copy(
-            shouldEmit = true,
-            metadata = metadata.copy(
-                sortedQueries = metadata.sortedQueries - output.query
-            ),
-            queryToTiles = queryToTiles.apply { remove(output.query) }
-        )
-
-        is Tile.Output.OrderChange -> copy(
-            shouldEmit = metadata.order != output.order,
-            metadata = metadata.copy(
-                order = output.order,
-                sortedQueries = metadata.sortedQueries.sortedWith(output.order.comparator)
+internal fun <Query, Item> Tiler<Query, Item>.add(
+    output: Tile.Output<Query, Item>
+): Tiler<Query, Item> = when (output) {
+    is Tile.Output.Data -> copy(
+        shouldEmit = true,
+        // Only sort queries when they output the first time to amortize the cost of sorting.
+        metadata = when {
+            queryItemsMap.contains(output.query) -> metadata.copy(
+                mostRecentlyEmitted = output.query
             )
-        )
-
-        is Tile.Output.LimiterChange -> copy(
-            metadata = metadata.copy(limiter = output.limiter)
-        )
-    }
-
-    fun output(): TiledList<Query, Item> = queryToTiles.tileWith(
-        metadata = metadata,
+            else -> metadata.copy(
+                orderedQueries = metadata.insertOrderedQuery(output.query),
+                mostRecentlyEmitted = output.query,
+            )
+        },
+        queryItemsMap = queryItemsMap + (output.query to output.items)
     )
+
+    is Tile.Output.Eviction -> copy(
+        shouldEmit = true,
+        metadata = metadata.copy(
+            orderedQueries = metadata.orderedQueries - output.query
+        ),
+        queryItemsMap = queryItemsMap - output.query
+    )
+
+    is Tile.Output.OrderChange -> copy(
+        shouldEmit = metadata.order != output.order,
+        metadata = metadata.copy(
+            order = output.order,
+            orderedQueries = metadata.orderedQueries.sortedWith(output.order.comparator)
+        )
+    )
+
+    is Tile.Output.LimiterChange -> copy(
+        shouldEmit = true,
+        metadata = metadata.copy(limiter = output.limiter)
+    )
+}
+
+internal fun <Query, Item> Tiler<Query, Item>.output(): TiledList<Query, Item> = metadata.toTiledList(
+    queryItemsMap = queryItemsMap,
+)
+
+/**
+ * Inserts a new query into ordered queries in O(N) time.
+ *
+ * If the List were mutable, binary search could've been used to find the insertion index
+ * but requiring immutability restricts to O(N).
+ */
+internal fun <Query, Item> Tile.Metadata<Query, Item>.insertOrderedQuery(
+    middleQuery: Query
+): List<Query> = when {
+    orderedQueries.isEmpty() -> listOf(middleQuery)
+    else -> buildList(orderedQueries.size + 1) {
+        var added = false
+
+        for (index in orderedQueries.indices) {
+            val leftQuery = orderedQueries[index]
+
+            if (added) {
+                add(leftQuery)
+                continue
+            }
+
+            val rightQuery = orderedQueries.getOrNull(index + 1)
+            val leftComparison = order.comparator.compare(leftQuery, middleQuery)
+            val rightComparison = when (rightQuery) {
+                null -> Int.MAX_VALUE
+                else -> order.comparator.compare(rightQuery, middleQuery)
+            }
+            val addBefore = leftComparison > 0
+            val isDuplicate = leftComparison == 0
+            val addAfter = leftComparison < 0 && rightComparison > 0
+
+            if (addBefore) add(middleQuery)
+            add(leftQuery)
+            if (addAfter) add(middleQuery)
+
+            added = addBefore || isDuplicate || addAfter
+        }
+    }
 }

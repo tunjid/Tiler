@@ -63,13 +63,13 @@ class TilerKtTest {
                 .flatten()
                 .fold(
                     initial = Tiler(
-                       metadata = Tile.Metadata(
-                           limiter = Tile.Limiter { items -> items.size >= 50 },
-                           order = Tile.Order.PivotSorted(
-                               query = 4,
-                               comparator = Int::compareTo
-                           )
-                       )
+                        metadata = Tile.Metadata(
+                            limiter = Tile.Limiter { items -> items.size >= 50 },
+                            order = Tile.Order.PivotSorted(
+                                query = 4,
+                                comparator = Int::compareTo
+                            )
+                        )
                     ),
                     operation = Tiler<Int, Int>::add
                 )
@@ -83,4 +83,42 @@ class TilerKtTest {
         )
     }
 
+    @Test
+    fun insertingAQueryMaintainsOrder() {
+        assertEquals(
+            expected = listOf(1, 2, 3, 4),
+            actual = Tile.Metadata<Int, Int>(
+                orderedQueries = listOf(1, 2, 3, 4),
+                order = Tile.Order.Sorted(Int::compareTo)
+            ).insertOrderedQuery(2),
+            message = "inserting ordered query fails at de-duplicating"
+        )
+
+        assertEquals(
+            expected = listOf(1, 2, 3, 4),
+            actual = Tile.Metadata<Int, Int>(
+                orderedQueries = listOf(1, 2, 4),
+                order = Tile.Order.Sorted(Int::compareTo)
+            ).insertOrderedQuery(3),
+            message = "inserting ordered query fails at inserting in the middle"
+        )
+
+        assertEquals(
+            expected = listOf(0, 1, 2, 4),
+            actual = Tile.Metadata<Int, Int>(
+                orderedQueries = listOf(1, 2, 4),
+                order = Tile.Order.Sorted(Int::compareTo)
+            ).insertOrderedQuery(0),
+            message = "inserting ordered query fails at inserting in the beginning"
+        )
+
+        assertEquals(
+            expected = listOf(1, 2, 4, 5),
+            actual = Tile.Metadata<Int, Int>(
+                orderedQueries = listOf(1, 2, 4),
+                order = Tile.Order.Sorted(Int::compareTo)
+            ).insertOrderedQuery(5),
+            message = "inserting ordered query fails at inserting at the end"
+        )
+    }
 }
