@@ -16,12 +16,16 @@
 
 package com.tunjid.tiler
 
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.last
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 class TilerKtTest {
 
     @Test
-    fun maintains_all_items() {
+    fun maintains_all_items() = runTest {
         val tiled =
             (1..9)
                 .map { int ->
@@ -30,7 +34,8 @@ class TilerKtTest {
                         items = int.testRange.toList()
                     )
                 }
-                .fold(
+                .asFlow()
+                .scan(
                     initial = Tiler(
                         metadata = Tile.Metadata(
                             limiter = Tile.Limiter { false },
@@ -39,7 +44,8 @@ class TilerKtTest {
                     ),
                     operation = Tiler<Int, Int>::add
                 )
-                .output()
+                .last()
+                .tiledItems()
 
         assertEquals(
             (1..9)
@@ -50,7 +56,7 @@ class TilerKtTest {
     }
 
     @Test
-    fun pivots_around_specific_query_when_limit_exists() {
+    fun pivots_around_specific_query_when_limit_exists() = runTest {
         val tiles =
             (1..9).map { int ->
                 listOf(
@@ -61,7 +67,8 @@ class TilerKtTest {
                 )
             }
                 .flatten()
-                .fold(
+                .asFlow()
+                .scan(
                     initial = Tiler(
                         metadata = Tile.Metadata(
                             limiter = Tile.Limiter { items -> items.size >= 50 },
@@ -73,7 +80,8 @@ class TilerKtTest {
                     ),
                     operation = Tiler<Int, Int>::add
                 )
-                .output()
+                .last()
+                .tiledItems()
 
         assertEquals(
             (2..6)

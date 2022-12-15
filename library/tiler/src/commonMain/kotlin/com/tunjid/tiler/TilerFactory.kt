@@ -27,7 +27,6 @@ import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.transformWhile
 
@@ -72,23 +71,20 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
                 flowOf(Tile.Output.OrderChange(order = input))
             )
 
-            is Tile.Request.Evict -> {
-                queriesToValves[input.query]?.push?.invoke(input)
-                queriesToValves.remove(input.query)
-            }
+            is Tile.Request.Evict -> queriesToValves.remove(input.query)?.invoke(input)
 
-            is Tile.Request.Off -> queriesToValves[input.query]?.push?.invoke(input)
+            is Tile.Request.Off -> queriesToValves[input.query]?.invoke(input)
+
             is Tile.Request.On -> when (val existingValve = queriesToValves[input.query]) {
-                null -> {
-                    val valve = QueryFlowValve(
-                        query = input.query,
-                        fetcher = fetcher,
-                    )
+                null -> QueryFlowValve(fetcher = fetcher).let { valve ->
                     queriesToValves[input.query] = valve
+                    // Emit the Flow from the valve, so it can be subscribed to
                     emit(valve.flow)
+                    // Turn on the valve before processing other inputs
+                    valve(input)
                 }
 
-                else -> existingValve.push(input)
+                else -> existingValve(input)
             }
 
             is Tile.Limiter -> emit(
@@ -102,20 +98,18 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
  * Allows for turning on, off and terminating the [Flow] specified by a given fetcher
  */
 private class QueryFlowValve<Query, Item>(
-    query: Query,
     fetcher: suspend (Query) -> Flow<List<Item>>
-) {
+): suspend (Tile.Request<Query, Item>) -> Unit {
 
     private val mutableSharedFlow = MutableSharedFlow<Tile.Request<Query, Item>>()
 
-    val push: suspend (Tile.Request<Query, Item>) -> Unit = { request ->
+    override suspend fun invoke(request: Tile.Request<Query, Item>) {
         // Suspend till the downstream is connected
         mutableSharedFlow.subscriptionCount.first { it > 0 }
         mutableSharedFlow.emit(request)
     }
 
     val flow: Flow<Tile.Output<Query, Item>> = mutableSharedFlow
-        .onSubscription { emit(Tile.Request.On(query = query)) }
         .distinctUntilChanged()
         .flatMapLatest { input ->
             when (input) {
@@ -137,9 +131,9 @@ private class QueryFlowValve<Query, Item>(
                     }
             }
         }
-        .transformWhile { toggle: Tile.Output<Query, Item> ->
-            emit(toggle)
+        .transformWhile { output: Tile.Output<Query, Item> ->
+            emit(output)
             // Terminate this flow entirely when the eviction signal is sent
-            toggle !is Tile.Output.Eviction<Query, Item>
+            output !is Tile.Output.Eviction<Query, Item>
         }
 }

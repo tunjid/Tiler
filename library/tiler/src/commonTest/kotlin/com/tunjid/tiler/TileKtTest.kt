@@ -17,9 +17,14 @@
 package com.tunjid.tiler
 
 import app.cash.turbine.test
+import com.tunjid.tiler.utilities.PivotRequest
+import com.tunjid.tiler.utilities.pivotWith
+import com.tunjid.tiler.utilities.toTileInputs
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
@@ -301,5 +306,112 @@ class TileKtTest {
 
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun changing_the_limiter_does_not_emit_on_empty_items() = runTest {
+        val limitCheck = { items: List<Int> -> items.size > 7 }
+        val inputs = listOf<Tile.Input<Int, Int>>(
+            Tile.Request.On(0),
+            Tile.Request.On(1),
+            // Copious duplicate limits
+            Tile.Limiter(limitCheck),
+            Tile.Limiter(limitCheck),
+            Tile.Limiter(limitCheck),
+            Tile.Limiter(limitCheck),
+            Tile.Limiter(limitCheck),
+            Tile.Limiter { it.size > 100 },
+        )
+
+        val emissions = inputs
+            .asFlow()
+            .toTiledList(listTiler)
+            .take(inputs.size)
+            .toListWithTimeout(200)
+
+        assertEquals(
+            expected = listOf(
+                0.tiledTestRange(),
+                0.tiledTestRange() + 1.tiledTestRange(),
+                0.tiledTestRange(),
+                0.tiledTestRange() + 1.tiledTestRange(),
+            ),
+            actual = emissions
+        )
+    }
+
+    @Test
+    fun changing_the_order_does_not_emit_if_the_requested_pivot_does_not_exist_and_the_tiles_were_empty() = runTest {
+        val inputs = listOf<Tile.Input<Int, Int>>(
+            Tile.Order.PivotSorted(9, Int::compareTo),
+            Tile.Order.PivotSorted(12, Int::compareTo),
+            Tile.Request.On(2),
+            Tile.Order.PivotSorted(2, Int::compareTo),
+        )
+
+        val emissions = inputs
+            .asFlow()
+            .toTiledList(listTiler)
+            .take(inputs.size)
+            .toListWithTimeout(200)
+
+        assertEquals(
+            expected = listOf(
+                2.tiledTestRange()
+            ),
+            actual = emissions
+        )
+    }
+
+    @Test
+    fun pivoting_should_not_emit_till_data_is_available() = runTest {
+        val tiler = listTiler<Int, Int> { emptyFlow() }
+        val inputs = flowOf(0).pivotWith(
+            PivotRequest(
+                onCount = 3,
+                offCount = 2,
+                comparator = Int::compareTo,
+                nextQuery = { this + 1 },
+                previousQuery = { (this - 1).takeIf { it >= 0 } }
+            )
+        )
+            .toTileInputs<Int, Int>()
+
+        val emissions = tiler(inputs).toListWithTimeout(200)
+
+        assertEquals(
+            expected = emptyList(),
+            actual = emissions
+        )
+    }
+
+    @Test
+    fun pivoting_should_only_emit_till_data_is_available_from_pivot_query() = runTest {
+        val comparator = Comparator(Int::compareTo)
+        val tiler = listTiler(
+            order = Tile.Order.PivotSorted(
+                query = 0,
+                comparator = comparator
+            )
+        ) { page -> flowOf(page.testRange.toList()) }
+        val inputs = flowOf(0).pivotWith(
+            PivotRequest(
+                onCount = 3,
+                offCount = 2,
+                comparator = comparator,
+                nextQuery = { this + 1 },
+                previousQuery = { (this - 1).takeIf { it >= 0 } }
+            )
+        )
+            .toTileInputs<Int, Int>()
+
+        val emissions = tiler(inputs).toListWithTimeout(200)
+
+        assertEquals(
+            expected = listOf(
+                0.tiledTestRange() + 1.tiledTestRange() + 2.tiledTestRange()
+            ),
+            actual = emissions
+        )
     }
 }

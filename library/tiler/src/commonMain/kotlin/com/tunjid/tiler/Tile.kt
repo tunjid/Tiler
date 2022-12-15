@@ -164,6 +164,6 @@ fun <Query, Item> listTiler(
         fetcher = fetcher
     )
         .invoke(requests)
-        .map(Tiler<Query, Item>::output)
+        .map(Tiler<Query, Item>::tiledItems)
 }
 

@@ -101,6 +101,8 @@ fun <Query> Flow<Query>.pivotWith(
 fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.Input<Query, Item>> =
     flatMapConcat { pivotResult ->
         buildList<Tile.Input<Query, Item>> {
+            // Evict first because order will be invalid if queries that are not part
+            // of this pivot are ordered with its order
             pivotResult.evict.forEach { query -> add(Tile.Request.Evict(query)) }
             pivotResult.off.forEach { query -> add(Tile.Request.Off(query)) }
             pivotResult.on.forEach { query -> add(Tile.Request.On(query)) }
@@ -138,7 +140,7 @@ private fun <Query> reducePivotResult(
     previousResult: PivotResult<Query>?
 ): PivotResult<Query> {
     val newRequest = request.pivotAround(currentQuery)
-    val toRemove = (newRequest.on + newRequest.off).toSet()
+    val keptQueries = (newRequest.on + newRequest.off).toSet()
     val previousQueries = when (previousResult) {
         null -> emptyList()
         else -> previousResult.off + previousResult.on
@@ -147,7 +149,7 @@ private fun <Query> reducePivotResult(
         // Evict everything not in the current active and inactive range
         evict = when {
             previousQueries.isEmpty() -> previousQueries
-            else -> previousQueries.filterNot(toRemove::contains)
+            else -> previousQueries.filterNot(keptQueries::contains)
         }
     )
 }
