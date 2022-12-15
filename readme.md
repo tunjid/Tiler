@@ -208,9 +208,55 @@ For an example where `n` is a function of grid size in a grid list, check out [A
 
 The above algorithm is called "pivoting" as items displayed are pivoted around the user's current scrolling position.
 
+Since tiling is dynamic at it's core, a pipeline can be built to allow for this dynamic behavior by pivoting around the user's current position with the grid size as a dynamic input parameter as shown below:
+
+In the simplest case, such a pipeline can be assembled as follows:
+
+```kotlin
+class PivotedNumberFetcher {
+    private val requests = MutableStateFlow(0)
+
+    private val listTiler: ListTiler<PageQuery, NumberTile> = listTiler(
+        fetcher = { pageQuery ->
+            pageQuery.colorShiftingTiles(itemsPerPage = 50, isDark = true)
+        }
+    )
+
+    // All paginated items in a single list
+    val listItems: Flow<TiledList<PageQuery, NumberTile>> = requests
+        .map { PageQuery(page = it, isAscending = true) }
+        .toPivotedTileInputs<PageQuery, NumberTile>(
+            PivotRequest(
+                onCount = 3,
+                offCount = 2,
+                comparator = ascendingPageComparator,
+                nextQuery = {
+                    copy(page = page + 1)
+                },
+                previousQuery = {
+                    copy(page = page - 1).takeIf { it.page >= 0 }
+                }
+            )
+        )
+        .toTiledList(listTiler)
+
+    fun setVisiblePage(page: Int) {
+        requests.value = page
+    }
+}
+```
+
+As the user scrolls, `setVisiblePage` is called to keep pivoting about the current position.
+
+However, situations arise that can require more dynamism. The items fetched can be a function of:
+
+* A UI that can change in size, requiring more items to fit the view port.
+* A user wanting to change the sort order.
+
 Consider a list of numbers shown in a grid. The view port may be  dynamically resized, and the sort order may be toggled.
 
-Since tiling is dynamic at it's core, a pipeline can be built to allow for this dynamic behavior by pivoting around the user's current position with the grid size as a dynamic input parameter as shown below:
+
+Pivoting while tiling also solves this case with aplomb:
 
 ```kotlin
 
@@ -224,17 +270,30 @@ class Loader(
   isDark: Boolean,
   scope: CoroutineScope
 ) {
-  private val currentQuery = MutableStateFlow(PageQuery(page = 0, isAscending = true))
+  // Current query that is visible in the view port
+  private val currentQuery = MutableStateFlow(
+    PageQuery(
+      page = 0,
+      isAscending = true
+    )
+  )
 
   // Number of columns in the grid
   private val numberOfColumns = MutableStateFlow(1)
 
-  // Pivot around the user's scroll position
-  private val pivots = currentQuery.pivotWith(
-    numberOfColumns.map(::pivotRequest)
+  // Flow specifying the pivot configuration
+  private val pivotRequests = combine(
+    currentQuery.map { it.isAscending },
+    numberOfColumns,
+    ::pivotRequest
+  ).distinctUntilChanged()
+
+  // Define inputs that match the current pivoted position
+  private val pivotInputs = currentQuery.toPivotedTileInputs<PageQuery, NumberTile>(
+    pivotRequests = pivotRequests
   )
 
-  // Allows for changing the order dynamically
+  // Allows for changing the order on response to user input
   private val orderInputs = currentQuery
     .map { pageQuery ->
       Tile.Order.PivotSorted<PageQuery, NumberTile>(
@@ -249,11 +308,11 @@ class Loader(
 
   // Change limit to account for dynamic view port size
   private val limitInputs = numberOfColumns.map { gridSize ->
-    Tile.Limiter<PageQuery, NumberTile> { items -> items.size > 40 * gridSize }
+    Tile.Limiter<PageQuery, NumberTile> { items -> items.size > MIN_ITEMS_TO_SHOW * gridSize }
   }
 
-  private val tiledList = merge(
-    pivots.toTileInputs(),
+  val tiledList: Flow<TiledList<PageQuery, NumberTile>> = merge(
+    pivotInputs,
     orderInputs,
     limitInputs,
   )
@@ -262,27 +321,6 @@ class Loader(
         itemsPerPage = ITEMS_PER_PAGE,
         isDark = isDark,
       )
-    )
-    .shareIn(scope, SharingStarted.WhileSubscribed())
-
-  val state = combine(
-    currentQuery,
-    pivots,
-    tiledList,
-  ) { pageQuery, pivotResult, tiledList ->
-    State(
-      isAscending = pageQuery.isAscending,
-      currentPage = pageQuery.page,
-      pivotResult = pivotResult,
-      items = tiledList.filterTransform(
-        filterTransformer = { distinctBy(NumberTile::key) }
-      )
-    )
-  }
-    .stateIn(
-      scope = scope,
-      started = SharingStarted.WhileSubscribed(),
-      initialValue = State()
     )
 
   fun setCurrentPage(page: Int) = currentQuery.update { query ->
@@ -308,11 +346,18 @@ class Loader(
   /**
    * Pivoted tiling with the grid size as a dynamic input parameter
    */
-  private fun pivotRequest(numberOfColumns: Int) = PivotRequest(
+  private fun pivotRequest(
+    isAscending: Boolean,
+    numberOfColumns: Int,
+  ) = PivotRequest(
     onCount = 4 * numberOfColumns,
     offCount = 4 * numberOfColumns,
     nextQuery = nextQuery,
-    previousQuery = previousQuery
+    previousQuery = previousQuery,
+    comparator = when {
+      isAscending -> ascendingPageComparator
+      else -> descendingPageComparator
+    }
   )
 }
 
@@ -332,10 +377,10 @@ private fun numberTiler(
   )
 ```
 
-In the above, only flows for 4 queries are collected at any one time for single columned screens. 4 more queries are kept in memory for quick
+In the above, only flows for 4 * numOfColumns queries are collected at any one time. 4 * numOfColumns more queries are kept in memory for quick
 resumption, and the rest are evicted from memory. As the user scrolls, `setCurrentPage` is called, and data is
 fetched for that page, and the surrounding pages.
-Pages that are far away from the current page (more than 6 pages away) are removed from memory.
+Pages that are far away from the defined range are removed from memory.
 
 ## Efficiency & performance
 

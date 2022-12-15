@@ -60,7 +60,7 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
                     items = queryItemsMap.getValue(query)
                     tiledList.addAll(index = 0, query = query, items = items)
                 }
-                if (++rightIndex <= orderedQueries.lastIndex) {
+                if (++rightIndex <= orderedQueries.lastIndex && !limiter.check(tiledList)) {
                     query = orderedQueries[rightIndex]
                     items = queryItemsMap.getValue(query)
                     tiledList.addAll(query = query, items = items)

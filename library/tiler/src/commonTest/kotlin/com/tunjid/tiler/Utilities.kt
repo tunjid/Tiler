@@ -16,8 +16,19 @@
 
 package com.tunjid.tiler
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withTimeoutOrNull
+
 internal val Int.testRange get() = this.times(10).rangeTo(this.times(10) + 9)
 
 internal fun Int.tiledTestRange() = buildTiledList {
     addAll(query = this@tiledTestRange, items = testRange.toList())
+}
+
+suspend fun <T> Flow<T>.toListWithTimeout(timeoutMillis: Long): List<T> {
+    val result = mutableListOf<T>()
+    return withTimeoutOrNull(timeoutMillis) {
+        collect(result::add)
+        result
+    } ?: result
 }
