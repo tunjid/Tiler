@@ -211,10 +211,9 @@ private fun Flow<Tile.Input<PageQuery, NumberTile>>.pivotSummaries(): Flow<Strin
     val evict = mutableListOf<Int>()
     this@pivotSummaries.collect { input ->
         when (input) {
-            is Tile.Order.Custom,
             is Tile.Limiter,
-            is Tile.Order.Sorted,
-            is Tile.Order.Unspecified -> Unit
+            is Tile.Order.Custom,
+            is Tile.Order.Sorted -> Unit
 
             is Tile.Order.PivotSorted -> {
                 emit(

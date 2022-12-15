@@ -24,12 +24,6 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
     val orderedQueries = orderedQueries
 
     return when (val order = order) {
-        is Tile.Order.Unspecified -> queryItemsMap.keys
-            .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
-                val items = queryItemsMap.getValue(query)
-                mutableTiledList.addAll(query = query, items = items)
-                mutableTiledList
-            }
 
         is Tile.Order.Sorted -> orderedQueries
             .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->

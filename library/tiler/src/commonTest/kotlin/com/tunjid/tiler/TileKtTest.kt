@@ -365,7 +365,9 @@ class TileKtTest {
 
     @Test
     fun pivoting_should_not_emit_till_data_is_available() = runTest {
-        val tiler = listTiler<Int, Int> { emptyFlow() }
+        val tiler = listTiler<Int, Int>(
+            order = Tile.Order.Sorted(Int::compareTo)
+        ) { emptyFlow() }
         val inputs = flowOf(0).pivotWith(
             PivotRequest(
                 onCount = 3,

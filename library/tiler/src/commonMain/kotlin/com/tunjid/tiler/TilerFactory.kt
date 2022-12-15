@@ -31,8 +31,8 @@ import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.transformWhile
 
 internal fun <Query, Item> tilerFactory(
+    order: Tile.Order<Query, Item>,
     limiter: Tile.Limiter<Query, Item>,
-    order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<List<Item>>
 ): (Flow<Tile.Input<Query, Item>>) -> Flow<Tiler<Query, Item>> = { requests ->
     requests
