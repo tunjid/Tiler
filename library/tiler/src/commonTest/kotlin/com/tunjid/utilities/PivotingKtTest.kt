@@ -21,6 +21,7 @@ import com.tunjid.tiler.utilities.PivotRequest
 import com.tunjid.tiler.utilities.PivotResult
 import com.tunjid.tiler.utilities.pivotAround
 import com.tunjid.tiler.utilities.pivotWith
+import com.tunjid.tiler.utilities.toPivotedTileInputs
 import com.tunjid.tiler.utilities.toTileInputs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
@@ -218,7 +219,6 @@ class PivotingKtTest {
         )
             .asFlow()
             .onEach { delay(100) }
-
             .shareIn(
                 scope = this,
                 started = SharingStarted.Lazily,
@@ -351,9 +351,22 @@ class PivotingKtTest {
                 }
             }
     }
+
+    @Test
+    fun to_tiled_inputs_calls_on_pivotWith() = runTest {
+        val queries = listOf(
+            9,
+            5,
+        ).asFlow()
+
+        assertEquals(
+            expected = queries.pivotWith(pivotRequest).toTileInputs<Int, Int>().toList(),
+            actual = queries.toPivotedTileInputs<Int, Int>(pivotRequest).toList()
+        )
+    }
 }
 
-// Even though the order of the list doesn't matter, I need to enforce it for equality tests
+// Pivoting requests are sent in the order of increasing distance from the pivot
 private fun List<Int>.sortedByFurthestDistanceFrom(pivot: Int) = sortedWith(
     compareBy<Int> { item ->
         val distance = pivot - item

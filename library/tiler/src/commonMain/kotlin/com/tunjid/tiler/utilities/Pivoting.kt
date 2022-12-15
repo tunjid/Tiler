@@ -96,13 +96,13 @@ internal fun <Query> Flow<Query>.pivotWith(
         .scan<Pair<Query, PivotRequest<Query>>, PivotResult<Query>?>(
             initial = null
         ) { previousResult, (currentQuery, pivotRequest) ->
-            val newRequest = pivotRequest.pivotAround(currentQuery)
-            val keptQueries = (newRequest.on + newRequest.off).toSet()
+            val currentResult = pivotRequest.pivotAround(currentQuery)
+            val keptQueries = (currentResult.on + currentResult.off).toSet()
             val previousQueries = when (previousResult) {
                 null -> emptyList()
                 else -> previousResult.off + previousResult.on
             }
-            newRequest.copy(
+            currentResult.copy(
                 // Evict everything not in the current active and inactive range
                 evict = when {
                     previousQueries.isEmpty() -> previousQueries
