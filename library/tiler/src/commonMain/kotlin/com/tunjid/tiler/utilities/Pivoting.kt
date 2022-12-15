@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.scan
 
 /**
@@ -62,18 +63,7 @@ data class PivotResult<Query>(
 fun <Query> Flow<Query>.pivotWith(
     pivotRequest: PivotRequest<Query>
 ): Flow<PivotResult<Query>> =
-    distinctUntilChanged()
-        .scan<Query, PivotResult<Query>?>(
-            initial = null
-        ) { previousResult, currentQuery ->
-            reducePivotResult(
-                request = pivotRequest,
-                currentQuery = currentQuery,
-                previousResult = previousResult
-            )
-        }
-        .filterNotNull()
-        .distinctUntilChanged()
+    pivotWith(flowOf(pivotRequest))
 
 /**
  * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query] and [pivotRequestFlow]
@@ -89,10 +79,18 @@ fun <Query> Flow<Query>.pivotWith(
         .scan<Pair<Query, PivotRequest<Query>>, PivotResult<Query>?>(
             initial = null
         ) { previousResult, (currentQuery, pivotRequest) ->
-            reducePivotResult(
-                request = pivotRequest,
-                currentQuery = currentQuery,
-                previousResult = previousResult
+            val newRequest = pivotRequest.pivotAround(currentQuery)
+            val keptQueries = (newRequest.on + newRequest.off).toSet()
+            val previousQueries = when (previousResult) {
+                null -> emptyList()
+                else -> previousResult.off + previousResult.on
+            }
+            newRequest.copy(
+                // Evict everything not in the current active and inactive range
+                evict = when {
+                    previousQueries.isEmpty() -> previousQueries
+                    else -> previousQueries.filterNot(keptQueries::contains)
+                }
             )
         }
         .filterNotNull()
@@ -131,26 +129,6 @@ internal fun <Query> PivotRequest<Query>.pivotAround(
             increment = nextQuery,
             decrement = previousQuery
         ),
-    )
-}
-
-private fun <Query> reducePivotResult(
-    currentQuery: Query,
-    request: PivotRequest<Query>,
-    previousResult: PivotResult<Query>?
-): PivotResult<Query> {
-    val newRequest = request.pivotAround(currentQuery)
-    val keptQueries = (newRequest.on + newRequest.off).toSet()
-    val previousQueries = when (previousResult) {
-        null -> emptyList()
-        else -> previousResult.off + previousResult.on
-    }
-    return newRequest.copy(
-        // Evict everything not in the current active and inactive range
-        evict = when {
-            previousQueries.isEmpty() -> previousQueries
-            else -> previousQueries.filterNot(keptQueries::contains)
-        }
     )
 }
 
