@@ -78,10 +78,9 @@ class Tile<Query, Item : Any?> {
         abstract val comparator: Comparator<Query>
 
         /**
-         * Items will be returned in an unspecified order; the order is whatever the iteration
-         * order of the backing map of [Query] to [Item] uses
+         * Items will be returned in an unspecified, undefined order
          */
-        internal data class Unspecified<Query, Item>(
+        data class Unspecified<Query, Item>(
             override val comparator: Comparator<Query> = Comparator { _, _ -> 0 },
         ) : Order<Query, Item>(), Input<Query, Item>
 

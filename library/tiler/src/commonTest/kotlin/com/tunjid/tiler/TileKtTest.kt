@@ -386,7 +386,7 @@ class TileKtTest {
     }
 
     @Test
-    fun pivoting_should_only_emit_till_data_is_available_from_pivot_query() = runTest {
+    fun pivoting_pipeline_should_only_emit_when_data_is_available_from_pivot_query() = runTest {
         val comparator = Comparator(Int::compareTo)
         val tiler = listTiler(
             order = Tile.Order.PivotSorted(

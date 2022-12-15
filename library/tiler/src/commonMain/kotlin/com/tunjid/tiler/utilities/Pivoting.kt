@@ -45,7 +45,7 @@ data class PivotRequest<Query>(
 /**
  * A summary of [Query] parameters that are pivoted around [currentQuery]
  */
-data class PivotResult<Query>(
+internal data class PivotResult<Query>(
     val currentQuery: Query,
     /** The [Comparator] used for sorting queries while pivoting. */
     val comparator: Comparator<Query>,
@@ -58,22 +58,39 @@ data class PivotResult<Query>(
 )
 
 /**
+ * Creates a [Flow] of [Tile.Input] where the requests are pivoted around the most recent emission of [Query]
+ */
+fun <Query, Item> Flow<Query>.toPivotedTileInputs(
+    pivotRequest: PivotRequest<Query>
+): Flow<Tile.Input<Query, Item>> =
+    toPivotedTileInputs(flowOf(pivotRequest))
+
+/**
+ * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query] and [pivotRequests]
+ */
+fun <Query, Item> Flow<Query>.toPivotedTileInputs(
+    pivotRequests: Flow<PivotRequest<Query>>
+): Flow<Tile.Input<Query, Item>> =
+    pivotWith(pivotRequests)
+        .toTileInputs()
+
+/**
  * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query]
  */
-fun <Query> Flow<Query>.pivotWith(
+internal fun <Query> Flow<Query>.pivotWith(
     pivotRequest: PivotRequest<Query>
 ): Flow<PivotResult<Query>> =
     pivotWith(flowOf(pivotRequest))
 
 /**
- * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query] and [pivotRequestFlow]
+ * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query] and [pivotRequests]
  */
-fun <Query> Flow<Query>.pivotWith(
-    pivotRequestFlow: Flow<PivotRequest<Query>>
+internal fun <Query> Flow<Query>.pivotWith(
+    pivotRequests: Flow<PivotRequest<Query>>
 ): Flow<PivotResult<Query>> =
     distinctUntilChanged()
         .combine(
-            pivotRequestFlow.distinctUntilChanged(),
+            pivotRequests.distinctUntilChanged(),
             ::Pair
         )
         .scan<Pair<Query, PivotRequest<Query>>, PivotResult<Query>?>(
@@ -96,7 +113,7 @@ fun <Query> Flow<Query>.pivotWith(
         .filterNotNull()
         .distinctUntilChanged()
 
-fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.Input<Query, Item>> =
+internal fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.Input<Query, Item>> =
     flatMapConcat { pivotResult ->
         buildList<Tile.Input<Query, Item>> {
             // Evict first because order will be invalid if queries that are not part

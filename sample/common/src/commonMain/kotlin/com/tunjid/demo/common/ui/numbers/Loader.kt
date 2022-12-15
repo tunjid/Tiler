@@ -24,14 +24,15 @@ import com.tunjid.tiler.filterTransform
 import com.tunjid.tiler.listTiler
 import com.tunjid.tiler.toTiledList
 import com.tunjid.tiler.utilities.PivotRequest
-import com.tunjid.tiler.utilities.PivotResult
-import com.tunjid.tiler.utilities.pivotWith
-import com.tunjid.tiler.utilities.toTileInputs
+import com.tunjid.tiler.utilities.toPivotedTileInputs
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.shareIn
@@ -39,6 +40,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
 private const val ITEMS_PER_PAGE = 15
+
+private const val MIN_ITEMS_TO_SHOW = 50
 
 val ascendingPageComparator = compareBy(PageQuery::page)
 val descendingPageComparator = ascendingPageComparator.reversed()
@@ -54,7 +57,7 @@ data class State(
     val itemsPerPage: Int = ITEMS_PER_PAGE,
     val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
-    val tilingSummary: String,
+    val pivotSummary: String,
     val items: TiledList<PageQuery, NumberTile> = emptyTiledList()
 )
 
@@ -62,21 +65,31 @@ class Loader(
     isDark: Boolean,
     scope: CoroutineScope
 ) {
-    private val currentQuery = MutableStateFlow(PageQuery(page = 0, isAscending = true))
+    // Current query that is visible in the view port
+    private val currentQuery = MutableStateFlow(
+        PageQuery(
+            page = 0,
+            isAscending = true
+        )
+    )
 
     // Number of columns in the grid
     private val numberOfColumns = MutableStateFlow(1)
 
-    // Pivot around the user's scroll position
-    private val pivots = currentQuery.pivotWith(
-        combine(
-            currentQuery.map { it.isAscending },
-            numberOfColumns,
-            ::pivotRequest
-        )
-    )
+    // Flow specifying the pivot configuration
+    private val pivotRequests = combine(
+        currentQuery.map { it.isAscending },
+        numberOfColumns,
+        ::pivotRequest
+    ).distinctUntilChanged()
 
-    // Allows for changing the order dynamically
+    // Define inputs that match the current pivoted positon
+    private val pivotInputs = currentQuery.toPivotedTileInputs<PageQuery, NumberTile>(
+        pivotRequests = pivotRequests
+    )
+        .shareIn(scope, SharingStarted.WhileSubscribed())
+
+    // Allows for changing the order on response to user input
     private val orderInputs = currentQuery
         .map { pageQuery ->
             Tile.Order.PivotSorted<PageQuery, NumberTile>(
@@ -91,11 +104,11 @@ class Loader(
 
     // Change limit to account for dynamic view port size
     private val limitInputs = numberOfColumns.map { gridSize ->
-        Tile.Limiter<PageQuery, NumberTile> { items -> items.size > 40 * gridSize }
+        Tile.Limiter<PageQuery, NumberTile> { items -> items.size > MIN_ITEMS_TO_SHOW * gridSize }
     }
 
     private val tiledList = merge(
-        pivots.toTileInputs(),
+        pivotInputs,
         orderInputs,
         limitInputs,
     )
@@ -105,20 +118,18 @@ class Loader(
                 isDark = isDark,
             )
         )
+        .filter { it.size >= MIN_ITEMS_TO_SHOW }
         .shareIn(scope, SharingStarted.WhileSubscribed())
 
     val state = combine(
+        pivotInputs.pivotSummaries(),
         currentQuery,
-        pivots,
         tiledList,
-    ) { pageQuery, pivotResult, tiledList ->
+    ) { pivotSummary, pageQuery, tiledList ->
         State(
             isAscending = pageQuery.isAscending,
             currentPage = pageQuery.page,
-            tilingSummary = pivotResult.tilingSummary(
-                itemsPerPage = ITEMS_PER_PAGE,
-                listSize = tiledList.size
-            ),
+            pivotSummary = pivotSummary,
             items = tiledList.filterTransform(
                 filterTransformer = { distinctBy(NumberTile::key) }
             )
@@ -127,7 +138,7 @@ class Loader(
         .stateIn(
             scope = scope,
             started = SharingStarted.WhileSubscribed(),
-            initialValue = State(tilingSummary = "")
+            initialValue = State(pivotSummary = "")
         )
 
     fun setCurrentPage(page: Int) = currentQuery.update { query ->
@@ -168,13 +179,12 @@ class Loader(
     )
 }
 
-fun PivotResult<PageQuery>.tilingSummary(itemsPerPage: Int, listSize: Int) =
-    """
+val State.tilingSummary
+    get() =
+        """
 Items per page: $itemsPerPage
-Tiled list size: $listSize
-Active pages: ${on.map(PageQuery::page).sorted()}
-Pages in memory: ${off.map(PageQuery::page).sorted()}
-Evicted: ${evict.map(PageQuery::page).sorted()}
+Tiled list size: ${items.size}
+$pivotSummary
 """.trim()
 
 /**
@@ -194,3 +204,34 @@ private fun numberTiler(
             pageQuery.colorShiftingTiles(itemsPerPage, isDark)
         }
     )
+
+private fun Flow<Tile.Input<PageQuery, NumberTile>>.pivotSummaries(): Flow<String> = flow {
+    val on = mutableListOf<Int>()
+    val off = mutableListOf<Int>()
+    val evict = mutableListOf<Int>()
+    this@pivotSummaries.collect { input ->
+        when (input) {
+            is Tile.Order.Custom,
+            is Tile.Limiter,
+            is Tile.Order.Sorted,
+            is Tile.Order.Unspecified -> Unit
+
+            is Tile.Order.PivotSorted -> {
+                emit(
+                    listOf(
+                        "Active pages: ${on.sorted()}",
+                        "Pages in memory: ${off.sorted()}",
+                        "Evicted: ${evict.sorted()}"
+                    ).joinToString(separator = "\n")
+                )
+                on.clear()
+                off.clear()
+                evict.clear()
+            }
+
+            is Tile.Request.Evict -> evict.add(input.query.page)
+            is Tile.Request.Off -> off.add(input.query.page)
+            is Tile.Request.On -> on.add(input.query.page)
+        }
+    }
+}
