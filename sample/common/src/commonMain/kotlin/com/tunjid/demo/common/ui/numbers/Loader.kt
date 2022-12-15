@@ -83,7 +83,7 @@ class Loader(
         ::pivotRequest
     ).distinctUntilChanged()
 
-    // Define inputs that match the current pivoted positon
+    // Define inputs that match the current pivoted position
     private val pivotInputs = currentQuery.toPivotedTileInputs<PageQuery, NumberTile>(
         pivotRequests = pivotRequests
     )
