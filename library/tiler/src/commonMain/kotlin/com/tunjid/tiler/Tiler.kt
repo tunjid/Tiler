@@ -19,94 +19,136 @@ package com.tunjid.tiler
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+internal sealed interface Tiler<Query, Item> {
+    /**
+     * Whether there's [Tiler] any meaningful change in the [Tiler] state requiring it emit data
+     */
+    suspend fun shouldEmit(): Boolean
+
+    /**
+     * The [TiledList] produced my this [Tiler]
+     */
+    suspend fun tiledItems(): TiledList<Query, Item>
+
+    /**
+     * Processes the [Tile.Output] for some [Tile.Input] earlier in the tiling pipeline
+     */
+    suspend fun process(
+        output: Tile.Output<Query, Item>
+    ): Tiler<Query, Item>
+}
+
 /**
- * Produces [TiledList] from the current tiling state
+ * Class used as seed for the tiling pipeline
  */
-internal data class Tiler<Query, Item>(
+internal data class ImmutableTiler<Query, Item>(
     val metadata: Tile.Metadata<Query, Item>,
-    val shouldEmit: Boolean = false,
-    val queryItemsMap: Map<Query, List<Item>> = mapOf(),
-) {
+) : Tiler<Query, Item> {
+    override suspend fun shouldEmit(): Boolean =
+        false
+
+    override suspend fun tiledItems(): TiledList<Query, Item> =
+        emptyTiledList()
+
+    override suspend fun process(output: Tile.Output<Query, Item>): Tiler<Query, Item> =
+        MutableTiler(metadata).process(output)
+}
+
+
+/**
+ * Mutable [Tiler] implementation for efficient tiling
+ */
+internal class MutableTiler<Query, Item>(
+    private var metadata: Tile.Metadata<Query, Item>,
+) : Tiler<Query, Item> {
     private val mutex = Mutex()
+
+    private var shouldEmit: Boolean = false
     private var lastTiledItems: TiledList<Query, Item> = emptyTiledList()
+    private val queryItemsMap: MutableMap<Query, List<Item>> = mutableMapOf()
 
-    internal suspend fun lastTiledItems() = mutex.withLock {
-        lastTiledItems
-    }
+    override suspend fun shouldEmit() = mutex.withLock { shouldEmit }
 
-    internal suspend fun tiledItems(): TiledList<Query, Item> = mutex.withLock {
+    override suspend fun tiledItems(): TiledList<Query, Item> = mutex.withLock {
         lastTiledItems = metadata.toTiledList(queryItemsMap = queryItemsMap)
         return lastTiledItems
     }
-}
 
-internal suspend fun <Query, Item> Tiler<Query, Item>.add(
-    output: Tile.Output<Query, Item>
-): Tiler<Query, Item> = when (output) {
-    is Tile.Output.Data -> copy(
-        shouldEmit = shouldEmit(output),
-        // Only sort queries when they output the first time to amortize the cost of sorting.
-        metadata = when {
-            queryItemsMap.contains(output.query) -> metadata.copy(
-                mostRecentlyEmitted = output.query
-            )
+    /**
+     * Mutates this [MutableTiler] with [Tile.Output] produced from the tiling process.
+     * As tiling collects from multiple flows concurrently, it is imperative a mutex is used to
+     * synchronize access to the variables modified.
+     */
+    override suspend fun process(
+        output: Tile.Output<Query, Item>
+    ): MutableTiler<Query, Item> = mutex.withLock {
+        when (output) {
+            is Tile.Output.Data -> {
+                shouldEmit = shouldEmit(output)
+                // Only sort queries when they output the first time to amortize the cost of sorting.
+                metadata = when {
+                    queryItemsMap.contains(output.query) -> metadata.copy(
+                        mostRecentlyEmitted = output.query
+                    )
 
-            else -> metadata.copy(
-                orderedQueries = metadata.insertOrderedQuery(output.query),
-                mostRecentlyEmitted = output.query,
-            )
-        },
-        queryItemsMap = queryItemsMap + (output.query to output.items),
-    )
+                    else -> metadata.copy(
+                        orderedQueries = metadata.insertOrderedQuery(output.query),
+                        mostRecentlyEmitted = output.query,
+                    )
+                }
+                queryItemsMap[output.query] = output.items
+            }
 
-    is Tile.Output.Eviction -> copy(
-        shouldEmit = shouldEmit(output),
-        metadata = metadata.copy(
-            orderedQueries = metadata.orderedQueries - output.query
-        ),
-        queryItemsMap = queryItemsMap - output.query,
-    )
+            is Tile.Output.Eviction -> {
+                shouldEmit = shouldEmit(output)
+                metadata = metadata.copy(
+                    orderedQueries = metadata.orderedQueries - output.query
+                )
+                queryItemsMap.remove(output.query)
+            }
 
-    is Tile.Output.OrderChange -> copy(
-        shouldEmit = shouldEmit(output),
-        metadata = metadata.copy(
-            order = output.order,
-            orderedQueries = metadata.orderedQueries.sortedWith(output.order.comparator)
-        ),
-    )
+            is Tile.Output.OrderChange -> {
+                shouldEmit = shouldEmit(output)
+                metadata = metadata.copy(
+                    order = output.order,
+                    orderedQueries = metadata.orderedQueries.sortedWith(output.order.comparator)
+                )
+            }
 
-    is Tile.Output.LimiterChange -> copy(
-        shouldEmit = shouldEmit(output),
-        metadata = metadata.copy(limiter = output.limiter),
-    )
-}
-
-private suspend fun <Query, Item> Tiler<Query, Item>.shouldEmit(
-    output: Tile.Output<Query, Item>
-): Boolean = when (output) {
-    is Tile.Output.Data -> when (val order = metadata.order) {
-        is Tile.Order.Custom,
-        is Tile.Order.Sorted,
-        is Tile.Order.Unspecified -> true
-        // If there were no items prior, and the output will cause no items to be emitted, do not emit
-        is Tile.Order.PivotSorted -> when {
-            // Always emit if the pivot item is present
-            queryItemsMap.contains(order.query) -> true
-            // Since the last emission was empty and nothing will still be emitted, do not emit
-            else -> !(lastTiledItems().isEmpty() && order.query != output.query)
+            is Tile.Output.LimiterChange -> {
+                shouldEmit = shouldEmit(output)
+                metadata = metadata.copy(limiter = output.limiter)
+            }
         }
+        this
     }
-    // Emit only if there's something to evict
-    is Tile.Output.Eviction -> queryItemsMap.contains(output.query)
-    // Emit only if there are items to sort, and the order has meaningfully changed
-    is Tile.Output.OrderChange -> queryItemsMap.isNotEmpty() && output.order != metadata.order
-    // Emit only if the limiter has meaningfully changed
-    is Tile.Output.LimiterChange -> when (metadata.order) {
-        is Tile.Order.Custom,
-        is Tile.Order.Sorted,
-        is Tile.Order.Unspecified -> queryItemsMap.isNotEmpty() && output.limiter != metadata.limiter
 
-        is Tile.Order.PivotSorted -> queryItemsMap.contains(metadata.order.query) && output.limiter != metadata.limiter
+    private fun shouldEmit(
+        output: Tile.Output<Query, Item>
+    ): Boolean = when (output) {
+        is Tile.Output.Data -> when (val order = metadata.order) {
+            is Tile.Order.Custom,
+            is Tile.Order.Sorted,
+            is Tile.Order.Unspecified -> true
+            is Tile.Order.PivotSorted -> when {
+                // Always emit if the pivot item is present
+                queryItemsMap.contains(order.query) -> true
+                // If the last emission was empty and nothing will still be emitted, do not emit
+                else -> !(lastTiledItems.isEmpty() && order.query != output.query)
+            }
+        }
+        // Emit only if there's something to evict
+        is Tile.Output.Eviction -> queryItemsMap.contains(output.query)
+        // Emit only if there are items to sort, and the order has meaningfully changed
+        is Tile.Output.OrderChange -> queryItemsMap.isNotEmpty() && output.order != metadata.order
+        // Emit only if the limiter has meaningfully changed
+        is Tile.Output.LimiterChange -> when (val order = metadata.order) {
+            is Tile.Order.Custom,
+            is Tile.Order.Sorted,
+            is Tile.Order.Unspecified -> queryItemsMap.isNotEmpty() && output.limiter != metadata.limiter
+
+            is Tile.Order.PivotSorted -> queryItemsMap.contains(order.query) && output.limiter != metadata.limiter
+        }
     }
 }
 

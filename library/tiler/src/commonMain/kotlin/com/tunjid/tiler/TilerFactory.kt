@@ -42,15 +42,15 @@ internal fun <Query, Item> tilerFactory(
             transform = { it }
         )
         .scan(
-            initial = Tiler(
+            initial = ImmutableTiler(
                 metadata = Tile.Metadata(
                     limiter = limiter,
                     order = order
                 )
             ),
-            operation = Tiler<Query, Item>::add
+            operation = Tiler<Query, Item>::process
         )
-        .filter { it.shouldEmit }
+        .filter(Tiler<Query, Item>::shouldEmit)
 }
 
 /**

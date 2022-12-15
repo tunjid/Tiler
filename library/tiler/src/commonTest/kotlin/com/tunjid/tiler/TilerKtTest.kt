@@ -36,13 +36,13 @@ class TilerKtTest {
                 }
                 .asFlow()
                 .scan(
-                    initial = Tiler(
+                    initial = ImmutableTiler(
                         metadata = Tile.Metadata(
                             limiter = Tile.Limiter { false },
                             order = Tile.Order.Sorted(comparator = Int::compareTo)
                         )
                     ),
-                    operation = Tiler<Int, Int>::add
+                    operation = Tiler<Int, Int>::process
                 )
                 .last()
                 .tiledItems()
@@ -69,7 +69,7 @@ class TilerKtTest {
                 .flatten()
                 .asFlow()
                 .scan(
-                    initial = Tiler(
+                    initial = ImmutableTiler(
                         metadata = Tile.Metadata(
                             limiter = Tile.Limiter { items -> items.size >= 50 },
                             order = Tile.Order.PivotSorted(
@@ -78,7 +78,7 @@ class TilerKtTest {
                             )
                         )
                     ),
-                    operation = Tiler<Int, Int>::add
+                    operation = Tiler<Int, Int>::process
                 )
                 .last()
                 .tiledItems()
