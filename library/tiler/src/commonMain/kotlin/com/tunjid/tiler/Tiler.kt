@@ -128,8 +128,7 @@ internal class MutableTiler<Query, Item>(
     ): Boolean = when (output) {
         is Tile.Output.Data -> when (val order = metadata.order) {
             is Tile.Order.Custom,
-            is Tile.Order.Sorted,
-            is Tile.Order.Unspecified -> true
+            is Tile.Order.Sorted -> true
             is Tile.Order.PivotSorted -> when {
                 // Always emit if the pivot item is present
                 queryItemsMap.contains(order.query) -> true
@@ -144,8 +143,7 @@ internal class MutableTiler<Query, Item>(
         // Emit only if the limiter has meaningfully changed
         is Tile.Output.LimiterChange -> when (val order = metadata.order) {
             is Tile.Order.Custom,
-            is Tile.Order.Sorted,
-            is Tile.Order.Unspecified -> queryItemsMap.isNotEmpty() && output.limiter != metadata.limiter
+            is Tile.Order.Sorted -> queryItemsMap.isNotEmpty() && output.limiter != metadata.limiter
 
             is Tile.Order.PivotSorted -> queryItemsMap.contains(order.query) && output.limiter != metadata.limiter
         }

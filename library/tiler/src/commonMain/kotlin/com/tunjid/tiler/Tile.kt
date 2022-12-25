@@ -31,8 +31,8 @@ class Tile<Query, Item : Any?> {
      * to [Tile] into a [List]
      */
     data class Metadata<Query, Item> internal constructor(
+        val order: Order<Query, Item>,
         val orderedQueries: List<Query> = listOf(),
-        val order: Order<Query, Item> = Order.Unspecified(),
         val limiter: Limiter<Query, Item> = Limiter { false },
         val mostRecentlyEmitted: Query? = null,
     )
@@ -76,13 +76,6 @@ class Tile<Query, Item : Any?> {
     sealed class Order<Query, Item> : Input<Query, Item> {
 
         abstract val comparator: Comparator<Query>
-
-        /**
-         * Items will be returned in an unspecified, undefined order
-         */
-        data class Unspecified<Query, Item>(
-            override val comparator: Comparator<Query> = Comparator { _, _ -> 0 },
-        ) : Order<Query, Item>(), Input<Query, Item>
 
         /**
          * Sort items with the specified query [comparator].
@@ -153,13 +146,13 @@ fun <Query, Item> Flow<Tile.Input<Query, Item>>.toTiledList(
  * Converts a [Flow] of [Query] into a [Flow] of [TiledList] [Item]
  */
 fun <Query, Item> listTiler(
+    order: Tile.Order<Query, Item>,
     limiter: Tile.Limiter<Query, Item> = Tile.Limiter { false },
-    order: Tile.Order<Query, Item> = Tile.Order.Unspecified(),
     fetcher: suspend (Query) -> Flow<List<Item>>
 ): ListTiler<Query, Item> = { requests ->
     tilerFactory(
-        limiter = limiter,
         order = order,
+        limiter = limiter,
         fetcher = fetcher
     )
         .invoke(requests)

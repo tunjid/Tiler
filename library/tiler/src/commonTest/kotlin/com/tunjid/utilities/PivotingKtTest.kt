@@ -332,8 +332,7 @@ class PivotingKtTest {
                 when (expected) {
                     is Tile.Order.Custom,
                     is Tile.Limiter,
-                    is Tile.Order.Sorted,
-                    is Tile.Order.Unspecified -> throw IllegalArgumentException("Unexpected type")
+                    is Tile.Order.Sorted -> throw IllegalArgumentException("Unexpected type")
 
                     is Tile.Order.PivotSorted -> assertEquals(
                         expected = expected.comparator.compare(0, expected.query),
