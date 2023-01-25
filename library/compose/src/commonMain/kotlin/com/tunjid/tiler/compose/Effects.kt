@@ -31,7 +31,7 @@ import kotlinx.coroutines.flow.map
 @Composable
 fun <Query> LazyListState.PivotedTilingEffect(
     items: TiledList<Query, *>,
-    indexSelector: (IntRange) -> Int = kotlin.ranges.IntRange::first,
+    indexSelector: IntRange.() -> Int = kotlin.ranges.IntRange::first,
     onQueryChanged: (Query?) -> Unit
 ) {
     LaunchedEffect(this, items) {
@@ -48,37 +48,37 @@ fun <Query> LazyListState.PivotedTilingEffect(
 
 @Composable
 fun <Query> LazyGridState.PivotedTilingEffect(
-    list: TiledList<Query, *>,
-    indexSelector: (IntRange) -> Int = kotlin.ranges.IntRange::first,
-    current: (Query?) -> Unit
+    items: TiledList<Query, *>,
+    indexSelector: IntRange.() -> Int = kotlin.ranges.IntRange::first,
+    onQueryChanged: (Query?) -> Unit
 ) {
-    LaunchedEffect(this, list) {
+    LaunchedEffect(this, items) {
         snapshotFlow {
             val visibleItemsInfo = layoutInfo.visibleItemsInfo
             val index = indexSelector(visibleItemsInfo.indices)
             visibleItemsInfo.getOrNull(index)
         }
-            .map { it?.index?.let(list::queryAtOrNull) }
+            .map { it?.index?.let(items::queryAtOrNull) }
             .distinctUntilChanged()
-            .collect(current)
+            .collect(onQueryChanged)
     }
 }
 
 @Composable
 @ExperimentalFoundationApi
 fun <Query> LazyStaggeredGridState.PivotedTilingEffect(
-    list: TiledList<Query, *>,
-    indexSelector: (IntRange) -> Int = kotlin.ranges.IntRange::first,
-    current: (Query?) -> Unit
+    items: TiledList<Query, *>,
+    indexSelector: IntRange.() -> Int = kotlin.ranges.IntRange::first,
+    onQueryChanged: (Query?) -> Unit
 ) {
-    LaunchedEffect(this, list) {
+    LaunchedEffect(this, items) {
         snapshotFlow {
             val visibleItemsInfo = layoutInfo.visibleItemsInfo
             val index = indexSelector(visibleItemsInfo.indices)
             visibleItemsInfo.getOrNull(index)
         }
-            .map { it?.index?.let(list::queryAtOrNull) }
+            .map { it?.index?.let(items::queryAtOrNull) }
             .distinctUntilChanged()
-            .collect(current)
+            .collect(onQueryChanged)
     }
 }
