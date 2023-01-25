@@ -130,79 +130,45 @@ Defines the heuristic for selecting tiled items into the output `TiledList`.
 
 * Custom: Flattens tiled items produced whichever way you desire.
 
-## Examples
+## How to page with Tiling
 
-### Simple, non scaling example
+While the tiling API lets you assemble a paging pipeline from scratch using its primitives, the easiest scalable
+tiling approach is through the pivoting algorithm.
 
-In this example, the code will return a full list of every item requested sorted in ascending order of the pages.
-
-The list will grow indefinitely as more pages are requested unless queries are evicted. This may
-be fine for small lists, but as the list size grows, some items may need to be evicted as only a small subset of items
-need to be presented to the UI. This sort of behavior can be achieved using the `Evict` `Request`, and
-the `PivotSorted` `Order` covered next.
-
-```kotlin
-import Tile
-import tiledList
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-
-class NumberFetcher {
-  private val requests = MutableStateFlow(0)
-
-  private val listTiler: ListTiler<Int, Int> = tiledList(
-    // Sort items in ascending order
-    order = Tile.Order.Sorted(comparator = Int::compareTo),
-    fetcher = { page ->
-      // Fetch 50 numbers for each page
-      val start = page * 50
-      val numbers = start.until(start + 50)
-      flowOf(numbers.toList())
-    }
-  )
-
-  // All paginated items in a single list
-  val listItems: Flow<TiledList<Int, Int>> = listTiler.invoke(
-    requests.map { Tile.Request.On(it) }
-  )
-    .map(List<List<Int>>::flatten)
-
-
-  fun fetchPage(page: Int) {
-    requests.value = page
-  }
-}
-```
-
-
-### Advanced, scalable solution
-
-To deal with the issue of the tiled data set becoming arbitrarily large, one can create a pipeline where the
-pages loaded are defined as a function of the page the user is currently at:
+Consider a large, possibly infinite set of paginated data where a user is currently viewing page p, and n
+is the buffer zone - the number of pages lazy loaded in case the user wants to visit it.
 
 ```
-[out of bounds]                                  -> Evict from memory
-                                          _
-[currentPage - n - 1 - n]                  |
-...                                        | -> Keep pages in memory, but don't observe
-[currentPage - n - 1]          _          _|                        
-[currentPage - n]               |
-...                             |
-[currentPage - 1]               |
-[currentPage]                   |  -> Observe pages     
-[currentPage + 1]               |
-...                             |
-[currentPage + n]              _|         _
-[currentPage + n + 1]                      |
-...                                        | -> Keep pages in memory, but don't observe
-[currentPage + n + 1 + n]                 _|
-
-[out of bounds]                                  -> Evict from memory
+[..., p - n, ..., p - 1, p, p + 1, ..., p + n, ...]
 ```
 
-Where `n` is an arbitrary number that may be defined by how many items are visible on the screen at once.
+As the user moves from page to page, items can be refreshed around the user's current page
+while allowing them to observe immediate changes to the data they're looking at.
+
+This is expanded in the diagram below:
+
+```
+[out of bounds]                        -> Evict from memory
+                                _
+[p - n - 1 - n]                  |
+...                              | -> Keep pages in memory, but don't observe
+[p - n - 1]          _          _|                        
+[p - n]               |
+...                   |
+[p - 1]               |
+[p]                   |  -> Observe pages     
+[p + 1]               |
+...                   |
+[p + n]              _|         _
+[p + n + 1]                      |
+...                              | -> Keep pages in memory, but don't observe
+[p + n + 1 + n]                 _|
+
+[out of bounds]                        -> Evict from memory
+```
+
+`n` is an arbitrary number that may be defined by how many items are visible on the screen at once. It could be fixed,
+or variable depending on conditions like the available screen real estate.
 
 For an example where `n` is a function of grid size in a grid list, check out [ArchiveLoading.kt](https://github.com/tunjid/me/blob/main/common/feature-archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveLoading.kt) in the [me](https://github.com/tunjid/me) project.
 
@@ -210,31 +176,40 @@ The above algorithm is called "pivoting" as items displayed are pivoted around t
 
 Since tiling is dynamic at it's core, a pipeline can be built to allow for this dynamic behavior by pivoting around the user's current position with the grid size as a dynamic input parameter as shown below:
 
-In the simplest case, such a pipeline can be assembled as follows:
+### Basic example
+
+Imagine a simple contacts app backed by a `ContactsRepository`.
+Each page in the repository returns 100 contacts. A pivoted tiling pipeline for it can be assembled as follows:
 
 ```kotlin
-class PivotedNumberFetcher {
+class PivotedNumberFetcher(
+    repository: ContactsRepository
+) {
     private val requests = MutableStateFlow(0)
 
-    private val listTiler: ListTiler<PageQuery, NumberTile> = listTiler(
-        fetcher = { pageQuery ->
-            pageQuery.colorShiftingTiles(itemsPerPage = 50, isDark = true)
+    private val listTiler: ListTiler<Int, Contact> = listTiler(
+        // Limit to only 40 items in UI at any one time
+        limiter = Tile.Limiter { items -> items.size > 40 },
+        fetcher = { page ->
+          repository.getPage(page)
         }
     )
 
-    // All paginated items in a single list
-    val listItems: Flow<TiledList<PageQuery, NumberTile>> = requests
-        .map { PageQuery(page = it, isAscending = true) }
-        .toPivotedTileInputs<PageQuery, NumberTile>(
+    // All paginated items in a single list.
+  
+    // A TiledList is a regular List that has information about what
+    // query fetched an item at each index
+    val contacts: Flow<TiledList<Int, Contact>> = requests
+        .toPivotedTileInputs<Int, Contact>(
             PivotRequest(
                 onCount = 3,
                 offCount = 2,
                 comparator = ascendingPageComparator,
                 nextQuery = {
-                    copy(page = page + 1)
+                    this + 1
                 },
                 previousQuery = {
-                    copy(page = page - 1).takeIf { it.page >= 0 }
+                    (this - 1).takeIf { it >= 0 }
                 }
             )
         )
@@ -246,17 +221,53 @@ class PivotedNumberFetcher {
 }
 ```
 
-As the user scrolls, `setVisiblePage` is called to keep pivoting about the current position.
+The UI is responsible for setting the visible page. In Jetpack Compose, this is easily done using the 
+`PivotedTilingEffect`:
 
-However, situations arise that can require more dynamism. The items fetched can be a function of:
+```kotlin
+@Composable
+fun NumberTiles(
+    fetcher: PivotedNumberFetcher
+) {
+    val contacts by fetcher.contacts.collectAsState()
+    val lazyState = rememberLazyListState()
+  
+    LazyColumn(
+        state = lazyState,
+        content = {
+            items(
+                items = contacts,
+                key = NumberTile::key,
+                itemContent = { ... }
+            )
+        }
+    )
+
+    lazyState.PivotedTilingEffect(
+        items = contacts,
+        onQueryChanged = { if (it != null) fetcher.setVisiblePage(it) }
+    )
+}
+```
+
+As the user scrolls, `setVisiblePage` is called to keep pivoting about the current position with the following
+constraints:
+
+* At most 40 contacts from the current page will be in the UI at any one time.
+* 3 pages will be observed concurrently, including the current page of the user. Any changes to the data in any
+of the pages will update the UI.
+* 2 pages will be kept in memory for quick access to accommodate UI interactions like flinging or jumping to a page.
+
+### Advanced example
+
+Situations can arise that can require more dynamism. The items fetched can be a function of:
 
 * A UI that can change in size, requiring more items to fit the view port.
 * A user wanting to change the sort order.
 
-Consider a list of numbers shown in a grid. The view port may be  dynamically resized, and the sort order may be toggled.
+Consider a list of numbers shown in a grid. The view port may be dynamically resized, and the sort order may be toggled.
 
-
-Pivoting while tiling also solves this case with aplomb:
+A pivoting pipeline for the above looks like:
 
 ```kotlin
 
