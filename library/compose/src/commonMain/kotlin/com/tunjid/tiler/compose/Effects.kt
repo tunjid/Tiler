@@ -30,19 +30,19 @@ import kotlinx.coroutines.flow.map
 
 @Composable
 fun <Query> LazyListState.PivotedTilingEffect(
-    list: TiledList<Query, *>,
+    items: TiledList<Query, *>,
     indexSelector: (IntRange) -> Int = kotlin.ranges.IntRange::first,
-    current: (Query?) -> Unit
+    onQueryChanged: (Query?) -> Unit
 ) {
-    LaunchedEffect(this, list) {
+    LaunchedEffect(this, items) {
         snapshotFlow {
             val visibleItemsInfo = layoutInfo.visibleItemsInfo
             val index = indexSelector(visibleItemsInfo.indices)
             visibleItemsInfo.getOrNull(index)
         }
-            .map { it?.index?.let(list::queryAtOrNull) }
+            .map { it?.index?.let(items::queryAtOrNull) }
             .distinctUntilChanged()
-            .collect(current)
+            .collect(onQueryChanged)
     }
 }
 

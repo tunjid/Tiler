@@ -20,6 +20,7 @@ plugins {
     `maven-publish`
     signing
     id("org.jetbrains.dokka")
+    id("org.jetbrains.compose")
 }
 
 kotlin {
@@ -36,16 +37,6 @@ kotlin {
             useJUnit()
         }
     }
-    ios()
-    iosSimulatorArm64()
-    linuxX64()
-    macosX64()
-    macosArm64()
-    mingwX64()
-    tvos()
-    tvosSimulatorArm64()
-    watchos()
-    watchosSimulatorArm64()
 
     sourceSets {
         val commonMain by getting {
@@ -70,41 +61,6 @@ kotlin {
 
         val jsMain by getting
         val jsTest by getting
-
-        // Native targets
-        val nativeMain by creating {
-            dependsOn(commonMain)
-        }
-        val iosMain by getting {
-            dependsOn(nativeMain)
-        }
-        val iosSimulatorArm64Main by getting {
-            dependsOn(nativeMain)
-        }
-        val tvosMain by getting {
-            dependsOn(nativeMain)
-        }
-        val tvosSimulatorArm64Main by getting {
-            dependsOn(nativeMain)
-        }
-        val watchosMain by getting {
-            dependsOn(nativeMain)
-        }
-        val watchosSimulatorArm64Main by getting {
-            dependsOn(nativeMain)
-        }
-        val linuxX64Main by getting {
-            dependsOn(nativeMain)
-        }
-        val mingwX64Main by getting {
-            dependsOn(nativeMain)
-        }
-        val macosX64Main by getting {
-            dependsOn(nativeMain)
-        }
-        val macosArm64Main by getting {
-            dependsOn(nativeMain)
-        }
 
         all {
             languageSettings.apply {
