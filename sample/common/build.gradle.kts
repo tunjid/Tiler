@@ -25,7 +25,7 @@ kotlin {
         named("commonMain") {
             dependencies {
                 implementation(project(":library:tiler"))
-//                implementation(project(":library:compose"))
+                implementation(project(":library:compose"))
 
                 implementation(libs.jetbrains.compose.runtime)
                 implementation(libs.jetbrains.compose.animation)

@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -36,17 +35,11 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.tunjid.tiler.TiledList
-import com.tunjid.tiler.queryAtOrNull
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.onEach
+import com.tunjid.tiler.compose.PivotedTilingEffect
 
 @Composable
 fun NumberTiles(
@@ -94,10 +87,10 @@ fun NumberTiles(
         )
     }
 
-    NumberTiling(
-        tiledItems = tiledItems,
-        lazyState = lazyState,
-        loader = loader
+    lazyState.PivotedTilingEffect(
+        items = tiledItems,
+        indexSelector = { start + (endInclusive - start) / 2 },
+        onQueryChanged = { if (it != null) loader.setCurrentPage(it.page) }
     )
 }
 
@@ -145,28 +138,5 @@ private fun TilingSummary(summary: String) {
             modifier = modifier,
             text = summary
         )
-    }
-}
-
-@Composable
-private fun NumberTiling(
-    tiledItems: TiledList<PageQuery, NumberTile>,
-    lazyState: LazyGridState,
-    loader: Loader
-) {
-    LaunchedEffect(tiledItems) {
-        snapshotFlow {
-            if (tiledItems.isEmpty()) return@snapshotFlow null
-            val visibleItems = lazyState.layoutInfo.visibleItemsInfo
-            if (visibleItems.isEmpty()) return@snapshotFlow null
-
-            val firstIndex = visibleItems.getOrNull(visibleItems.size / 2)?.index ?: return@snapshotFlow null
-            tiledItems.queryAtOrNull(firstIndex)
-        }
-            .filterNotNull()
-            .distinctUntilChanged()
-            .collect {
-                loader.setCurrentPage(it.page)
-            }
     }
 }
