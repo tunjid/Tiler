@@ -17,52 +17,46 @@
 package com.tunjid.tiler.compose
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridItemInfo
 import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridItemInfo
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.queryAtOrNull
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 
 @Composable
 fun <Query> LazyListState.PivotedTilingEffect(
     items: TiledList<Query, *>,
     indexSelector: IntRange.() -> Int = kotlin.ranges.IntRange::first,
     onQueryChanged: (Query?) -> Unit
-) {
-    LaunchedEffect(this, items) {
-        snapshotFlow {
-            val visibleItemsInfo = layoutInfo.visibleItemsInfo
-            val index = indexSelector(visibleItemsInfo.indices)
-            visibleItemsInfo.getOrNull(index)
-        }
-            .map { it?.index?.let(items::queryAtOrNull) }
-            .distinctUntilChanged()
-            .collect(onQueryChanged)
-    }
-}
+) = PivotedTilingEffect(
+    items = items,
+    indexSelector = indexSelector,
+    onQueryChanged = onQueryChanged,
+    itemsList = { layoutInfo.visibleItemsInfo },
+    indexForItem = LazyListItemInfo::index
+)
 
 @Composable
 fun <Query> LazyGridState.PivotedTilingEffect(
     items: TiledList<Query, *>,
     indexSelector: IntRange.() -> Int = kotlin.ranges.IntRange::first,
     onQueryChanged: (Query?) -> Unit
-) {
-    LaunchedEffect(this, items) {
-        snapshotFlow {
-            val visibleItemsInfo = layoutInfo.visibleItemsInfo
-            val index = indexSelector(visibleItemsInfo.indices)
-            visibleItemsInfo.getOrNull(index)
-        }
-            .map { it?.index?.let(items::queryAtOrNull) }
-            .distinctUntilChanged()
-            .collect(onQueryChanged)
-    }
-}
+) = PivotedTilingEffect(
+    items = items,
+    indexSelector = indexSelector,
+    onQueryChanged = onQueryChanged,
+    itemsList = { layoutInfo.visibleItemsInfo },
+    indexForItem = LazyGridItemInfo::index
+)
 
 @Composable
 @ExperimentalFoundationApi
@@ -70,14 +64,31 @@ fun <Query> LazyStaggeredGridState.PivotedTilingEffect(
     items: TiledList<Query, *>,
     indexSelector: IntRange.() -> Int = kotlin.ranges.IntRange::first,
     onQueryChanged: (Query?) -> Unit
+) = PivotedTilingEffect(
+    items = items,
+    indexSelector = indexSelector,
+    onQueryChanged = onQueryChanged,
+    itemsList = { layoutInfo.visibleItemsInfo },
+    indexForItem = LazyStaggeredGridItemInfo::index
+)
+
+@Composable
+private inline fun <Query, LazyState : Any, LazyStateItem> LazyState.PivotedTilingEffect(
+    items: TiledList<Query, *>,
+    noinline onQueryChanged: (Query?) -> Unit,
+    crossinline indexSelector: IntRange.() -> Int = kotlin.ranges.IntRange::first,
+    crossinline itemsList: LazyState.() -> List<LazyStateItem>,
+    crossinline indexForItem: (LazyStateItem) -> Int?,
 ) {
-    LaunchedEffect(this, items) {
+    val updatedItems by rememberUpdatedState(items)
+    LaunchedEffect(this) {
         snapshotFlow {
-            val visibleItemsInfo = layoutInfo.visibleItemsInfo
+            val visibleItemsInfo = itemsList(this@PivotedTilingEffect)
             val index = indexSelector(visibleItemsInfo.indices)
-            visibleItemsInfo.getOrNull(index)
+            val lazyStateItem = visibleItemsInfo.getOrNull(index)
+            val itemIndex = lazyStateItem?.let(indexForItem)
+            itemIndex?.let(updatedItems::queryAtOrNull)
         }
-            .map { it?.index?.let(items::queryAtOrNull) }
             .distinctUntilChanged()
             .collect(onQueryChanged)
     }

@@ -32,27 +32,10 @@ buildscript {
             }
         })
     }
-
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath(libs.android.gradlePlugin)
-        classpath(libs.kotlin.gradlePlugin)
-        classpath(libs.dokka.gradlePlugin)
-
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
-    }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-        maven {
-            url = uri("https://maven.pkg.jetbrains.space/public/p/compose/dev/")
-        }
-    }
+plugins {
+    id(libs.plugins.android.application.get().pluginId) apply false
+    id(libs.plugins.android.library.get().pluginId) apply false
+    id(libs.plugins.kotlin.android.get().pluginId) apply false
 }
