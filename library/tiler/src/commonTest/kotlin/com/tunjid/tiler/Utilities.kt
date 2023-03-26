@@ -18,11 +18,14 @@ package com.tunjid.tiler
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.test.assertEquals
 
 internal val Int.testRange get() = this.times(10).rangeTo(this.times(10) + 9)
 
-internal fun Int.tiledTestRange() = buildTiledList {
-    addAll(query = this@tiledTestRange, items = testRange.toList())
+internal fun Int.tiledTestRange(
+    transform: List<Int>.() -> List<Int> = {this}
+) = buildTiledList {
+    addAll(query = this@tiledTestRange, items = transform(testRange.toList()))
 }
 
 suspend fun <T> Flow<T>.toListWithTimeout(timeoutMillis: Long): List<T> {
@@ -32,3 +35,22 @@ suspend fun <T> Flow<T>.toListWithTimeout(timeoutMillis: Long): List<T> {
         result
     } ?: result
 }
+
+fun <Query, Item> assertTiledListEquals(
+    expected: TiledList<Query, Item>,
+    actual: TiledList<Query, Item>,
+) = assertEquals(
+    expected = expected.asPairedList(),
+    actual = actual.asPairedList()
+)
+
+fun <Query, Item> assertBatchTiledListEquals(
+    expected: List<TiledList<Query, Item>>,
+    actual: List<TiledList<Query, Item>>,
+) = assertEquals(
+    expected = expected.map(TiledList<Query, Item>::asPairedList),
+    actual = actual.map(TiledList<Query, Item>::asPairedList)
+)
+
+private fun TiledList<*, *>.asPairedList(): List<Pair<*, *>> =
+    mapIndexed { index, item -> queryAt(index) to item }
