@@ -271,6 +271,20 @@ class TileKtTest {
                 actual = awaitItem()
             )
 
+            // Limit results to 2.5 pages
+            requests.emit(Tile.Limiter(check = { it.size >= 25 }))
+            assertEquals(
+                expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange().take(5),
+                actual = awaitItem()
+            )
+
+            // Limit results to 3 pages
+            requests.emit(Tile.Limiter(check = { it.size >= 30 }))
+            assertEquals(
+                expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
+                actual = awaitItem()
+            )
+
             // Sort ascending
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
             assertEquals(
@@ -310,7 +324,7 @@ class TileKtTest {
 
     @Test
     fun changing_the_limiter_does_not_emit_on_empty_items() = runTest {
-        val limitCheck = { items: List<Int> -> items.size > 7 }
+        val limitCheck = { items: List<Int> -> items.size >= 10 }
         val inputs = listOf<Tile.Input<Int, Int>>(
             Tile.Request.On(0),
             Tile.Request.On(1),
@@ -415,5 +429,70 @@ class TileKtTest {
             ),
             actual = emissions
         )
+    }
+
+    @Test
+    fun items_limiters_wor_across_orders() = runTest {
+        val requests = MutableSharedFlow<Tile.Input<Int, Int>>()
+        val items = requests.toTiledList(listTiler)
+
+        items.test {
+            // Request page 1
+            requests.emit(Tile.Request.On(query = 1))
+            assertEquals(
+                expected = 1.tiledTestRange(),
+                actual = awaitItem()
+            )
+
+            // Request page 2
+            requests.emit(Tile.Request.On(query = 2))
+            assertEquals(
+                expected = 1.tiledTestRange() + 2.tiledTestRange(),
+                actual = awaitItem()
+            )
+
+            // Request page 3
+            requests.emit(Tile.Request.On(query = 3))
+            assertEquals(
+                expected = 1.tiledTestRange() + 2.tiledTestRange() + 3.tiledTestRange(),
+                actual = awaitItem()
+            )
+
+            // Limit to 15
+            requests.emit(Tile.Limiter{ it.size >= 16 })
+            assertEquals(
+                expected = 1.tiledTestRange() + 2.tiledTestRange().take(6),
+                actual = awaitItem()
+            )
+
+            // Reverse sort by page
+            requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo).reversed()))
+            assertEquals(
+                expected = 3.tiledTestRange() + 2.tiledTestRange().take(6),
+                actual = awaitItem()
+            )
+
+            // Pivot sort around 2
+            requests.emit(Tile.Order.PivotSorted(
+                query = 2,
+                comparator = Comparator(Int::compareTo))
+            )
+            assertEquals(
+                expected = 1.tiledTestRange().takeLast(3) + 2.tiledTestRange() + 3.tiledTestRange().take(3),
+                actual = awaitItem()
+            )
+
+            // Pivot sort around 2 reversed
+            requests.emit(Tile.Order.PivotSorted(
+                query = 2,
+                comparator = Comparator(Int::compareTo).reversed())
+            )
+            assertEquals(
+                expected = 3.tiledTestRange().takeLast(3) + 2.tiledTestRange() + 1.tiledTestRange().take(3),
+                actual = awaitItem()
+            )
+
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

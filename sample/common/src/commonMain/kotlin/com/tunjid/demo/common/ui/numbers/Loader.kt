@@ -39,9 +39,9 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
-private const val ITEMS_PER_PAGE = 15
+private const val ITEMS_PER_PAGE = 100
 
-private const val MIN_ITEMS_TO_SHOW = 50
+private const val MIN_ITEMS_PER_PAGE = 50
 
 val ascendingPageComparator = compareBy(PageQuery::page)
 val descendingPageComparator = ascendingPageComparator.reversed()
@@ -104,7 +104,7 @@ class Loader(
 
     // Change limit to account for dynamic view port size
     private val limitInputs = numberOfColumns.map { gridSize ->
-        Tile.Limiter<PageQuery, NumberTile> { items -> items.size > MIN_ITEMS_TO_SHOW * gridSize }
+        Tile.Limiter<PageQuery, NumberTile> { items -> items.size > MIN_ITEMS_PER_PAGE * gridSize }
     }
 
     private val tiledList = merge(
@@ -118,7 +118,7 @@ class Loader(
                 isDark = isDark,
             )
         )
-        .filter { it.size >= MIN_ITEMS_TO_SHOW }
+        .filter { it.size >= MIN_ITEMS_PER_PAGE }
         .shareIn(scope, SharingStarted.WhileSubscribed())
 
     val state = combine(
@@ -168,8 +168,8 @@ class Loader(
         isAscending: Boolean,
         numberOfColumns: Int,
     ) = PivotRequest(
-        onCount = 4 * numberOfColumns,
-        offCount = 4 * numberOfColumns,
+        onCount = 2 * numberOfColumns,
+        offCount = 2 * numberOfColumns,
         nextQuery = nextQuery,
         previousQuery = previousQuery,
         comparator = when {
