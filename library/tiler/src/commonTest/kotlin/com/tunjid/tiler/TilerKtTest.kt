@@ -38,7 +38,7 @@ class TilerKtTest {
                 .scan(
                     initial = ImmutableTiler(
                         metadata = Tile.Metadata(
-                            limiter = Tile.Limiter { false },
+                            limiter = Tile.Limiter(size = Int.MIN_VALUE),
                             order = Tile.Order.Sorted(comparator = Int::compareTo)
                         )
                     ),
@@ -71,7 +71,7 @@ class TilerKtTest {
                 .scan(
                     initial = ImmutableTiler(
                         metadata = Tile.Metadata(
-                            limiter = Tile.Limiter { items -> items.size >= 50 },
+                            limiter = Tile.Limiter(size = 50),
                             order = Tile.Order.PivotSorted(
                                 query = 4,
                                 comparator = Int::compareTo

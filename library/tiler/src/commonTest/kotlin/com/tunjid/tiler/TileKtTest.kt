@@ -258,28 +258,28 @@ class TileKtTest {
             )
 
             // Limit results to 2 pages
-            requests.emit(Tile.Limiter(check = { it.size >= 20 }))
+            requests.emit(Tile.Limiter(size = 20))
             assertTiledListEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Limit results to 3 pages
-            requests.emit(Tile.Limiter(check = { it.size >= 30 }))
+            requests.emit(Tile.Limiter(size = 30))
             assertTiledListEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Limit results to 2.5 pages
-            requests.emit(Tile.Limiter(check = { it.size >= 25 }))
+            requests.emit(Tile.Limiter(size = 25))
             assertTiledListEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange { take(5) },
                 actual = awaitItem()
             )
 
             // Limit results to 3 pages
-            requests.emit(Tile.Limiter(check = { it.size >= 30 }))
+            requests.emit(Tile.Limiter(size = 30))
             assertTiledListEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
                 actual = awaitItem()
@@ -324,17 +324,16 @@ class TileKtTest {
 
     @Test
     fun changing_the_limiter_does_not_emit_on_empty_items() = runTest {
-        val limitCheck = { items: List<Int> -> items.size >= 10 }
         val inputs = listOf<Tile.Input<Int, Int>>(
             Tile.Request.On(0),
             Tile.Request.On(1),
             // Copious duplicate limits
-            Tile.Limiter(limitCheck),
-            Tile.Limiter(limitCheck),
-            Tile.Limiter(limitCheck),
-            Tile.Limiter(limitCheck),
-            Tile.Limiter(limitCheck),
-            Tile.Limiter { it.size > 100 },
+            Tile.Limiter(size = 10),
+            Tile.Limiter(size = 10),
+            Tile.Limiter(size = 10),
+            Tile.Limiter(size = 10),
+            Tile.Limiter(size = 10),
+            Tile.Limiter(size = 100),
         )
 
         val emissions = inputs
@@ -460,7 +459,7 @@ class TileKtTest {
             )
 
             // Limit to 15
-            requests.emit(Tile.Limiter { it.size >= 16 })
+            requests.emit(Tile.Limiter(size = 16))
             assertTiledListEquals(
                 expected = 1.tiledTestRange() + 2.tiledTestRange { take(6) },
                 actual = awaitItem()

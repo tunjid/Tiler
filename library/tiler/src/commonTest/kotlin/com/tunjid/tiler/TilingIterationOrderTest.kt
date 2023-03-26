@@ -104,7 +104,7 @@ private fun Flow<Tile.Request<Int, Int>>.orderWith(
     orderFactory: () -> Tile.Order<Int, Int>
 ): Flow<List<Int>> = listTiler(
     // Take 3 pages of items
-    limiter = Tile.Limiter { it.size >= 30 },
+    limiter = Tile.Limiter(size = 30),
     order = orderFactory(),
     fetcher = { page ->
         flowOf(page.testRange.toList())

@@ -25,15 +25,18 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
 
     return when (val order = order) {
 
-        is Tile.Order.Sorted -> orderedQueries
-            .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
-                val items = queryItemsMap.getValue(query)
-                for (item in items) {
-                    if (limiter.check(mutableTiledList)) break
-                    mutableTiledList.add(query = query, item = item)
+        is Tile.Order.Sorted -> {
+            val maxSize = limitedSize(queryItemsMap)
+            orderedQueries
+                .foldWhile(MutablePairedTiledList(), maxSize) { mutableTiledList, query ->
+                    val items = queryItemsMap.getValue(query)
+                    for (item in items) {
+                        if (mutableTiledList.isOver(maxSize)) break
+                        mutableTiledList.add(query = query, item = item)
+                    }
+                    mutableTiledList
                 }
-                mutableTiledList
-            }
+        }
 
         is Tile.Order.PivotSorted -> {
             if (orderedQueries.isEmpty()) return emptyTiledList()
@@ -44,11 +47,12 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
             if (startIndex < 0) return emptyTiledList()
 
             val tiledList = MutablePairedTiledList<Query, Item>()
+            val maxSize = limitedSize(queryItemsMap)
             var i = -1
             while (true) {
                 val query = orderedQueries[startIndex]
                 val items = queryItemsMap.getValue(query)
-                if (limiter.check(tiledList) || ++i > items.lastIndex) break
+                if (tiledList.isOver(maxSize) || ++i > items.lastIndex) break
                 tiledList.add(query = query, item = items[i])
             }
 
@@ -65,7 +69,7 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
                 queryItemsMap = queryItemsMap,
             )
 
-            while (!limiter.check(tiledList) && (left.inBounds() || right.inBounds())) {
+            while (!tiledList.isOver(maxSize) && (left.inBounds() || right.inBounds())) {
                 // TODO: This has unnecessary shifting on insertion.
                 //  Write a more optimal DS that allows for insertion in the middle and fanning out
                 //  Fix: Change signature of Limiter to take a size. Then create an array of that
@@ -73,7 +77,7 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
                 left.read()?.let { item ->
                     tiledList.add(index = 0, query = left.currentQuery(), item = item)
                 }
-                if (!limiter.check(tiledList)) right.read()?.let { item ->
+                if (!tiledList.isOver(maxSize)) right.read()?.let { item ->
                     tiledList.add(query = right.currentQuery(), item = item)
                 }
             }
@@ -84,18 +88,25 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
     }
 }
 
-private inline fun <T, R> Iterable<T>.foldWhile(
+private inline fun <T, R: List<*>> Iterable<T>.foldWhile(
     initial: R,
-    limiter: (R) -> Boolean,
+    maxSize: Int,
     operation: (acc: R, T) -> R
 ): R {
     var accumulator = initial
     for (element in this) {
+        if (accumulator.isOver(maxSize)) return accumulator
         accumulator = operation(accumulator, element)
-        if (limiter(accumulator)) return accumulator
     }
     return accumulator
 }
+
+private fun <Item, Query> Tile.Metadata<Query, Item>.limitedSize(queryItemsMap: Map<Query, List<Item>>) =
+    limiter.size.takeIf { it > Int.MIN_VALUE } ?: queryItemsMap.values.sumOf { it.size }
+
+private fun <Item> List<Item>.isOver(
+    maxSize: Int
+) : Boolean = size >= maxSize
 
 private class QueryAndList<Query, Item>(
     private var queryIndex: Int,

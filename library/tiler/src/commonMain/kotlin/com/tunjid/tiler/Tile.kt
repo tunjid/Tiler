@@ -33,7 +33,7 @@ class Tile<Query, Item : Any?> {
     data class Metadata<Query, Item> internal constructor(
         val order: Order<Query, Item>,
         val orderedQueries: List<Query> = listOf(),
-        val limiter: Limiter<Query, Item> = Limiter { false },
+        val limiter: Limiter<Query, Item> = Limiter(Int.MIN_VALUE),
         val mostRecentlyEmitted: Query? = null,
     )
 
@@ -105,10 +105,9 @@ class Tile<Query, Item : Any?> {
 
     /**
      * Limits the output of the [listTiler] for [listTiler] functions.
-     * Note: Limiting is done with per query, not per item.
      */
     data class Limiter<Query, Item>(
-        val check: (TiledList<Query, Item>) -> Boolean
+        val size: Int
     ) : Input<Query, Item>
 
     /**
@@ -147,7 +146,7 @@ fun <Query, Item> Flow<Tile.Input<Query, Item>>.toTiledList(
  */
 fun <Query, Item> listTiler(
     order: Tile.Order<Query, Item>,
-    limiter: Tile.Limiter<Query, Item> = Tile.Limiter { false },
+    limiter: Tile.Limiter<Query, Item> = Tile.Limiter(Int.MIN_VALUE),
     fetcher: suspend (Query) -> Flow<List<Item>>
 ): ListTiler<Query, Item> = { requests ->
     tilerFactory(
@@ -158,4 +157,3 @@ fun <Query, Item> listTiler(
         .invoke(requests)
         .map(Tiler<Query, Item>::tiledItems)
 }
-
