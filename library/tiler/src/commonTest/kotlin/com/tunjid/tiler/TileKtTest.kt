@@ -258,14 +258,24 @@ class TileKtTest {
             )
 
             // Limit results to 2 pages
-            requests.emit(Tile.Limiter(maxQueries = 2))
+            requests.emit(
+                Tile.Limiter(
+                    maxQueries = 2,
+                    queryItemsSize = 10
+                )
+            )
             assertTiledListEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Limit results to 3 pages
-            requests.emit(Tile.Limiter(maxQueries = 3))
+            requests.emit(
+                Tile.Limiter(
+                    maxQueries = 3,
+                    queryItemsSize = 10
+                )
+            )
             assertTiledListEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
                 actual = awaitItem()
@@ -314,12 +324,30 @@ class TileKtTest {
             Tile.Request.On(0),
             Tile.Request.On(1),
             // Copious duplicate limits
-            Tile.Limiter(maxQueries = 1),
-            Tile.Limiter(maxQueries = 1),
-            Tile.Limiter(maxQueries = 1),
-            Tile.Limiter(maxQueries = 1),
-            Tile.Limiter(maxQueries = 1),
-            Tile.Limiter(maxQueries = 100),
+            Tile.Limiter(
+                maxQueries = 1,
+                queryItemsSize = 10
+            ),
+            Tile.Limiter(
+                maxQueries = 1,
+                queryItemsSize = 10
+            ),
+            Tile.Limiter(
+                maxQueries = 1,
+                queryItemsSize = 10
+            ),
+            Tile.Limiter(
+                maxQueries = 1,
+                queryItemsSize = 10
+            ),
+            Tile.Limiter(
+                maxQueries = 1,
+                queryItemsSize = 10
+            ),
+            Tile.Limiter(
+                maxQueries = Int.MAX_VALUE,
+                queryItemsSize = 10
+            ),
         )
 
         val emissions = inputs
@@ -445,7 +473,12 @@ class TileKtTest {
             )
 
             // Limit to 2 queries
-            requests.emit(Tile.Limiter(maxQueries = 2))
+            requests.emit(
+                Tile.Limiter(
+                    maxQueries = 2,
+                    queryItemsSize = 10
+                )
+            )
             assertTiledListEquals(
                 expected = 1.tiledTestRange() + 2.tiledTestRange(),
                 actual = awaitItem()
