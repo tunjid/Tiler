@@ -33,7 +33,10 @@ class Tile<Query, Item : Any?> {
     data class Metadata<Query, Item> internal constructor(
         val order: Order<Query, Item>,
         val orderedQueries: List<Query> = listOf(),
-        val limiter: Limiter<Query, Item> = Limiter { false },
+        val limiter: Limiter<Query, Item> = Limiter(
+            maxQueries = Int.MIN_VALUE,
+            queryItemsSize = null
+        ),
         val mostRecentlyEmitted: Query? = null,
     )
 
@@ -105,10 +108,18 @@ class Tile<Query, Item : Any?> {
 
     /**
      * Limits the output of the [listTiler] for [listTiler] functions.
-     * Note: Limiting is done with per query, not per item.
      */
     data class Limiter<Query, Item>(
-        val check: (TiledList<Query, Item>) -> Boolean
+        /**
+         * The maximum number of queries to be read from when returning a tiled list
+         */
+        val maxQueries: Int,
+        /**
+         * Optimizes retrieval speed for items fetched. Use only if your queries return a fixed number
+         * of items each time, for example sql queries with a limit parameter. It is fine if the items returned
+         * by the last query specified by [Tile.Order] returns less than the size specified.
+         */
+        val queryItemsSize: Int?,
     ) : Input<Query, Item>
 
     /**
@@ -147,7 +158,10 @@ fun <Query, Item> Flow<Tile.Input<Query, Item>>.toTiledList(
  */
 fun <Query, Item> listTiler(
     order: Tile.Order<Query, Item>,
-    limiter: Tile.Limiter<Query, Item> = Tile.Limiter { false },
+    limiter: Tile.Limiter<Query, Item> = Tile.Limiter(
+        maxQueries = Int.MIN_VALUE,
+        queryItemsSize = null,
+    ),
     fetcher: suspend (Query) -> Flow<List<Item>>
 ): ListTiler<Query, Item> = { requests ->
     tilerFactory(
@@ -158,4 +172,3 @@ fun <Query, Item> listTiler(
         .invoke(requests)
         .map(Tiler<Query, Item>::tiledItems)
 }
-

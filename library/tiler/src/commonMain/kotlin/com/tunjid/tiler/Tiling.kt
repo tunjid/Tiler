@@ -16,7 +16,8 @@
 
 package com.tunjid.tiler
 
-import com.tunjid.utilities.MutablePairedTiledList
+import com.tunjid.utilities.ChunkedTiledList
+import kotlin.math.min
 
 internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
     queryItemsMap: Map<Query, List<Item>>,
@@ -25,12 +26,20 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
 
     return when (val order = order) {
 
-        is Tile.Order.Sorted -> orderedQueries
-            .foldWhile(MutablePairedTiledList(), limiter.check) { mutableTiledList, query ->
-                val items = queryItemsMap.getValue(query)
-                mutableTiledList.addAll(query = query, items = items)
-                mutableTiledList
+        is Tile.Order.Sorted -> (0 until min(limitedChunkSize(), orderedQueries.size)).let { range ->
+            range.fold(
+                ChunkedTiledList(
+                    chunkSize = limiter.queryItemsSize,
+                    maxNumberOfChunks = range.last - range.first
+                )
+            ) { chunkedTiledList, index ->
+                chunkedTiledList.addRight(
+                    query = orderedQueries[index],
+                    items = queryItemsMap.getValue(orderedQueries[index])
+                )
+                chunkedTiledList
             }
+        }
 
         is Tile.Order.PivotSorted -> {
             if (orderedQueries.isEmpty()) return emptyTiledList()
@@ -44,38 +53,39 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
             var rightIndex = startIndex
             var query = orderedQueries[startIndex]
             var items = queryItemsMap.getValue(query)
+            val maxNumberOfChunks = min(limitedChunkSize(), orderedQueries.size)
 
-            val tiledList = MutablePairedTiledList<Query, Item>()
-            tiledList.addAll(query = query, items = items)
+            val chunkedTiledList = ChunkedTiledList<Query, Item>(
+                chunkSize = limiter.queryItemsSize,
+                maxNumberOfChunks = maxNumberOfChunks
+            )
 
-            while (!limiter.check(tiledList) && (leftIndex >= 0 || rightIndex <= orderedQueries.lastIndex)) {
-                if (--leftIndex >= 0) {
+            // Check if adding the pivot index will cause it to go over the limit
+            if (maxNumberOfChunks < 1) return chunkedTiledList
+            chunkedTiledList.addLeft(query = query, items = items)
+
+            var count = 1
+            while (count < maxNumberOfChunks && (leftIndex >= 0 || rightIndex <= orderedQueries.lastIndex)) {
+                if (--leftIndex >= 0 && ++count <= maxNumberOfChunks) {
                     query = orderedQueries[leftIndex]
                     items = queryItemsMap.getValue(query)
-                    tiledList.addAll(index = 0, query = query, items = items)
+                    chunkedTiledList.addLeft(query = query, items = items)
                 }
-                if (++rightIndex <= orderedQueries.lastIndex && !limiter.check(tiledList)) {
+                if (++rightIndex <= orderedQueries.lastIndex && ++count <= maxNumberOfChunks) {
                     query = orderedQueries[rightIndex]
                     items = queryItemsMap.getValue(query)
-                    tiledList.addAll(query = query, items = items)
+                    chunkedTiledList.addRight(query = query, items = items)
                 }
             }
-            tiledList
+            chunkedTiledList
         }
 
         is Tile.Order.Custom -> order.transform(this, queryItemsMap)
     }
 }
 
-private inline fun <T, R> Iterable<T>.foldWhile(
-    initial: R,
-    limiter: (R) -> Boolean,
-    operation: (acc: R, T) -> R
-): R {
-    var accumulator = initial
-    for (element in this) {
-        accumulator = operation(accumulator, element)
-        if (limiter(accumulator)) return accumulator
+private fun <Query, Item> Tile.Metadata<Query, Item>.limitedChunkSize() =
+    when (val numQueries = limiter.maxQueries) {
+        in Int.MIN_VALUE..-1 -> orderedQueries.size
+        else -> numQueries
     }
-    return accumulator
-}

@@ -64,7 +64,7 @@ class TileKtTest {
             .take(requests.size)
             .toList()
 
-        assertEquals(
+        assertTiledListEquals(
             expected = 1.tiledTestRange(),
             actual = emissions[0]
         )
@@ -83,15 +83,15 @@ class TileKtTest {
             .take(requests.size)
             .toList()
 
-        assertEquals(
+        assertTiledListEquals(
             expected = 1.tiledTestRange(),
             actual = emissions[0]
         )
-        assertEquals(
+        assertTiledListEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
             actual = emissions[1]
         )
-        assertEquals(
+        assertTiledListEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
             actual = emissions[2]
         )
@@ -116,7 +116,7 @@ class TileKtTest {
             .take(requests.size)
             .toList()
 
-        assertEquals(
+        assertTiledListEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
             actual = emissions.last()
         )
@@ -155,7 +155,7 @@ class TileKtTest {
             .take(requests.filterIsInstance<Tile.Request.On<Int, List<Int>>>().size)
             .toList()
 
-        assertEquals(
+        assertTiledListEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
             actual = emissions.last()
         )
@@ -176,7 +176,7 @@ class TileKtTest {
             .take(1)
             .toList()
 
-        assertEquals(
+        assertTiledListEquals(
             expected = 1.tiledTestRange(),
             actual = emissions.last()
         )
@@ -205,19 +205,19 @@ class TileKtTest {
             .take(requests.size)
             .toList()
 
-        assertEquals(
+        assertTiledListEquals(
             expected = 1.tiledTestRange(),
             actual = emissions[0]
         )
-        assertEquals(
+        assertTiledListEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
             actual = emissions[1]
         )
-        assertEquals(
+        assertTiledListEquals(
             expected = 3.tiledTestRange(),
             actual = emissions[2]
         )
-        assertEquals(
+        assertTiledListEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
             actual = emissions[3]
         )
@@ -231,56 +231,66 @@ class TileKtTest {
         items.test {
             // Request page 1
             requests.emit(Tile.Request.On(query = 1))
-            assertEquals(
+            assertTiledListEquals(
                 expected = 1.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Request page 3
             requests.emit(Tile.Request.On(query = 3))
-            assertEquals(
+            assertTiledListEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Request page 8
             requests.emit(Tile.Request.On(query = 8))
-            assertEquals(
+            assertTiledListEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Reverse sort by page
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo).reversed()))
-            assertEquals(
+            assertTiledListEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Limit results to 2 pages
-            requests.emit(Tile.Limiter(check = { it.size >= 20 }))
-            assertEquals(
+            requests.emit(
+                Tile.Limiter(
+                    maxQueries = 2,
+                    queryItemsSize = 10
+                )
+            )
+            assertTiledListEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Limit results to 3 pages
-            requests.emit(Tile.Limiter(check = { it.size >= 30 }))
-            assertEquals(
+            requests.emit(
+                Tile.Limiter(
+                    maxQueries = 3,
+                    queryItemsSize = 10
+                )
+            )
+            assertTiledListEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Sort ascending
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
-            assertEquals(
+            assertTiledListEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Request 4
             requests.emit(Tile.Request.On(query = 4))
-            assertEquals(
+            assertTiledListEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange() + 4.tiledTestRange(),
                 actual = awaitItem()
             )
@@ -292,14 +302,14 @@ class TileKtTest {
                     comparator = Comparator(Int::compareTo)
                 )
             )
-            assertEquals(
+            assertTiledListEquals(
                 3.tiledTestRange() + 4.tiledTestRange() + 8.tiledTestRange(),
                 awaitItem()
             )
 
             // Sort ascending in absolute terms
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
-            assertEquals(
+            assertTiledListEquals(
                 1.tiledTestRange() + 3.tiledTestRange() + 4.tiledTestRange(),
                 awaitItem()
             )
@@ -310,17 +320,34 @@ class TileKtTest {
 
     @Test
     fun changing_the_limiter_does_not_emit_on_empty_items() = runTest {
-        val limitCheck = { items: List<Int> -> items.size > 7 }
         val inputs = listOf<Tile.Input<Int, Int>>(
             Tile.Request.On(0),
             Tile.Request.On(1),
             // Copious duplicate limits
-            Tile.Limiter(limitCheck),
-            Tile.Limiter(limitCheck),
-            Tile.Limiter(limitCheck),
-            Tile.Limiter(limitCheck),
-            Tile.Limiter(limitCheck),
-            Tile.Limiter { it.size > 100 },
+            Tile.Limiter(
+                maxQueries = 1,
+                queryItemsSize = 10
+            ),
+            Tile.Limiter(
+                maxQueries = 1,
+                queryItemsSize = 10
+            ),
+            Tile.Limiter(
+                maxQueries = 1,
+                queryItemsSize = 10
+            ),
+            Tile.Limiter(
+                maxQueries = 1,
+                queryItemsSize = 10
+            ),
+            Tile.Limiter(
+                maxQueries = 1,
+                queryItemsSize = 10
+            ),
+            Tile.Limiter(
+                maxQueries = Int.MAX_VALUE,
+                queryItemsSize = 10
+            ),
         )
 
         val emissions = inputs
@@ -329,7 +356,7 @@ class TileKtTest {
             .take(inputs.size)
             .toListWithTimeout(200)
 
-        assertEquals(
+        assertBatchTiledListEquals(
             expected = listOf(
                 0.tiledTestRange(),
                 0.tiledTestRange() + 1.tiledTestRange(),
@@ -341,27 +368,28 @@ class TileKtTest {
     }
 
     @Test
-    fun changing_the_order_does_not_emit_if_the_requested_pivot_does_not_exist_and_the_tiles_were_empty() = runTest {
-        val inputs = listOf<Tile.Input<Int, Int>>(
-            Tile.Order.PivotSorted(9, Int::compareTo),
-            Tile.Order.PivotSorted(12, Int::compareTo),
-            Tile.Request.On(2),
-            Tile.Order.PivotSorted(2, Int::compareTo),
-        )
+    fun changing_the_order_does_not_emit_if_the_requested_pivot_does_not_exist_and_the_tiles_were_empty() =
+        runTest {
+            val inputs = listOf<Tile.Input<Int, Int>>(
+                Tile.Order.PivotSorted(9, Int::compareTo),
+                Tile.Order.PivotSorted(12, Int::compareTo),
+                Tile.Request.On(2),
+                Tile.Order.PivotSorted(2, Int::compareTo),
+            )
 
-        val emissions = inputs
-            .asFlow()
-            .toTiledList(listTiler)
-            .take(inputs.size)
-            .toListWithTimeout(200)
+            val emissions = inputs
+                .asFlow()
+                .toTiledList(listTiler)
+                .take(inputs.size)
+                .toListWithTimeout(200)
 
-        assertEquals(
-            expected = listOf(
-                2.tiledTestRange()
-            ),
-            actual = emissions
-        )
-    }
+            assertBatchTiledListEquals(
+                expected = listOf(
+                    2.tiledTestRange()
+                ),
+                actual = emissions
+            )
+        }
 
     @Test
     fun pivoting_should_not_emit_till_data_is_available() = runTest {
@@ -381,7 +409,7 @@ class TileKtTest {
 
         val emissions = tiler(inputs).toListWithTimeout(200)
 
-        assertEquals(
+        assertBatchTiledListEquals(
             expected = emptyList(),
             actual = emissions
         )
@@ -409,11 +437,85 @@ class TileKtTest {
 
         val emissions = tiler(inputs).toListWithTimeout(200)
 
-        assertEquals(
+        assertBatchTiledListEquals(
             expected = listOf(
                 0.tiledTestRange() + 1.tiledTestRange() + 2.tiledTestRange()
             ),
             actual = emissions
         )
+    }
+
+    @Test
+    fun items_limiters_works_across_orders() = runTest {
+        val requests = MutableSharedFlow<Tile.Input<Int, Int>>()
+        val items = requests.toTiledList(listTiler)
+
+        items.test {
+            // Request page 1
+            requests.emit(Tile.Request.On(query = 1))
+            assertTiledListEquals(
+                expected = 1.tiledTestRange(),
+                actual = awaitItem()
+            )
+
+            // Request page 2
+            requests.emit(Tile.Request.On(query = 2))
+            assertTiledListEquals(
+                expected = 1.tiledTestRange() + 2.tiledTestRange(),
+                actual = awaitItem()
+            )
+
+            // Request page 3
+            requests.emit(Tile.Request.On(query = 3))
+            assertTiledListEquals(
+                expected = 1.tiledTestRange() + 2.tiledTestRange() + 3.tiledTestRange(),
+                actual = awaitItem()
+            )
+
+            // Limit to 2 queries
+            requests.emit(
+                Tile.Limiter(
+                    maxQueries = 2,
+                    queryItemsSize = 10
+                )
+            )
+            assertTiledListEquals(
+                expected = 1.tiledTestRange() + 2.tiledTestRange(),
+                actual = awaitItem()
+            )
+
+            // Reverse sort by page
+            requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo).reversed()))
+            assertTiledListEquals(
+                expected = 3.tiledTestRange() + 2.tiledTestRange(),
+                actual = awaitItem()
+            )
+
+            // Pivot sort around 2
+            requests.emit(
+                Tile.Order.PivotSorted(
+                    query = 2,
+                    comparator = Comparator(Int::compareTo)
+                )
+            )
+            assertTiledListEquals(
+                expected = 1.tiledTestRange() + 2.tiledTestRange(),
+                actual = awaitItem()
+            )
+
+            // Pivot sort around 2 reversed
+            requests.emit(
+                Tile.Order.PivotSorted(
+                    query = 2,
+                    comparator = Comparator(Int::compareTo).reversed()
+                )
+            )
+            assertTiledListEquals(
+                expected = 3.tiledTestRange() + 2.tiledTestRange(),
+                actual = awaitItem()
+            )
+
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }
