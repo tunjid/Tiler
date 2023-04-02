@@ -39,7 +39,7 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
-private const val ITEMS_PER_PAGE = 100
+private const val ITEMS_PER_PAGE = 50
 
 private const val MIN_ITEMS_PER_PAGE = 50
 
@@ -104,7 +104,10 @@ class Loader(
 
     // Change limit to account for dynamic view port size
     private val limitInputs = numberOfColumns.map { gridSize ->
-        Tile.Limiter<PageQuery, NumberTile> { items -> items.size > MIN_ITEMS_PER_PAGE * gridSize }
+        Tile.Limiter<PageQuery, NumberTile>(
+            maxQueries = gridSize * 3,
+            queryItemsSize = ITEMS_PER_PAGE
+        )
     }
 
     private val tiledList = merge(
@@ -113,10 +116,7 @@ class Loader(
         limitInputs,
     )
         .toTiledList(
-            numberTiler(
-                itemsPerPage = ITEMS_PER_PAGE,
-                isDark = isDark,
-            )
+            numberTiler(isDark = isDark)
         )
         .filter { it.size >= MIN_ITEMS_PER_PAGE }
         .shareIn(scope, SharingStarted.WhileSubscribed())
@@ -191,17 +191,19 @@ $pivotSummary
  * Fetches a [Map] of [PageQuery] to [NumberTile] where the [NumberTile] instances self update
  */
 private fun numberTiler(
-    itemsPerPage: Int,
     isDark: Boolean,
 ): ListTiler<PageQuery, NumberTile> =
     listTiler(
-        limiter = Tile.Limiter { items -> items.size > 40 },
+        limiter = Tile.Limiter(
+            maxQueries = 3,
+            queryItemsSize = ITEMS_PER_PAGE
+        ),
         order = Tile.Order.PivotSorted(
             query = PageQuery(page = 0, isAscending = true),
             comparator = ascendingPageComparator
         ),
         fetcher = { pageQuery ->
-            pageQuery.colorShiftingTiles(itemsPerPage, isDark)
+            pageQuery.colorShiftingTiles(ITEMS_PER_PAGE, isDark)
         }
     )
 
