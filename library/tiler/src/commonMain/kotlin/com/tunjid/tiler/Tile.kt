@@ -107,7 +107,7 @@ class Tile<Query, Item : Any?> {
      * Limits the output of the [listTiler] for [listTiler] functions.
      */
     data class Limiter<Query, Item>(
-        val size: Int
+        val maxQueries: Int
     ) : Input<Query, Item>
 
     /**

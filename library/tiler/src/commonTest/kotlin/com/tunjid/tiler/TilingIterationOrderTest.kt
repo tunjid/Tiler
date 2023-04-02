@@ -36,7 +36,7 @@ class ListMapTilingSamenessTest {
         )
         val emissions = requests
             .asFlow()
-            .orderWith { Tile.Order.Sorted(Int::compareTo) }
+            .orderWith(maxQueries = 3) { Tile.Order.Sorted(Int::compareTo) }
             .take(requests.size)
             .toList()
 
@@ -67,32 +67,37 @@ class ListMapTilingSamenessTest {
         )
         val emissions = requests
             .asFlow()
-            .orderWith {
+            .orderWith(maxQueries = 3) {
                 Tile.Order.PivotSorted(query = 4, comparator = Int::compareTo)
             }
             .take(requests.size)
             .toList()
 
+        // First emission
         assertEquals(
             expected = 4.tiledTestRange(),
             actual = emissions[0]
         )
 
+        // First second emission
         assertEquals(
             expected = 3.tiledTestRange() + 4.tiledTestRange(),
             actual = emissions[1]
         )
 
+        // Third emission
         assertEquals(
             expected = 3.tiledTestRange() + 4.tiledTestRange() + 8.tiledTestRange(),
             actual = emissions[2]
         )
 
+        // Fourth emission, 5 should replace 8 in pivoting
         assertEquals(
             expected = 3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
             actual = emissions[3]
         )
 
+        // Fifth emission, 2 should not show up in the list
         assertEquals(
             expected = 3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
             actual = emissions[4]
@@ -101,10 +106,11 @@ class ListMapTilingSamenessTest {
 }
 
 private fun Flow<Tile.Request<Int, Int>>.orderWith(
+    maxQueries: Int,
     orderFactory: () -> Tile.Order<Int, Int>
 ): Flow<List<Int>> = listTiler(
     // Take 3 pages of items
-    limiter = Tile.Limiter(size = 30),
+    limiter = Tile.Limiter(maxQueries = maxQueries),
     order = orderFactory(),
     fetcher = { page ->
         flowOf(page.testRange.toList())

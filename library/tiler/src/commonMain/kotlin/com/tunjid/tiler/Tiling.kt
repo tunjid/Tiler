@@ -17,6 +17,8 @@
 package com.tunjid.tiler
 
 import com.tunjid.utilities.MutablePairedTiledList
+import com.tunjid.utilities.PivotedTiledList
+import kotlin.math.min
 
 internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
     queryItemsMap: Map<Query, List<Item>>,
@@ -25,18 +27,14 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
 
     return when (val order = order) {
 
-        is Tile.Order.Sorted -> {
-            val maxSize = limitedSize(queryItemsMap)
-            orderedQueries
-                .foldWhile(MutablePairedTiledList(), maxSize) { mutableTiledList, query ->
-                    val items = queryItemsMap.getValue(query)
-                    for (item in items) {
-                        if (mutableTiledList.isOver(maxSize)) break
-                        mutableTiledList.add(query = query, item = item)
-                    }
-                    mutableTiledList
-                }
-        }
+        is Tile.Order.Sorted -> (0 until min(limitedSize(), orderedQueries.size))
+            .fold(MutablePairedTiledList()) { mutableTiledList, index ->
+                mutableTiledList.addAll(
+                    query = orderedQueries[index],
+                    items = queryItemsMap.getValue(orderedQueries[index])
+                )
+                mutableTiledList
+            }
 
         is Tile.Order.PivotSorted -> {
             if (orderedQueries.isEmpty()) return emptyTiledList()
@@ -46,102 +44,41 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
 
             if (startIndex < 0) return emptyTiledList()
 
-            val tiledList = MutablePairedTiledList<Query, Item>()
-            val maxSize = limitedSize(queryItemsMap)
-            var i = -1
-            while (true) {
-                val query = orderedQueries[startIndex]
-                val items = queryItemsMap.getValue(query)
-                if (tiledList.isOver(maxSize) || ++i > items.lastIndex) break
-                tiledList.add(query = query, item = items[i])
-            }
+            var leftIndex = startIndex
+            var rightIndex = startIndex
+            var query = orderedQueries[startIndex]
+            var items = queryItemsMap.getValue(query)
 
-            val left = QueryAndList(
-                isLeft = true,
-                queryIndex = startIndex - 1,
-                orderedQueries = orderedQueries,
-                queryItemsMap = queryItemsMap,
-            )
-            val right = QueryAndList(
-                isLeft = false,
-                queryIndex = startIndex + 1,
-                orderedQueries = orderedQueries,
-                queryItemsMap = queryItemsMap,
-            )
+            val pivotedTiledList = PivotedTiledList<Query, Item>()
 
-            while (!tiledList.isOver(maxSize) && (left.inBounds() || right.inBounds())) {
-                // TODO: This has unnecessary shifting on insertion.
-                //  Write a more optimal DS that allows for insertion in the middle and fanning out
-                //  Fix: Change signature of Limiter to take a size. Then create an array of that
-                //  size and start to populate it from the middle.
-                left.read()?.let { item ->
-                    tiledList.add(index = 0, query = left.currentQuery(), item = item)
+            val max = min(limitedSize(), orderedQueries.size)
+
+            // Check if adding the pivot index will cause it to go over the limit
+            if (max < 1) return pivotedTiledList
+            pivotedTiledList.addLeft(query = query, items = items)
+
+            var count = 1
+            while (count < max && (leftIndex >= 0 || rightIndex <= orderedQueries.lastIndex)) {
+                if (--leftIndex >= 0 && ++count <= max) {
+                    query = orderedQueries[leftIndex]
+                    items = queryItemsMap.getValue(query)
+                    pivotedTiledList.addLeft(query = query, items = items)
                 }
-                if (!tiledList.isOver(maxSize)) right.read()?.let { item ->
-                    tiledList.add(query = right.currentQuery(), item = item)
+                if (++rightIndex <= orderedQueries.lastIndex && ++count <= max) {
+                    query = orderedQueries[rightIndex]
+                    items = queryItemsMap.getValue(query)
+                    pivotedTiledList.addRight(query = query, items = items)
                 }
             }
-            tiledList
+            pivotedTiledList
         }
 
         is Tile.Order.Custom -> order.transform(this, queryItemsMap)
     }
 }
 
-private inline fun <T, R: List<*>> Iterable<T>.foldWhile(
-    initial: R,
-    maxSize: Int,
-    operation: (acc: R, T) -> R
-): R {
-    var accumulator = initial
-    for (element in this) {
-        if (accumulator.isOver(maxSize)) return accumulator
-        accumulator = operation(accumulator, element)
+private fun <Query, Item> Tile.Metadata<Query, Item>.limitedSize() =
+    when (val numQueries = limiter.maxQueries) {
+        in Int.MIN_VALUE..-1 -> orderedQueries.size
+        else -> numQueries
     }
-    return accumulator
-}
-
-private fun <Item, Query> Tile.Metadata<Query, Item>.limitedSize(queryItemsMap: Map<Query, List<Item>>) =
-    limiter.size.takeIf { it > Int.MIN_VALUE } ?: queryItemsMap.values.sumOf { it.size }
-
-private fun <Item> List<Item>.isOver(
-    maxSize: Int
-) : Boolean = size >= maxSize
-
-private class QueryAndList<Query, Item>(
-    private var queryIndex: Int,
-    val isLeft: Boolean,
-    val orderedQueries: List<Query>,
-    val queryItemsMap: Map<Query, List<Item>>,
-) {
-
-    private var innerIndex: Int = getInnerIndex()
-
-    private val items
-        get() = when {
-            inBounds() -> queryItemsMap.getValue(orderedQueries[queryIndex])
-            else -> emptyList()
-        }
-
-    fun inBounds() = queryIndex in orderedQueries.indices
-
-    fun currentQuery() = orderedQueries[queryIndex]
-    fun read(): Item? {
-        val item = when {
-            isLeft -> items.getOrNull(--innerIndex)
-            else -> items.getOrNull(++innerIndex)
-        }
-        if (item == null) {
-            if (isLeft) --queryIndex
-            else ++queryIndex
-            innerIndex = getInnerIndex()
-            if (inBounds()) return read()
-        }
-        return item
-    }
-
-    private fun getInnerIndex() = when {
-        isLeft -> items.size
-        else -> -1
-    }
-}
