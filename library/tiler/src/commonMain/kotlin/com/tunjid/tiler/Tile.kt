@@ -33,7 +33,10 @@ class Tile<Query, Item : Any?> {
     data class Metadata<Query, Item> internal constructor(
         val order: Order<Query, Item>,
         val orderedQueries: List<Query> = listOf(),
-        val limiter: Limiter<Query, Item> = Limiter(Int.MIN_VALUE),
+        val limiter: Limiter<Query, Item> = Limiter(
+            maxQueries = Int.MIN_VALUE,
+            queryItemsSize = null
+        ),
         val mostRecentlyEmitted: Query? = null,
     )
 
@@ -116,7 +119,7 @@ class Tile<Query, Item : Any?> {
          * of items each time, for example sql queries with a limit parameter. It is fine if the items returned
          * by the last query specified by [Tile.Order] returns less than the size specified.
          */
-        val queryItemsSize: Int? = null
+        val queryItemsSize: Int?,
     ) : Input<Query, Item>
 
     /**
@@ -155,7 +158,10 @@ fun <Query, Item> Flow<Tile.Input<Query, Item>>.toTiledList(
  */
 fun <Query, Item> listTiler(
     order: Tile.Order<Query, Item>,
-    limiter: Tile.Limiter<Query, Item> = Tile.Limiter(Int.MIN_VALUE),
+    limiter: Tile.Limiter<Query, Item> = Tile.Limiter(
+        maxQueries = Int.MIN_VALUE,
+        queryItemsSize = null,
+    ),
     fetcher: suspend (Query) -> Flow<List<Item>>
 ): ListTiler<Query, Item> = { requests ->
     tilerFactory(
