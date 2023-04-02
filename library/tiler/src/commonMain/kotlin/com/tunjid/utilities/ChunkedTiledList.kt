@@ -21,24 +21,26 @@ import com.tunjid.tiler.TiledList
 /**
  * A [TiledList] implementation that offers:
  * 1. Quick insertion for items at either end for a specified [Query] as shifting of items is done in chunks.
- * 2. Reasonably quick retrieval for large chunk sizes.
+ * 2. Reasonably quick retrieval for large chunk sizes, when optimized, retrieval is constant time.
  *
  * For example given a list of 1000 items with a chunk size of 100. Adding another chunk of 100 items to the head of
  * the list will only require shifting 10 items instead of 1000 with a conventional list.
  * Retrieving the 1000th item however will take 10 iterations.
  *
  * This is fine provided that tiled lists should be limited to items that can reasonably fit in a UI container.
- *
- * // TODO: Optimize this by providing a chunk size hint.
  */
-internal class PivotedTiledList<Query, Item> : AbstractList<Item>(), TiledList<Query, Item> {
+internal class ChunkedTiledList<Query, Item>(
+    private val chunkSize: Int?,
+    private val maxNumberOfChunks: Int,
+) : AbstractList<Item>(), TiledList<Query, Item> {
 
     override var size: Int = 0
         private set
+
     // TODO: Is it better to allocate two separate lists, or to allocate a single list and
     //  create a new [Pair] for every chunk inserted?
-    private val queries = mutableListOf<Query>()
-    private val chunkedItems = mutableListOf<List<Item>>()
+    private val queries = ArrayList<Query>(maxNumberOfChunks)
+    private val chunkedItems = ArrayList<List<Item>>(maxNumberOfChunks)
 
     fun addLeft(query: Query, items: List<Item>) {
         size += items.size
@@ -62,15 +64,22 @@ internal class PivotedTiledList<Query, Item> : AbstractList<Item>(), TiledList<Q
 
     private inline fun <T> withItemAtIndex(
         index: Int,
-        block: (chunkIndex: Int, sum: Int) -> T
+        retriever: ChunkIndexRetriever<T>
     ): T {
+        if (chunkSize != null) return retriever.get(
+            chunkIndex = index / chunkSize,
+            sum = index - (index % chunkSize)
+        )
         var sum = 0
-        // TODO: Iteration can be avoided if the chunk sizes are deterministic
         for (chunkIndex in 0..lastIndex) {
             if (sum + chunkedItems[chunkIndex].size <= index) sum += chunkedItems[chunkIndex].size
-            else return block(chunkIndex, sum)
+            else return retriever.get(chunkIndex, sum)
         }
         throw IndexOutOfBoundsException("Tried to retrieve index $index in List of size $size")
     }
 
+}
+
+private fun interface ChunkIndexRetriever<T> {
+    fun get(chunkIndex: Int, sum: Int): T
 }

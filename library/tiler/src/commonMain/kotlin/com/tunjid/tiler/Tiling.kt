@@ -16,8 +16,7 @@
 
 package com.tunjid.tiler
 
-import com.tunjid.utilities.MutablePairedTiledList
-import com.tunjid.utilities.PivotedTiledList
+import com.tunjid.utilities.ChunkedTiledList
 import kotlin.math.min
 
 internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
@@ -27,14 +26,20 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
 
     return when (val order = order) {
 
-        is Tile.Order.Sorted -> (0 until min(limitedSize(), orderedQueries.size))
-            .fold(MutablePairedTiledList()) { mutableTiledList, index ->
-                mutableTiledList.addAll(
+        is Tile.Order.Sorted -> (0 until min(limitedChunkSize(), orderedQueries.size)).let { range ->
+            range.fold(
+                ChunkedTiledList(
+                    chunkSize = limiter.queryItemsSize,
+                    maxNumberOfChunks = range.last - range.first
+                )
+            ) { chunkedTiledList, index ->
+                chunkedTiledList.addRight(
                     query = orderedQueries[index],
                     items = queryItemsMap.getValue(orderedQueries[index])
                 )
-                mutableTiledList
+                chunkedTiledList
             }
+        }
 
         is Tile.Order.PivotSorted -> {
             if (orderedQueries.isEmpty()) return emptyTiledList()
@@ -48,36 +53,38 @@ internal fun <Query, Item> Tile.Metadata<Query, Item>.toTiledList(
             var rightIndex = startIndex
             var query = orderedQueries[startIndex]
             var items = queryItemsMap.getValue(query)
+            val maxNumberOfChunks = min(limitedChunkSize(), orderedQueries.size)
 
-            val pivotedTiledList = PivotedTiledList<Query, Item>()
-
-            val max = min(limitedSize(), orderedQueries.size)
+            val chunkedTiledList = ChunkedTiledList<Query, Item>(
+                chunkSize = limiter.queryItemsSize,
+                maxNumberOfChunks = maxNumberOfChunks
+            )
 
             // Check if adding the pivot index will cause it to go over the limit
-            if (max < 1) return pivotedTiledList
-            pivotedTiledList.addLeft(query = query, items = items)
+            if (maxNumberOfChunks < 1) return chunkedTiledList
+            chunkedTiledList.addLeft(query = query, items = items)
 
             var count = 1
-            while (count < max && (leftIndex >= 0 || rightIndex <= orderedQueries.lastIndex)) {
-                if (--leftIndex >= 0 && ++count <= max) {
+            while (count < maxNumberOfChunks && (leftIndex >= 0 || rightIndex <= orderedQueries.lastIndex)) {
+                if (--leftIndex >= 0 && ++count <= maxNumberOfChunks) {
                     query = orderedQueries[leftIndex]
                     items = queryItemsMap.getValue(query)
-                    pivotedTiledList.addLeft(query = query, items = items)
+                    chunkedTiledList.addLeft(query = query, items = items)
                 }
-                if (++rightIndex <= orderedQueries.lastIndex && ++count <= max) {
+                if (++rightIndex <= orderedQueries.lastIndex && ++count <= maxNumberOfChunks) {
                     query = orderedQueries[rightIndex]
                     items = queryItemsMap.getValue(query)
-                    pivotedTiledList.addRight(query = query, items = items)
+                    chunkedTiledList.addRight(query = query, items = items)
                 }
             }
-            pivotedTiledList
+            chunkedTiledList
         }
 
         is Tile.Order.Custom -> order.transform(this, queryItemsMap)
     }
 }
 
-private fun <Query, Item> Tile.Metadata<Query, Item>.limitedSize() =
+private fun <Query, Item> Tile.Metadata<Query, Item>.limitedChunkSize() =
     when (val numQueries = limiter.maxQueries) {
         in Int.MIN_VALUE..-1 -> orderedQueries.size
         else -> numQueries

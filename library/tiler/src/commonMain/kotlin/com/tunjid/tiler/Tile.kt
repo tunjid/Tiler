@@ -107,7 +107,16 @@ class Tile<Query, Item : Any?> {
      * Limits the output of the [listTiler] for [listTiler] functions.
      */
     data class Limiter<Query, Item>(
-        val maxQueries: Int
+        /**
+         * The maximum number of queries to be read from when returning a tiled list
+         */
+        val maxQueries: Int,
+        /**
+         * Optimizes retrieval speed for items fetched. Use only if your queries return a fixed number
+         * of items each time, for example sql queries with a limit parameter. It is fine if the items returned
+         * by the last query specified by [Tile.Order] returns less than the size specified.
+         */
+        val queryItemsSize: Int? = null
     ) : Input<Query, Item>
 
     /**

@@ -36,9 +36,22 @@ class ListMapTilingSamenessTest {
         )
         val emissions = requests
             .asFlow()
-            .orderWith(maxQueries = 3) { Tile.Order.Sorted(Int::compareTo) }
+            .orderWith(
+                maxQueries = 3,
+                queryItemsSize = null
+            ) { Tile.Order.Sorted(Int::compareTo) }
             .take(requests.size)
             .toList()
+
+        val optimizedEmissions = requests
+            .asFlow()
+            .orderWith(
+                maxQueries = 3,
+                queryItemsSize = 10
+            ) { Tile.Order.Sorted(Int::compareTo) }
+            .take(requests.size)
+            .toList()
+
 
         assertEquals(
             expected = 1.tiledTestRange(),
@@ -54,6 +67,12 @@ class ListMapTilingSamenessTest {
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
             actual = emissions[2]
         )
+
+        // Optimizations should not change the results
+        assertEquals(
+            expected = emissions,
+            actual = optimizedEmissions
+        )
     }
 
     @Test
@@ -67,7 +86,21 @@ class ListMapTilingSamenessTest {
         )
         val emissions = requests
             .asFlow()
-            .orderWith(maxQueries = 3) {
+            .orderWith(
+                maxQueries = 3,
+                queryItemsSize = null,
+            ) {
+                Tile.Order.PivotSorted(query = 4, comparator = Int::compareTo)
+            }
+            .take(requests.size)
+            .toList()
+
+        val optimizedEmissions =requests
+            .asFlow()
+            .orderWith(
+                maxQueries = 3,
+                queryItemsSize = 10,
+            ) {
                 Tile.Order.PivotSorted(query = 4, comparator = Int::compareTo)
             }
             .take(requests.size)
@@ -102,15 +135,25 @@ class ListMapTilingSamenessTest {
             expected = 3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
             actual = emissions[4]
         )
+
+        // Optimizations should not change the results
+        assertEquals(
+            expected = emissions,
+            actual = optimizedEmissions
+        )
     }
 }
 
 private fun Flow<Tile.Request<Int, Int>>.orderWith(
     maxQueries: Int,
+    queryItemsSize: Int?,
     orderFactory: () -> Tile.Order<Int, Int>
 ): Flow<List<Int>> = listTiler(
     // Take 3 pages of items
-    limiter = Tile.Limiter(maxQueries = maxQueries),
+    limiter = Tile.Limiter(
+        maxQueries = maxQueries,
+        queryItemsSize = queryItemsSize
+    ),
     order = orderFactory(),
     fetcher = { page ->
         flowOf(page.testRange.toList())
