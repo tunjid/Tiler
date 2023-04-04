@@ -31,7 +31,7 @@ import com.tunjid.tiler.TiledList
  */
 internal class ChunkedTiledList<Query, Item>(
     private val chunkSize: Int?,
-    private val maxNumberOfChunks: Int,
+    maxNumberOfChunks: Int,
 ) : AbstractList<Item>(), TiledList<Query, Item> {
 
     override var size: Int = 0
