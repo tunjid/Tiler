@@ -16,8 +16,8 @@
 
 plugins {
     kotlin("multiplatform")
-    `publishing-library-convention`
-    `maven-publish`
+    id("publishing-library-convention")
+    id("maven-publish")
     signing
     id("org.jetbrains.dokka")
     id("org.jetbrains.compose")

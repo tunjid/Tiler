@@ -15,7 +15,7 @@
  */
 
 plugins {
-    `android-application-convention`
+    id("android-application-convention")
     id("kotlin-android")
 }
 

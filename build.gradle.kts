@@ -14,13 +14,8 @@
  * limitations under the License.
  */
 
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
     extra.apply {
-        set("buildToolsVersion", "30.0.2")
-        set("compileSdkVersion", 30)
-        set("targetSdkVersion", 30)
-        set("minSdkVersion", 21)
         set("localProps", java.util.Properties().apply {
             file("local.properties").let { file ->
                 if (file.exists()) load(java.io.FileInputStream(file))
@@ -32,10 +27,19 @@ buildscript {
             }
         })
     }
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        maven("https://plugins.gradle.org/m2/")
+    }
 }
 
 plugins {
-    id(libs.plugins.android.application.get().pluginId) apply false
-    id(libs.plugins.android.library.get().pluginId) apply false
-    id(libs.plugins.kotlin.android.get().pluginId) apply false
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.jetbrains.compose) apply false
+    alias(libs.plugins.jetbrains.dokka) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.multiplatform) apply false
 }
