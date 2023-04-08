@@ -36,19 +36,21 @@ class ListMapTilingSamenessTest {
         )
         val emissions = requests
             .asFlow()
-            .orderWith(
+            .tileWith(
                 maxQueries = 3,
-                queryItemsSize = null
-            ) { Tile.Order.Sorted(Int::compareTo) }
+                queryItemsSize = null,
+                orderFactory = { Tile.Order.Sorted(Int::compareTo) }
+            )
             .take(requests.size)
             .toList()
 
         val optimizedEmissions = requests
             .asFlow()
-            .orderWith(
+            .tileWith(
                 maxQueries = 3,
-                queryItemsSize = 10
-            ) { Tile.Order.Sorted(Int::compareTo) }
+                queryItemsSize = 10,
+                orderFactory = { Tile.Order.Sorted(Int::compareTo) }
+            )
             .take(requests.size)
             .toList()
 
@@ -86,23 +88,25 @@ class ListMapTilingSamenessTest {
         )
         val emissions = requests
             .asFlow()
-            .orderWith(
+            .tileWith(
                 maxQueries = 3,
                 queryItemsSize = null,
-            ) {
-                Tile.Order.PivotSorted(query = 4, comparator = Int::compareTo)
-            }
+                orderFactory = {
+                    Tile.Order.PivotSorted(query = 4, comparator = Int::compareTo)
+                },
+            )
             .take(requests.size)
             .toList()
 
-        val optimizedEmissions =requests
+        val optimizedEmissions = requests
             .asFlow()
-            .orderWith(
+            .tileWith(
                 maxQueries = 3,
                 queryItemsSize = 10,
-            ) {
-                Tile.Order.PivotSorted(query = 4, comparator = Int::compareTo)
-            }
+                orderFactory = {
+                    Tile.Order.PivotSorted(query = 4, comparator = Int::compareTo)
+                },
+            )
             .take(requests.size)
             .toList()
 
@@ -112,7 +116,7 @@ class ListMapTilingSamenessTest {
             actual = emissions[0]
         )
 
-        // First second emission
+        // Second emission
         assertEquals(
             expected = 3.tiledTestRange() + 4.tiledTestRange(),
             actual = emissions[1]
@@ -142,19 +146,98 @@ class ListMapTilingSamenessTest {
             actual = optimizedEmissions
         )
     }
+
+    @Test
+    fun empty_tiles_are_ignored() = runTest {
+        val requests = listOf<Tile.Input<Int, Int>>(
+            Tile.Request.On(query = 1),
+            Tile.Request.On(query = 2),
+            Tile.Request.On(query = 3),
+            Tile.Request.On(query = 4),
+            Tile.Request.On(query = 5),
+            Tile.Request.On(query = 6),
+            Tile.Request.On(query = 7),
+            Tile.Order.PivotSorted(query = 6, comparator = Int::compareTo),
+        )
+
+        val emissions = requests
+            .asFlow()
+            .tileWith(
+                maxQueries = 3,
+                queryItemsSize = null,
+                orderFactory = {
+                    Tile.Order.Sorted(comparator = Int::compareTo)
+                },
+                pageFactory = { page ->
+                    if (page % 2 == 0) emptyList()
+                    else page.tiledTestRange()
+                }
+            )
+            .take(requests.size)
+            .toList()
+
+        // First emission
+        assertEquals(
+            expected = 1.tiledTestRange(),
+            actual = emissions[0]
+        )
+
+        // Second emission, 2 should not be present
+        assertEquals(
+            expected = 1.tiledTestRange(),
+            actual = emissions[1]
+        )
+
+        // Third emission
+        assertEquals(
+            expected = 1.tiledTestRange() + 3.tiledTestRange(),
+            actual = emissions[2]
+        )
+
+        // Fourth emission, 4 should not be present
+        assertEquals(
+            expected = 1.tiledTestRange() + 3.tiledTestRange(),
+            actual = emissions[3]
+        )
+
+        // Fifth emission
+        assertEquals(
+            expected = 1.tiledTestRange() + 3.tiledTestRange() + 5.tiledTestRange(),
+            actual = emissions[4]
+        )
+
+        // sixth, 6 should not be present
+        assertEquals(
+            expected = 1.tiledTestRange() + 3.tiledTestRange() + 5.tiledTestRange(),
+            actual = emissions[5]
+        )
+
+        // seventh emission, 7 should not be present bc of max queries
+        assertEquals(
+            expected = 1.tiledTestRange() + 3.tiledTestRange() + 5.tiledTestRange(),
+            actual = emissions[6]
+        )
+
+        // Eighth emission, pivoted around 6.
+        assertEquals(
+            expected = 3.tiledTestRange() + 5.tiledTestRange() + 7.tiledTestRange(),
+            actual = emissions[7]
+        )
+    }
 }
 
-private fun Flow<Tile.Request<Int, Int>>.orderWith(
+private fun Flow<Tile.Input<Int, Int>>.tileWith(
     maxQueries: Int,
     queryItemsSize: Int?,
+    pageFactory: (Int) -> List<Int> = { page -> page.testRange.toList() },
     orderFactory: () -> Tile.Order<Int, Int>
 ): Flow<List<Int>> = listTiler(
     // Take 3 pages of items
     limiter = Tile.Limiter(
         maxQueries = maxQueries,
-        queryItemsSize = queryItemsSize
+        itemSizeHint = queryItemsSize
     ),
     order = orderFactory(),
     fetcher = { page ->
-        flowOf(page.testRange.toList())
+        flowOf(pageFactory(page))
     }).invoke(this)

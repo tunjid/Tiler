@@ -35,7 +35,7 @@ class Tile<Query, Item : Any?> {
         val orderedQueries: List<Query> = listOf(),
         val limiter: Limiter<Query, Item> = Limiter(
             maxQueries = Int.MIN_VALUE,
-            queryItemsSize = null
+            itemSizeHint = null
         ),
         val mostRecentlyEmitted: Query? = null,
     )
@@ -119,7 +119,7 @@ class Tile<Query, Item : Any?> {
          * of items each time, for example sql queries with a limit parameter. It is fine if the items returned
          * by the last query specified by [Tile.Order] returns less than the size specified.
          */
-        val queryItemsSize: Int?,
+        val itemSizeHint: Int?,
     ) : Input<Query, Item>
 
     /**
@@ -160,7 +160,7 @@ fun <Query, Item> listTiler(
     order: Tile.Order<Query, Item>,
     limiter: Tile.Limiter<Query, Item> = Tile.Limiter(
         maxQueries = Int.MIN_VALUE,
-        queryItemsSize = null,
+        itemSizeHint = null,
     ),
     fetcher: suspend (Query) -> Flow<List<Item>>
 ): ListTiler<Query, Item> = { requests ->

@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-import org.gradle.kotlin.dsl.`kotlin-dsl`
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-repositories {
-    google()
-    mavenCentral()
-    gradlePluginPortal()
+dependencyResolutionManagement {
+    repositories {
+        gradlePluginPortal()
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        mavenCentral()
+        google()
+    }
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
+        }
+    }
 }
 
-plugins {
-    `kotlin-dsl`
-}
-
-dependencies {
-    implementation(libs.jetbrains.compose.gradlePlugin)
-    implementation(libs.kotlin.gradlePlugin)
-    implementation(libs.android.gradlePlugin)
-    implementation(libs.dokka.gradlePlugin)
-}
+rootProject.name = "build-logic"
+include(":convention")
