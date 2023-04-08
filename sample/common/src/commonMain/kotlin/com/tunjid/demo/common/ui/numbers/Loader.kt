@@ -106,7 +106,7 @@ class Loader(
     private val limitInputs = numberOfColumns.map { gridSize ->
         Tile.Limiter<PageQuery, NumberTile>(
             maxQueries = gridSize * 3,
-            queryItemsSize = ITEMS_PER_PAGE
+            itemSizeHint = ITEMS_PER_PAGE
         )
     }
 
@@ -196,7 +196,7 @@ private fun numberTiler(
     listTiler(
         limiter = Tile.Limiter(
             maxQueries = 3,
-            queryItemsSize = ITEMS_PER_PAGE
+            itemSizeHint = ITEMS_PER_PAGE
         ),
         order = Tile.Order.PivotSorted(
             query = PageQuery(page = 0, isAscending = true),

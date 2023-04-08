@@ -40,7 +40,7 @@ class TilerKtTest {
                         metadata = Tile.Metadata(
                             limiter = Tile.Limiter(
                                 maxQueries = Int.MIN_VALUE,
-                                queryItemsSize = 10
+                                itemSizeHint = 10
                             ),
                             order = Tile.Order.Sorted(comparator = Int::compareTo)
                         )
@@ -76,7 +76,7 @@ class TilerKtTest {
                         metadata = Tile.Metadata(
                             limiter = Tile.Limiter(
                                 maxQueries = 5,
-                                queryItemsSize = 10
+                                itemSizeHint = 10
                             ),
                             order = Tile.Order.PivotSorted(
                                 query = 4,

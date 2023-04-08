@@ -111,11 +111,11 @@ private fun optimizedAndIterativeChunkedLists(
     chunkSize: Int
 ): Pair<ChunkedTiledList<Int, Int>, ChunkedTiledList<Int, Int>> {
     val optimizedChunkedTiledList = ChunkedTiledList<Int, Int>(
-        chunkSize = chunkSize,
+        chunkSizeHint = chunkSize,
         maxNumberOfChunks = chunkSize
     )
     val iterativeChunkedTiledList = ChunkedTiledList<Int, Int>(
-        chunkSize = null,
+        chunkSizeHint = null,
         maxNumberOfChunks = chunkSize
     )
 

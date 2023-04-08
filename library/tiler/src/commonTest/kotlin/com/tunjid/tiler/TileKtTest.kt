@@ -261,7 +261,7 @@ class TileKtTest {
             requests.emit(
                 Tile.Limiter(
                     maxQueries = 2,
-                    queryItemsSize = 10
+                    itemSizeHint = 10
                 )
             )
             assertTiledListEquals(
@@ -273,7 +273,7 @@ class TileKtTest {
             requests.emit(
                 Tile.Limiter(
                     maxQueries = 3,
-                    queryItemsSize = 10
+                    itemSizeHint = 10
                 )
             )
             assertTiledListEquals(
@@ -326,27 +326,27 @@ class TileKtTest {
             // Copious duplicate limits
             Tile.Limiter(
                 maxQueries = 1,
-                queryItemsSize = 10
+                itemSizeHint = 10
             ),
             Tile.Limiter(
                 maxQueries = 1,
-                queryItemsSize = 10
+                itemSizeHint = 10
             ),
             Tile.Limiter(
                 maxQueries = 1,
-                queryItemsSize = 10
+                itemSizeHint = 10
             ),
             Tile.Limiter(
                 maxQueries = 1,
-                queryItemsSize = 10
+                itemSizeHint = 10
             ),
             Tile.Limiter(
                 maxQueries = 1,
-                queryItemsSize = 10
+                itemSizeHint = 10
             ),
             Tile.Limiter(
                 maxQueries = Int.MAX_VALUE,
-                queryItemsSize = 10
+                itemSizeHint = 10
             ),
         )
 
@@ -476,7 +476,7 @@ class TileKtTest {
             requests.emit(
                 Tile.Limiter(
                     maxQueries = 2,
-                    queryItemsSize = 10
+                    itemSizeHint = 10
                 )
             )
             assertTiledListEquals(

@@ -30,7 +30,7 @@ import com.tunjid.tiler.TiledList
  * This is fine provided that tiled lists should be limited to items that can reasonably fit in a UI container.
  */
 internal class ChunkedTiledList<Query, Item>(
-    private val chunkSize: Int?,
+    private val chunkSizeHint: Int?,
     maxNumberOfChunks: Int,
 ) : AbstractList<Item>(), TiledList<Query, Item> {
 
@@ -66,9 +66,9 @@ internal class ChunkedTiledList<Query, Item>(
         index: Int,
         retriever: ChunkIndexRetriever<T>
     ): T {
-        if (chunkSize != null) return retriever.get(
-            chunkIndex = index / chunkSize,
-            sum = index - (index % chunkSize)
+        if (chunkSizeHint != null) return retriever.get(
+            chunkIndex = index / chunkSizeHint,
+            sum = index - (index % chunkSizeHint)
         )
         var sum = 0
         for (chunkIndex in 0..lastIndex) {
