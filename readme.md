@@ -28,12 +28,12 @@ fun <T> items(query: Query): Flow<List<T>>
 
 into a paginated API.
 
-It does this by exposing a functional reactive API most similar to a `Map` where:
+It does this by exposing a functional reactive API most similar to the MVI architectural pattern:
 
-* The keys are the queries (`Query`) for data
-* The values are dynamic sets of data returned over time as the result of the `Query` key.
+* The inputs modify the queries for data
+* The output is the data returned over time in a `List`.
 
-The output of tiling is a `TiledList`, a `List` implementation that allows for looking up the query that fetched each item. It is defined as:
+This output of tiling is a `TiledList`, a `List` implementation that allows for looking up the query that fetched each item. It is defined as:
 
 ```Kotlin
 interface TiledList<Query, Item> : List<Item> {
