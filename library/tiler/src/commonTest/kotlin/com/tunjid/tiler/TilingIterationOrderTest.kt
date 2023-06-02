@@ -96,7 +96,7 @@ class ListMapTilingSamenessTest {
                 },
             )
             .take(requests.size)
-            .toList()
+            .toListWithTimeout(200)
 
         val optimizedEmissions = requests
             .asFlow()
@@ -107,41 +107,25 @@ class ListMapTilingSamenessTest {
                     Tile.Order.PivotSorted(query = 4, comparator = Int::compareTo)
                 },
             )
-            .take(requests.size)
-            .toList()
+            .toListWithTimeout(200)
 
-        // First emission
-        assertEquals(
-            expected = 4.tiledTestRange(),
-            actual = emissions[0]
-        )
-
-        // Second emission
-        assertEquals(
-            expected = 3.tiledTestRange() + 4.tiledTestRange(),
-            actual = emissions[1]
-        )
-
-        // Third emission
-        assertEquals(
-            expected = 3.tiledTestRange() + 4.tiledTestRange() + 8.tiledTestRange(),
-            actual = emissions[2]
-        )
-
-        // Fourth emission, 5 should replace 8 in pivoting
-        assertEquals(
-            expected = 3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
-            actual = emissions[3]
-        )
-
-        // Fifth emission, 2 should not show up in the list
-        assertEquals(
-            expected = 3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
-            actual = emissions[4]
+        assertBatchTiledListEquals(
+            expected = listOf(
+                // First emission
+                4.tiledTestRange(),
+                // Second emission
+                3.tiledTestRange() + 4.tiledTestRange(),
+                // Third emission
+                3.tiledTestRange() + 4.tiledTestRange() + 8.tiledTestRange(),
+                // Fourth emission, 5 should replace 8 in pivoting
+                3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
+                // Fifth emission, 2 should not show up in the list
+            ),
+            actual = emissions
         )
 
         // Optimizations should not change the results
-        assertEquals(
+        assertBatchTiledListEquals(
             expected = emissions,
             actual = optimizedEmissions
         )
@@ -173,7 +157,7 @@ class ListMapTilingSamenessTest {
                     else page.tiledTestRange()
                 }
             )
-            .take(requests.size)
+            .take(requests.size - 1)
             .toList()
 
         // First emission
@@ -218,11 +202,7 @@ class ListMapTilingSamenessTest {
             actual = emissions[6]
         )
 
-        // Eighth emission, pivoted around 6.
-        assertEquals(
-            expected = 3.tiledTestRange() + 5.tiledTestRange() + 7.tiledTestRange(),
-            actual = emissions[7]
-        )
+        // No eighth emission, the output has not meaningfully changed.
     }
 }
 
@@ -231,7 +211,7 @@ private fun Flow<Tile.Input<Int, Int>>.tileWith(
     queryItemsSize: Int?,
     pageFactory: (Int) -> List<Int> = { page -> page.testRange.toList() },
     orderFactory: () -> Tile.Order<Int, Int>
-): Flow<List<Int>> = listTiler(
+): Flow<TiledList<Int, Int>> = listTiler(
     // Take 3 pages of items
     limiter = Tile.Limiter(
         maxQueries = maxQueries,

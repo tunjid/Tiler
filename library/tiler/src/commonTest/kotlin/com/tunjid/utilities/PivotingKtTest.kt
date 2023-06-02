@@ -330,7 +330,6 @@ class PivotingKtTest {
             .zip(inputs)
             .forEach { (expected, actual) ->
                 when (expected) {
-                    is Tile.Order.Custom,
                     is Tile.Limiter,
                     is Tile.Order.Sorted -> throw IllegalArgumentException("Unexpected type")
 

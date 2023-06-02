@@ -20,7 +20,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.test.assertEquals
 
-internal val Int.testRange get() = this.times(10).rangeTo(this.times(10) + 9)
+private const val ITEMS_PER_PAGE = 10
+internal val Int.testRange: IntRange
+    get() {
+        val offset = this * ITEMS_PER_PAGE
+        val next = offset + ITEMS_PER_PAGE
+
+        return offset until next
+    }
 
 internal fun Int.tiledTestRange(
     transform: List<Int>.() -> List<Int> = {this}

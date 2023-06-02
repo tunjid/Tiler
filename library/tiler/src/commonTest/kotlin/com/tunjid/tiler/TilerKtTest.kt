@@ -37,7 +37,7 @@ class TilerKtTest {
                 .asFlow()
                 .scan(
                     initial = ImmutableTiler(
-                        metadata = Tile.Metadata(
+                        metadata = Metadata(
                             limiter = Tile.Limiter(
                                 maxQueries = Int.MIN_VALUE,
                                 itemSizeHint = 10
@@ -73,7 +73,7 @@ class TilerKtTest {
                 .asFlow()
                 .scan(
                     initial = ImmutableTiler(
-                        metadata = Tile.Metadata(
+                        metadata = Metadata(
                             limiter = Tile.Limiter(
                                 maxQueries = 5,
                                 itemSizeHint = 10
@@ -101,37 +101,45 @@ class TilerKtTest {
     fun insertingAQueryMaintainsOrder() {
         assertEquals(
             expected = listOf(1, 2, 3, 4),
-            actual = Tile.Metadata<Int, Int>(
-                orderedQueries = listOf(1, 2, 3, 4),
-                order = Tile.Order.Sorted(Int::compareTo)
-            ).insertOrderedQuery(2),
+            actual = mutableListOf(1, 2, 3, 4).apply {
+                insertOrderedQuery(
+                    middleQuery = 2,
+                    comparator = Int::compareTo
+                )
+            },
             message = "inserting ordered query fails at de-duplicating"
         )
 
         assertEquals(
             expected = listOf(1, 2, 3, 4),
-            actual = Tile.Metadata<Int, Int>(
-                orderedQueries = listOf(1, 2, 4),
-                order = Tile.Order.Sorted(Int::compareTo)
-            ).insertOrderedQuery(3),
+            actual = mutableListOf(1, 2, 4).apply {
+                insertOrderedQuery(
+                    middleQuery = 3,
+                    comparator = Int::compareTo
+                )
+            },
             message = "inserting ordered query fails at inserting in the middle"
         )
 
         assertEquals(
             expected = listOf(0, 1, 2, 4),
-            actual = Tile.Metadata<Int, Int>(
-                orderedQueries = listOf(1, 2, 4),
-                order = Tile.Order.Sorted(Int::compareTo)
-            ).insertOrderedQuery(0),
+            actual = mutableListOf(1, 2, 4).apply {
+                insertOrderedQuery(
+                    middleQuery = 0,
+                    comparator = Int::compareTo
+                )
+            },
             message = "inserting ordered query fails at inserting in the beginning"
         )
 
         assertEquals(
             expected = listOf(1, 2, 4, 5),
-            actual = Tile.Metadata<Int, Int>(
-                orderedQueries = listOf(1, 2, 4),
-                order = Tile.Order.Sorted(Int::compareTo)
-            ).insertOrderedQuery(5),
+            actual = mutableListOf(1, 2, 4).apply {
+                insertOrderedQuery(
+                    middleQuery = 5,
+                    comparator = Int::compareTo
+                )
+            },
             message = "inserting ordered query fails at inserting at the end"
         )
     }

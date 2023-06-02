@@ -27,20 +27,6 @@ typealias ListTiler<Query, Item> = (Flow<Tile.Input<Query, Item>>) -> Flow<Tiled
 class Tile<Query, Item : Any?> {
 
     /**
-     * Holds information regarding properties that may be useful when flattening a [Map] of [Query]
-     * to [Tile] into a [List]
-     */
-    data class Metadata<Query, Item> internal constructor(
-        val order: Order<Query, Item>,
-        val orderedQueries: List<Query> = listOf(),
-        val limiter: Limiter<Query, Item> = Limiter(
-            maxQueries = Int.MIN_VALUE,
-            itemSizeHint = null
-        ),
-        val mostRecentlyEmitted: Query? = null,
-    )
-
-    /**
      * Defines input parameters for the [listTiler] function
      */
     sealed interface Input<Query, Item>
@@ -94,14 +80,6 @@ class Tile<Query, Item : Any?> {
         data class PivotSorted<Query, Item>(
             val query: Query,
             override val comparator: Comparator<Query>,
-        ) : Order<Query, Item>(), Input<Query, Item>
-
-        /**
-         * Flattens tiled items produced in to a [List] whichever way you desire
-         */
-        data class Custom<Query, Item>(
-            override val comparator: Comparator<Query>,
-            val transform: Metadata<Query, Item>.(Map<Query, List<Item>>) -> TiledList<Query, Item>,
         ) : Order<Query, Item>(), Input<Query, Item>
 
     }

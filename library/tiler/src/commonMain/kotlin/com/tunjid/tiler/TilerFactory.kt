@@ -43,7 +43,7 @@ internal fun <Query, Item> tilerFactory(
         )
         .scan(
             initial = ImmutableTiler(
-                metadata = Tile.Metadata(
+                metadata = Metadata(
                     limiter = limiter,
                     order = order
                 )

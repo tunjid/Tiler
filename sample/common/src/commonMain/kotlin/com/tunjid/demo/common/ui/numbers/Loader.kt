@@ -214,7 +214,6 @@ private fun Flow<Tile.Input<PageQuery, NumberTile>>.pivotSummaries(): Flow<Strin
     this@pivotSummaries.collect { input ->
         when (input) {
             is Tile.Limiter,
-            is Tile.Order.Custom,
             is Tile.Order.Sorted -> Unit
 
             is Tile.Order.PivotSorted -> {
