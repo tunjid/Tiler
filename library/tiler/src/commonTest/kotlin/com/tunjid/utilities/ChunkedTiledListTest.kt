@@ -16,10 +16,10 @@
 
 package com.tunjid.utilities
 
+import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.assertTiledListEquals
-import com.tunjid.tiler.buildTiledList
 import com.tunjid.tiler.tiledListOf
-import com.tunjid.tiler.utilities.ChunkedTiledList
+import com.tunjid.tiler.utilities.chunkedTiledList
 import kotlin.test.Test
 
 class ChunkedTiledListTest {
@@ -27,7 +27,7 @@ class ChunkedTiledListTest {
     @Test
     fun chunked_tiled_indexing_works() {
         (0..10).forEach {  chunkSize ->
-            val (optimizedChunkedTiledList, iterativeChunkedTiledList) =
+            val (constantTimeChunkedTiledList, binarySearchChunkedTiledList) =
                 optimizedAndIterativeChunkedLists(chunkSize)
 
             val expectedTiledList = consecutiveIntegerTiledList(
@@ -35,103 +35,40 @@ class ChunkedTiledListTest {
             )
             assertTiledListEquals(
                 expected = expectedTiledList,
-                actual = optimizedChunkedTiledList
+                actual = constantTimeChunkedTiledList
             )
             assertTiledListEquals(
-                expected = optimizedChunkedTiledList,
-                actual = iterativeChunkedTiledList
+                expected = constantTimeChunkedTiledList,
+                actual = binarySearchChunkedTiledList
             )
         }
-    }
-
-    @Test
-    fun chunked_tiled_indexing_works_if_last_chunk_is_partially_filled() {
-        val (optimizedChunkedTiledList, iterativeChunkedTiledList) =
-            optimizedAndIterativeChunkedLists(chunkSize = 10)
-
-        // Add items at the end that are not equal to chunk size
-        optimizedChunkedTiledList.addRight(
-            query = 10,
-            items = listOf(100, 101, 102)
-        )
-        iterativeChunkedTiledList.addRight(
-            query = 10,
-            items = listOf(100, 101, 102)
-        )
-        val expectedTiledList = consecutiveIntegerTiledList(
-            chunkSize = 10,
-            upUntilInt = 103
-        )
-
-        assertTiledListEquals(
-            expected = expectedTiledList,
-            actual = optimizedChunkedTiledList
-        )
-        assertTiledListEquals(
-            expected = optimizedChunkedTiledList,
-            actual = iterativeChunkedTiledList
-        )
-    }
-
-    @Test
-    fun chunked_tiled_pivoting_works() {
-        val (optimizedChunkedTiledList, iterativeChunkedTiledList) =
-            optimizedAndIterativeChunkedLists(chunkSize = 3)
-
-        optimizedChunkedTiledList.addLeft(
-            query = -1,
-            items = listOf(-3, -2, -1)
-        )
-        iterativeChunkedTiledList.addLeft(
-            query = -1,
-            items = listOf(-3, -2, -1)
-        )
-        val expectedTiledList = buildTiledList {
-            addAll(
-                query = -1,
-                items = listOf(-3, -2, -1)
-            )
-            consecutiveIntegerTiledList(
-                chunkSize = 3
-            ).let { tiledList ->
-                tiledList. forEachIndexed { index, item -> add(tiledList.queryAt(index), item) }
-            }
-        }
-        assertTiledListEquals(
-            expected = expectedTiledList,
-            actual = optimizedChunkedTiledList
-        )
-        assertTiledListEquals(
-            expected = optimizedChunkedTiledList,
-            actual = iterativeChunkedTiledList
-        )
     }
 }
 
 private fun optimizedAndIterativeChunkedLists(
     chunkSize: Int
-): Pair<ChunkedTiledList<Int, Int>, ChunkedTiledList<Int, Int>> {
-    val optimizedChunkedTiledList = ChunkedTiledList<Int, Int>(
-        chunkSizeHint = chunkSize,
-        maxNumberOfChunks = chunkSize
-    )
-    val iterativeChunkedTiledList = ChunkedTiledList<Int, Int>(
-        chunkSizeHint = null,
-        maxNumberOfChunks = chunkSize
-    )
+): Pair<TiledList<Int, Int>, TiledList<Int, Int>> {
+    val indices = (0 until chunkSize).toList()
 
-    (0 until chunkSize).forEach { index ->
-        val offset = index * chunkSize
-        optimizedChunkedTiledList.addRight(
-            query = index,
-            items = (0 until chunkSize).map(offset::plus)
-        )
-        iterativeChunkedTiledList.addRight(
-            query = index,
-            items = (0 until chunkSize).map(offset::plus)
-        )
-    }
-    return Pair(optimizedChunkedTiledList, iterativeChunkedTiledList)
+    val constantTimeChunkedTiledList = chunkedTiledList(
+        chunkSizeHint = chunkSize,
+        indices = indices,
+        queryLookup = indices::get,
+        itemsLookup = { index ->
+            val offset = index * chunkSize
+            (0 until chunkSize).map(offset::plus)
+        }
+    )
+    val binarySearchChunkedTiledList = chunkedTiledList(
+        chunkSizeHint = null,
+        indices = indices,
+        queryLookup = indices::get,
+        itemsLookup = { index ->
+            val offset = index * chunkSize
+            (0 until chunkSize).map(offset::plus)
+        }
+    )
+    return Pair(constantTimeChunkedTiledList, binarySearchChunkedTiledList)
 }
 
 private fun consecutiveIntegerTiledList(

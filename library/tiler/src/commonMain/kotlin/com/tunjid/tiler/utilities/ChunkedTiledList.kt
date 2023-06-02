@@ -29,30 +29,34 @@ import com.tunjid.tiler.TiledList
  *
  * This is fine provided that tiled lists should be limited to items that can reasonably fit in a UI container.
  */
-internal class ChunkedTiledList<Query, Item>(
-    private val chunkSizeHint: Int?,
-    maxNumberOfChunks: Int,
-) : AbstractList<Item>(), TiledList<Query, Item> {
+internal inline fun <Query, Item> chunkedTiledList(
+    chunkSizeHint: Int?,
+    indices: List<Int>,
+    crossinline queryLookup: (Int) -> Query,
+    crossinline itemsLookup: (Query) -> List<Item>,
+): TiledList<Query, Item> = object : AbstractList<Item>(), TiledList<Query, Item> {
 
-    override var size: Int = 0
-        private set
+    private var sizeIndex = -1
+    private val sizes = IntArray(indices.size)
 
     // TODO: Is it better to allocate two separate lists, or to allocate a single list and
     //  create a new [Pair] for every chunk inserted?
-    private val queries = ArrayList<Query>(maxNumberOfChunks)
-    private val chunkedItems = ArrayList<List<Item>>(maxNumberOfChunks)
+    private val queries = ArrayList<Query>(indices.size)
+    private val chunkedItems = ArrayList<List<Item>>(indices.size)
 
-    fun addLeft(query: Query, items: List<Item>) {
-        size += items.size
-        queries.add(index = 0, element = query)
-        chunkedItems.add(index = 0, element = items)
+    init {
+        indices.forEach {
+            val query = queryLookup(it)
+            val items = itemsLookup(query)
+            size += items.size
+            sizes[++sizeIndex] = size
+            queries.add(element = query)
+            chunkedItems.add(element = items)
+        }
     }
 
-    fun addRight(query: Query, items: List<Item>) {
-        size += items.size
-        queries.add(element = query)
-        chunkedItems.add(element = items)
-    }
+    override var size: Int = 0
+        private set
 
     override fun queryAt(index: Int): Query = withItemAtIndex(
         index
@@ -60,26 +64,44 @@ internal class ChunkedTiledList<Query, Item>(
 
     override fun get(index: Int): Item = withItemAtIndex(
         index
-    ) { chunkIndex, sum -> chunkedItems[chunkIndex][index - sum] }
+    ) { chunkIndex, indexInChunk -> chunkedItems[chunkIndex][indexInChunk] }
 
     private inline fun <T> withItemAtIndex(
         index: Int,
-        retriever: ChunkIndexRetriever<T>
+        crossinline retriever: (chunkIndex: Int, indexInChunk: Int) -> T
     ): T {
-        if (chunkSizeHint != null) return retriever.get(
-            chunkIndex = index / chunkSizeHint,
-            sum = index - (index % chunkSizeHint)
+        // Get item in constant time
+        if (chunkSizeHint != null) return retriever(
+            index / chunkSizeHint,
+            index % chunkSizeHint
         )
-        var sum = 0
-        for (chunkIndex in 0..lastIndex) {
-            if (sum + chunkedItems[chunkIndex].size <= index) sum += chunkedItems[chunkIndex].size
-            else return retriever.get(chunkIndex, sum)
-        }
-        throw IndexOutOfBoundsException("Tried to retrieve index $index in List of size $size")
-    }
+        val chunkIndex = sizes.findIndexInChunkSizes(index)
 
+        println("Retrieving index $index; chunkIndex: $chunkIndex; sizes: ${sizes.toList()}")
+        // Get Item in O(log(N)) time
+        return retriever(
+            chunkIndex,
+            when (chunkIndex) {
+                0 -> index
+                else -> index - sizes[chunkIndex - 1]
+            }
+        )
+    }
 }
 
-private fun interface ChunkIndexRetriever<T> {
-    fun get(chunkIndex: Int, sum: Int): T
+private inline fun IntArray.findIndexInChunkSizes(
+    index: Int,
+): Int {
+    var low = 0
+    var high = size - 1
+    while (low <= high) {
+        val mid = (low + high).ushr(1)
+        val comparison = get(mid).compareTo(index)
+
+        if (comparison < 0) low = mid + 1
+        else if (comparison > 0) high = mid - 1
+        else return mid + 1 // Found, the item is in the next chunk
+    }
+
+    return low
 }

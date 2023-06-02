@@ -103,7 +103,7 @@ class TilerKtTest {
             expected = listOf(1, 2, 3, 4),
             actual = mutableListOf(1, 2, 3, 4).apply {
                 insertOrderedQuery(
-                    middleQuery = 2,
+                    query = 2,
                     comparator = Int::compareTo
                 )
             },
@@ -114,7 +114,7 @@ class TilerKtTest {
             expected = listOf(1, 2, 3, 4),
             actual = mutableListOf(1, 2, 4).apply {
                 insertOrderedQuery(
-                    middleQuery = 3,
+                    query = 3,
                     comparator = Int::compareTo
                 )
             },
@@ -125,7 +125,7 @@ class TilerKtTest {
             expected = listOf(0, 1, 2, 4),
             actual = mutableListOf(1, 2, 4).apply {
                 insertOrderedQuery(
-                    middleQuery = 0,
+                    query = 0,
                     comparator = Int::compareTo
                 )
             },
@@ -136,7 +136,7 @@ class TilerKtTest {
             expected = listOf(1, 2, 4, 5),
             actual = mutableListOf(1, 2, 4).apply {
                 insertOrderedQuery(
-                    middleQuery = 5,
+                    query = 5,
                     comparator = Int::compareTo
                 )
             },
