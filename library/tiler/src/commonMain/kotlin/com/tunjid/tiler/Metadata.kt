@@ -57,7 +57,7 @@ internal class Metadata<Query, Item> private constructor(
         when (output) {
             is Tile.Output.Data -> {
                 // Only sort queries when they output the first time to amortize the cost of sorting.
-                if (!queryItemsMap.contains(output.query)) orderedQueries.insertOrderedQuery(
+                if (!queryItemsMap.contains(output.query)) orderedQueries.insertSorted(
                     query = output.query,
                     comparator = order.comparator
                 )
@@ -259,30 +259,26 @@ internal class Metadata<Query, Item> private constructor(
 }
 
 /**
- * Inserts a new query into ordered queries in O(N) time.
- *
- * If the List were mutable, binary search could've been used to find the insertion index
- * but requiring immutability restricts to O(N).
+ * Inserts [query] into [this] that has already been sorted by [comparator] with no duplication.
  */
- fun <Query> MutableList<Query>.insertOrderedQuery(
+fun <Query> MutableList<Query>.insertSorted(
     query: Query,
     comparator: Comparator<Query>
 ) {
-    if (isEmpty()) add(query)
-    else when (val insertionIndex = binarySearch(query, comparator)) {
-        in Int.MIN_VALUE..0 -> when (val invertedInsertionIndex = abs(insertionIndex + 1)) {
-            in 0..lastIndex -> add(
-                index = invertedInsertionIndex,
-                element = query
-            )
+    // Not in the list, add it
+    if (isEmpty()) {
+        add(query)
+        return
+    }
+    val index = binarySearch(query, comparator)
+    if (index >= 0) return // Already exists
 
-            else -> add(
-                element = query
-            )
-        }
-        // No duplicates
-        else -> if (comparator.compare(query, get(insertionIndex)) != 0) add(
-            index = insertionIndex,
+    when (val invertedIndex = abs(index + 1)) {
+        in 0..lastIndex -> add(
+            index = invertedIndex,
+            element = query
+        )
+        else -> add(
             element = query
         )
     }

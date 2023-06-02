@@ -102,7 +102,7 @@ class TilerKtTest {
         assertEquals(
             expected = listOf(1, 2, 3, 4),
             actual = mutableListOf(1, 2, 3, 4).apply {
-                insertOrderedQuery(
+                insertSorted(
                     query = 2,
                     comparator = Int::compareTo
                 )
@@ -113,7 +113,7 @@ class TilerKtTest {
         assertEquals(
             expected = listOf(1, 2, 3, 4),
             actual = mutableListOf(1, 2, 4).apply {
-                insertOrderedQuery(
+                insertSorted(
                     query = 3,
                     comparator = Int::compareTo
                 )
@@ -124,7 +124,7 @@ class TilerKtTest {
         assertEquals(
             expected = listOf(0, 1, 2, 4),
             actual = mutableListOf(1, 2, 4).apply {
-                insertOrderedQuery(
+                insertSorted(
                     query = 0,
                     comparator = Int::compareTo
                 )
@@ -135,7 +135,7 @@ class TilerKtTest {
         assertEquals(
             expected = listOf(1, 2, 4, 5),
             actual = mutableListOf(1, 2, 4).apply {
-                insertOrderedQuery(
+                insertSorted(
                     query = 5,
                     comparator = Int::compareTo
                 )
