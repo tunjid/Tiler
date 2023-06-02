@@ -19,6 +19,7 @@ package com.tunjid.utilities
 import com.tunjid.tiler.assertTiledListEquals
 import com.tunjid.tiler.buildTiledList
 import com.tunjid.tiler.tiledListOf
+import com.tunjid.tiler.utilities.ChunkedTiledList
 import kotlin.test.Test
 
 class ChunkedTiledListTest {

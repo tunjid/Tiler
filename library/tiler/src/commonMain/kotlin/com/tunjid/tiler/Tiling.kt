@@ -17,7 +17,7 @@
 package com.tunjid.tiler
 
 import com.tunjid.tiler.utilities.SizedIndex
-import com.tunjid.utilities.ChunkedTiledList
+import com.tunjid.tiler.utilities.ChunkedTiledList
 import kotlin.math.min
 
 /**

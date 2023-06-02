@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.tunjid.utilities
+package com.tunjid.tiler.utilities
 
 import com.tunjid.tiler.MutableTiledList
 import com.tunjid.tiler.TiledList
