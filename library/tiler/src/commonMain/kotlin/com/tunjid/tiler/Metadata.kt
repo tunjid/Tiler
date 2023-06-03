@@ -16,6 +16,7 @@
 
 package com.tunjid.tiler
 
+import com.tunjid.tiler.utilities.IntArrayList
 import com.tunjid.tiler.utilities.chunkedTiledList
 import kotlin.math.abs
 import kotlin.math.min
@@ -45,8 +46,11 @@ internal class Metadata<Query, Item> private constructor(
     )
 
     private val orderedQueries: MutableList<Query> = mutableListOf()
+    private val outputIndices: IntArrayList = IntArrayList(
+        if (limiter.maxQueries >= 0) limiter.maxQueries
+        else 10
+    )
     private var lastTiledItems: TiledList<Query, Item> = emptyTiledList()
-    private var outputIndices: List<Int> = emptyList()
     private var last: Metadata<Query, Item>? = null
 
     var shouldEmit: Boolean = false
@@ -82,7 +86,7 @@ internal class Metadata<Query, Item> private constructor(
                 limiter = output.limiter
             }
         }
-        outputIndices = computeOutputIndices(queryItemsMap)
+        computeOutputIndices(queryItemsMap)
         shouldEmit = shouldEmitFor(output)
     }
 
@@ -110,22 +114,25 @@ internal class Metadata<Query, Item> private constructor(
             lastSnapshot.order = order
             lastSnapshot.limiter = limiter
             lastSnapshot.shouldEmit = shouldEmit
-            lastSnapshot.outputIndices = outputIndices
+            lastSnapshot.lastTiledItems = lastTiledItems
             lastSnapshot.orderedQueries.clear()
             lastSnapshot.orderedQueries.addAll(orderedQueries)
-            lastSnapshot.lastTiledItems = lastTiledItems
+            lastSnapshot.outputIndices.clear()
+            for (i in 0..outputIndices.lastIndex) {
+                lastSnapshot.outputIndices.add(outputIndices[i])
+            }
         }
     }
 
     private fun computeOutputIndices(
         queryItemsMap: Map<Query, List<Item>>,
-    ): List<Int> {
-        return when (val order = order) {
+    ) {
+        outputIndices.clear()
+        when (val order = order) {
             is Tile.Order.Sorted -> {
                 var count = 0
                 var index = -1
                 val maxNumberOfChunks = min(limitedChunkSize(), orderedQueries.size)
-                val indexList = ArrayList<Int>(maxNumberOfChunks)
                 while (
                     count < maxNumberOfChunks
                     && index <= orderedQueries.lastIndex
@@ -134,32 +141,29 @@ internal class Metadata<Query, Item> private constructor(
                         // Skip empty chunks
                         && queryItemsMap.getValue(orderedQueries[index]).isNotEmpty()
                         && ++count <= maxNumberOfChunks
-                    ) indexList.add(
+                    ) outputIndices.add(
                         element = index,
                     )
                 }
-                indexList
             }
 
             is Tile.Order.PivotSorted -> {
-                if (orderedQueries.isEmpty()) return emptyList()
+                if (orderedQueries.isEmpty()) return
 
-                val pivotQuery: Query = order.query ?: return emptyList()
+                val pivotQuery: Query = order.query ?: return
                 val startIndex = orderedQueries.binarySearch(pivotQuery, order.comparator)
 
-                if (startIndex < 0) return emptyList()
+                if (startIndex < 0) return
 
                 var leftIndex = startIndex
                 var rightIndex = startIndex
                 val maxNumberOfChunks = min(limitedChunkSize(), orderedQueries.size)
 
-                val indexList = ArrayList<Int>(maxNumberOfChunks)
-
                 // Check if adding the pivot index will cause it to go over the limit
-                if (maxNumberOfChunks < 1) return indexList
+                if (maxNumberOfChunks < 1) return
 
                 val pivotIndexIsEmpty = queryItemsMap.getValue(orderedQueries[startIndex]).isEmpty()
-                if (!pivotIndexIsEmpty) indexList.add(
+                if (!pivotIndexIsEmpty) outputIndices.add(
                     element = startIndex,
                 )
 
@@ -172,7 +176,7 @@ internal class Metadata<Query, Item> private constructor(
                         // Skip empty chunks
                         && queryItemsMap.getValue(orderedQueries[leftIndex]).isNotEmpty()
                         && ++count <= maxNumberOfChunks
-                    ) indexList.add(
+                    ) outputIndices.add(
                         index = 0,
                         element = leftIndex,
                     )
@@ -180,11 +184,10 @@ internal class Metadata<Query, Item> private constructor(
                         // Skip empty chunks
                         && queryItemsMap.getValue(orderedQueries[rightIndex]).isNotEmpty()
                         && ++count <= maxNumberOfChunks
-                    ) indexList.add(
+                    ) outputIndices.add(
                         element = rightIndex,
                     )
                 }
-                indexList
             }
         }
     }
@@ -208,10 +211,10 @@ internal class Metadata<Query, Item> private constructor(
         is Tile.Output.OrderChange -> {
             var willEmit = false
             // Compare the values at the indices as they may refer to different things
-            if (outputIndices.size == last?.outputIndices?.size) when (val currentLast =
+            if (outputIndices.length == last?.outputIndices?.length) when (val currentLast =
                 last) {
                 null -> Unit
-                else -> for (i in outputIndices.indices) {
+                else -> for (i in 0..outputIndices.lastIndex) {
                     if (outputQueryAt(i) == currentLast.outputQueryAt(i)) continue
                     willEmit = true
                     break
@@ -278,6 +281,7 @@ fun <Query> MutableList<Query>.insertSorted(
             index = invertedIndex,
             element = query
         )
+
         else -> add(
             element = query
         )

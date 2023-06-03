@@ -31,22 +31,25 @@ import com.tunjid.tiler.TiledList
  */
 internal inline fun <Query, Item> chunkedTiledList(
     chunkSizeHint: Int?,
-    indices: List<Int>,
+    indices: IntArrayList,
     crossinline queryLookup: (Int) -> Query,
     crossinline itemsLookup: (Query) -> List<Item>,
 ): TiledList<Query, Item> = object : AbstractList<Item>(), TiledList<Query, Item> {
 
     private var sizeIndex = -1
-    private val sizes = IntArray(indices.size)
+    private val sizes = IntArray(indices.size())
 
     // TODO: Is it better to allocate two separate lists, or to allocate a single list and
     //  create a new [Pair] for every chunk inserted?
-    private val queries = ArrayList<Query>(indices.size)
-    private val chunkedItems = ArrayList<List<Item>>(indices.size)
+    private val queries = ArrayList<Query>(indices.size())
+    private val chunkedItems = ArrayList<List<Item>>(indices.size())
+
+    override var size: Int = 0
+        private set
 
     init {
-        indices.forEach {
-            val query = queryLookup(it)
+        for (i in 0..indices.lastIndex) {
+            val query = queryLookup(indices[i])
             val items = itemsLookup(query)
             size += items.size
             sizes[++sizeIndex] = size
@@ -54,9 +57,6 @@ internal inline fun <Query, Item> chunkedTiledList(
             chunkedItems.add(element = items)
         }
     }
-
-    override var size: Int = 0
-        private set
 
     override fun queryAt(index: Int): Query = withItemAtIndex(
         index
@@ -77,7 +77,6 @@ internal inline fun <Query, Item> chunkedTiledList(
         )
         val chunkIndex = sizes.findIndexInChunkSizes(index)
 
-        println("Retrieving index $index; chunkIndex: $chunkIndex; sizes: ${sizes.toList()}")
         // Get Item in O(log(N)) time
         return retriever(
             chunkIndex,
@@ -89,7 +88,7 @@ internal inline fun <Query, Item> chunkedTiledList(
     }
 }
 
-private inline fun IntArray.findIndexInChunkSizes(
+private fun IntArray.findIndexInChunkSizes(
     index: Int,
 ): Int {
     var low = 0

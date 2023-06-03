@@ -355,6 +355,7 @@ class TileKtTest {
             .toTiledList(listTiler)
             .take(inputs.size)
             .toListWithTimeout(200)
+        println(emissions.joinToString(separator = "\n"))
 
         assertBatchTiledListEquals(
             expected = listOf(

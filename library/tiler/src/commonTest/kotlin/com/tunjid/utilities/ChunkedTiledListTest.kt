@@ -19,6 +19,7 @@ package com.tunjid.utilities
 import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.assertTiledListEquals
 import com.tunjid.tiler.tiledListOf
+import com.tunjid.tiler.utilities.IntArrayList
 import com.tunjid.tiler.utilities.chunkedTiledList
 import kotlin.test.Test
 
@@ -26,7 +27,7 @@ class ChunkedTiledListTest {
 
     @Test
     fun chunked_tiled_indexing_works() {
-        (0..10).forEach {  chunkSize ->
+        (0..10).forEach { chunkSize ->
             val (constantTimeChunkedTiledList, binarySearchChunkedTiledList) =
                 optimizedAndIterativeChunkedLists(chunkSize)
 
@@ -48,7 +49,9 @@ class ChunkedTiledListTest {
 private fun optimizedAndIterativeChunkedLists(
     chunkSize: Int
 ): Pair<TiledList<Int, Int>, TiledList<Int, Int>> {
-    val indices = (0 until chunkSize).toList()
+    val indices = IntArrayList(chunkSize).apply {
+        (0 until chunkSize).forEach(::add)
+    }
 
     val constantTimeChunkedTiledList = chunkedTiledList(
         chunkSizeHint = chunkSize,
