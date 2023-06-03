@@ -37,12 +37,12 @@ internal inline fun <Query, Item> chunkedTiledList(
 ): TiledList<Query, Item> = object : AbstractList<Item>(), TiledList<Query, Item> {
 
     private var sizeIndex = -1
-    private val sizes = IntArray(indices.size())
+    private val sizes = IntArray(indices.size)
 
     // TODO: Is it better to allocate two separate lists, or to allocate a single list and
     //  create a new [Pair] for every chunk inserted?
-    private val queries = ArrayList<Query>(indices.size())
-    private val chunkedItems = ArrayList<List<Item>>(indices.size())
+    private val queries = ArrayList<Query>(indices.size)
+    private val chunkedItems = ArrayList<List<Item>>(indices.size)
 
     override var size: Int = 0
         private set

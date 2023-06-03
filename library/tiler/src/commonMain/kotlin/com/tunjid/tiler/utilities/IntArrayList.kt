@@ -21,22 +21,22 @@ class IntArrayList(
 ) {
 
     private var data = IntArray(initialSize)
-    var length = 0
+    var size = 0
         private set
 
-    val lastIndex get() = length - 1
+    val lastIndex get() = size - 1
 
     fun add(element: Int) {
-        if (length == data.size) {
+        if (size == data.size) {
             val newData = IntArray(data.size * 2)
             data.copyInto(destination = newData)
             data = newData
         }
-        data[length++] = element
+        data[size++] = element
     }
 
     fun add(index: Int, element: Int) {
-        when (length) {
+        when (size) {
             // Grow the backing array
             data.size -> {
                 val newData = IntArray(data.size * 2)
@@ -58,27 +58,25 @@ class IntArrayList(
                     destination = data,
                     destinationOffset = index + 1,
                     startIndex = index,
-                    endIndex = length,
+                    endIndex = size,
                 )
                 data[index] = element
             }
         }
-        ++length
+        ++size
     }
 
     operator fun get(index: Int): Int {
         if (index > lastIndex) throw IndexOutOfBoundsException(
-            "Attempted to read $index in IntArrayList of size $length"
+            "Attempted to read $index in IntArrayList of size $size"
         )
         return data[index]
     }
 
-    fun size(): Int = length
-
-    fun isEmpty() = length == 0
+    fun isEmpty() = size == 0
 
     fun clear() {
-        length = 0
+        size = 0
     }
 
     override fun equals(other: Any?): Boolean {
@@ -94,7 +92,7 @@ class IntArrayList(
     override fun hashCode(): Int = orderedHashCode(this)
 
     private fun orderedEquals(c: IntArrayList, other: IntArrayList): Boolean {
-        if (c.length != other.length) return false
+        if (c.size != other.size) return false
 
         for (i in 0..lastIndex) {
             val elem = this[i]

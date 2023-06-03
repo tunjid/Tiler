@@ -211,7 +211,7 @@ internal class Metadata<Query, Item> private constructor(
         is Tile.Output.OrderChange -> {
             var willEmit = false
             // Compare the values at the indices as they may refer to different things
-            if (outputIndices.length == last?.outputIndices?.length) when (val currentLast =
+            if (outputIndices.size == last?.outputIndices?.size) when (val currentLast =
                 last) {
                 null -> Unit
                 else -> for (i in 0..outputIndices.lastIndex) {
