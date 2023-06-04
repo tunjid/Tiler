@@ -17,6 +17,7 @@
 package com.tunjid.tiler.utilities
 
 import com.tunjid.tiler.TiledList
+import com.tunjid.tiler.strictEquals
 
 /**
  * A [TiledList] implementation that offers:
@@ -65,6 +66,10 @@ internal inline fun <Query, Item> chunkedTiledList(
     override fun get(index: Int): Item = withItemAtIndex(
         index
     ) { chunkIndex, indexInChunk -> chunkedItems[chunkIndex][indexInChunk] }
+
+    override fun equals(other: Any?): Boolean =
+        if (other is TiledList<*, *>) strictEquals(other)
+        else super.equals(other)
 
     private inline fun <T> withItemAtIndex(
         index: Int,

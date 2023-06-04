@@ -109,7 +109,7 @@ class ListMapTilingSamenessTest {
             )
             .toListWithTimeout(200)
 
-        assertBatchTiledListEquals(
+        assertEquals(
             expected = listOf(
                 // First emission
                 4.tiledTestRange(),
@@ -125,7 +125,7 @@ class ListMapTilingSamenessTest {
         )
 
         // Optimizations should not change the results
-        assertBatchTiledListEquals(
+        assertEquals(
             expected = emissions,
             actual = optimizedEmissions
         )

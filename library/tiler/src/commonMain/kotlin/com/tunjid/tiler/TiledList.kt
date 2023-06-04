@@ -38,9 +38,6 @@ interface TiledList<out Query, out Item> : List<Item> {
  * A [TiledList] with mutation facilities
  */
 interface MutableTiledList<Query, Item> : TiledList<Query, Item> {
-    /**
-     * Returns the query that fetched an [Item]
-     */
     fun add(index: Int, query: Query, item: Item)
 
     fun add(query: Query, item: Item): Boolean
@@ -105,4 +102,14 @@ operator fun <Query, Item> TiledList<Query, Item>.plus(
     other.forEachIndexed { index, item ->
         add(other.queryAt(index), item)
     }
+}
+
+fun TiledList<*, *>.strictEquals(other: TiledList<*, *>): Boolean {
+    if (other === this) return true
+    if (size != other.size) return false
+    for (i in 0..lastIndex) {
+        if (this[i] != other[i]) return false
+        if (queryAt(i) != other.queryAt(i)) return false
+    }
+    return true
 }

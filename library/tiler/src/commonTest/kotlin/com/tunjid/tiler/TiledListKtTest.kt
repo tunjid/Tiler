@@ -18,6 +18,7 @@ package com.tunjid.tiler
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 
 class TiledListKtTest {
@@ -55,4 +56,35 @@ class TiledListKtTest {
         )
     }
 
+    @Test
+    fun equals_fails_with_different_items() {
+        assertNotEquals(
+            illegal = tiledListOf(
+                0 to 0,
+                0 to 1,
+                0 to 2,
+            ),
+            actual = tiledListOf(
+                0 to 0,
+                0 to 3,
+                0 to 2,
+            )
+        )
+    }
+
+    @Test
+    fun equals_works_with_simple_list() {
+        assertEquals(
+            expected = tiledListOf(
+                0 to 0,
+                0 to 1,
+                0 to 2,
+            ),
+            actual = listOf(
+                0,
+                1,
+                2,
+            )
+        )
+    }
 }

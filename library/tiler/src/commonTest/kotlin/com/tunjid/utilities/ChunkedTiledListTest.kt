@@ -17,11 +17,11 @@
 package com.tunjid.utilities
 
 import com.tunjid.tiler.TiledList
-import com.tunjid.tiler.assertTiledListEquals
 import com.tunjid.tiler.tiledListOf
 import com.tunjid.tiler.utilities.IntArrayList
 import com.tunjid.tiler.utilities.chunkedTiledList
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class ChunkedTiledListTest {
 
@@ -34,11 +34,11 @@ class ChunkedTiledListTest {
             val expectedTiledList = consecutiveIntegerTiledList(
                 chunkSize = chunkSize
             )
-            assertTiledListEquals(
+            assertEquals(
                 expected = expectedTiledList,
                 actual = constantTimeChunkedTiledList
             )
-            assertTiledListEquals(
+            assertEquals(
                 expected = constantTimeChunkedTiledList,
                 actual = binarySearchChunkedTiledList
             )
