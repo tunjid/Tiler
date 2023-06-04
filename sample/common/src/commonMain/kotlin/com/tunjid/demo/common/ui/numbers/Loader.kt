@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlin.math.max
 
 private const val ITEMS_PER_PAGE = 50
 
@@ -103,9 +104,9 @@ class Loader(
         .distinctUntilChanged()
 
     // Change limit to account for dynamic view port size
-    private val limitInputs = numberOfColumns.map { gridSize ->
+    private val limitInputs = numberOfColumns.map { noColumns ->
         Tile.Limiter<PageQuery, NumberTile>(
-            maxQueries = gridSize * 3,
+            maxQueries = noColumns * 2,
             itemSizeHint = ITEMS_PER_PAGE
         )
     }
@@ -175,7 +176,7 @@ class Loader(
         isAscending: Boolean,
         numberOfColumns: Int,
     ) = PivotRequest(
-        onCount = 2 * numberOfColumns,
+        onCount = max(a = 3, b = 2 * numberOfColumns),
         offCount = 2 * numberOfColumns,
         nextQuery = nextQuery,
         previousQuery = previousQuery,
