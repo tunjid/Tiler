@@ -210,7 +210,7 @@ class PivotedFeedFetcher(
             PivotRequest(
                 // 5 pages are fetched concurrently, so 500 items
                 onCount = 5,
-                // A buffer of 3 extra pages on either side are kept, so 700 items total
+                // A buffer of 2 extra pages on either side are kept, so 700 items total
                 offCount = 2,
                 comparator = comparator,
                 nextQuery = {
@@ -410,10 +410,11 @@ As tiling loads from multiple flows simultaneously, performance is a function of
 
 In the case of a former, the `Flow` should only emit if the backing dataset has actually changed. This prevents unnecessary emissions downstream.
 
-In the case of the latter, by using `Input.Limiter` and keeping the size of the `TiledList` under 100 items, you can
-create an efficient paging pipeline.
+In the case of the latter, use `PivotRequest(on = x)` and `Input.Limiter` to match the
+output `TiledList` to the view port of the user's device to create an efficient paging pipeline.
 
 For example if tiling is done for the UI, with a viewport that can display 20 items at once:
+
 * 20 items can be fetched per page
 * 100 items (20 * 5 pages) can be observed at concurrently
 * `Input.Limiter.List(maxQueries = 3)` can be set so only changes to the visible 60 items will be sent to the UI at once.
