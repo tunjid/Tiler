@@ -118,8 +118,6 @@ The `Limiter` allows for selecting an arbitrary amount of items as the situation
 
 Defines the heuristic for selecting tiled items into the output `TiledList`.
 
-* Unspecified: Items will be returned in an undefined order. This is the default.
-
 * Sorted: Sort items with a specified query `comparator`.
 
 * PivotSorted: Sort items with the specified `comparator` but pivoted around a specific `Query`.
@@ -127,8 +125,6 @@ Defines the heuristic for selecting tiled items into the output `TiledList`.
   like example in a list being scrolled. In other words assume tiles have been fetched for queries 1 - 10 but a
   user can see pages 5 and 6. The UI need only to be aware of pages 4, 5, 6, and 7. This allows for a rolling window of
   queries based on a user's scroll position.
-
-* Custom: Flattens tiled items produced whichever way you desire.
 
 ## How to page with Tiling
 
@@ -178,18 +174,28 @@ Since tiling is dynamic at it's core, a pipeline can be built to allow for this 
 
 ### Basic example
 
-Imagine a simple contacts app backed by a `ContactsRepository`.
-Each page in the repository returns 100 contacts. A pivoted tiling pipeline for it can be assembled as follows:
+Imagine a social media feed app backed by a `FeedRepository`.
+Each page in the repository returns 100 items. A pivoted tiling pipeline for it can be assembled as follows:
 
 ```kotlin
-class PivotedNumberFetcher(
-    repository: ContactsRepository
+class PivotedFeedFetcher(
+    repository: FeedRepository
 ) {
     private val requests = MutableStateFlow(0)
 
-    private val listTiler: ListTiler<Int, Contact> = listTiler(
-        // Limit to only 40 items in UI at any one time
-        limiter = Tile.Limiter { items -> items.size > 40 },
+    private val comparator = Comparator(Int::compareTo)
+
+    private val listTiler: ListTiler<Int, FeedItem> = listTiler(
+        // Start by pivoting around 0
+        order = Tile.Order.PivotSorted(
+          query = 0,
+          comparator = comparator
+        ),
+        // Limit to only 3 pages of data in UI at any one time
+        limiter = Tile.Limiter(
+          maxQueries = 3,
+          itemSizeHint = null,
+        ),
         fetcher = { page ->
           repository.getPage(page)
         }
@@ -199,12 +205,14 @@ class PivotedNumberFetcher(
   
     // A TiledList is a regular List that has information about what
     // query fetched an item at each index
-    val contacts: Flow<TiledList<Int, Contact>> = requests
-        .toPivotedTileInputs<Int, Contact>(
+    val feed: Flow<TiledList<Int, FeedItem>> = requests
+        .toPivotedTileInputs<Int, FeedItem>(
             PivotRequest(
-                onCount = 3,
+                // 5 pages are fetched concurrently, so 500 items
+                onCount = 5,
+                // A buffer of 3 extra pages on either side are kept, so 700 items total
                 offCount = 2,
-                comparator = ascendingPageComparator,
+                comparator = comparator,
                 nextQuery = {
                     this + 1
                 },
@@ -226,18 +234,18 @@ The UI is responsible for setting the visible page. In Jetpack Compose, this is 
 
 ```kotlin
 @Composable
-fun NumberTiles(
-    fetcher: PivotedNumberFetcher
+fun Feed(
+    fetcher: PivotedFeedFetcher
 ) {
-    val contacts by fetcher.contacts.collectAsState()
+    val feed by fetcher.contacts.collectAsState()
     val lazyState = rememberLazyListState()
   
     LazyColumn(
         state = lazyState,
         content = {
             items(
-                items = contacts,
-                key = NumberTile::key,
+                items = feed,
+                key = FeedItem::key,
                 itemContent = { ... }
             )
         }
@@ -253,9 +261,9 @@ fun NumberTiles(
 As the user scrolls, `setVisiblePage` is called to keep pivoting about the current position with the following
 constraints:
 
-* At most 40 contacts from the current page will be in the UI at any one time.
-* 3 pages will be observed concurrently, including the current page of the user. Any changes to the data in any
-of the pages will update the UI.
+* At most 3 pages of content (300 items) will be in the UI at any one time.
+* 5 pages will be observed concurrently, including the current page of the user. Any changes to the data in any
+of the pages will update the UI if it will be seen by the user (it is in th 300 being presented).
 * 2 pages will be kept in memory for quick access to accommodate UI interactions like flinging or jumping to a page.
 
 ### Advanced example
@@ -405,7 +413,14 @@ In the case of a former, the `Flow` should only emit if the backing dataset has 
 In the case of the latter, by using `Input.Limiter` and keeping the size of the `TiledList` under 100 items, you can
 create an efficient paging pipeline.
 
-For example if tiling is done for the UI, with a viewport that can display 20 items at once, 20 items can be fetched per page, and 100 (20 * 5) pages can be observed at concurrently. Using `Input.Limiter.List { it.size > 100 }`, only 100 items will be sent to the UI at once. The items can be transformed with algorithms of `O(N)` to `O(N^2)` time and space complexity trivially as regardless of the size of the actual paginated set, only 100 items will be transformed at any one time.
+For example if tiling is done for the UI, with a viewport that can display 20 items at once:
+* 20 items can be fetched per page
+* 100 items (20 * 5 pages) can be observed at concurrently
+* `Input.Limiter.List(maxQueries = 3)` can be set so only changes to the visible 60 items will be sent to the UI at once.
+
+The items can be transformed with algorithms of `O(N)` to `O(N^2)` time and space complexity
+trivially as regardless of the size of the actual paginated set, only 60 items will be transformed
+at any one time.
 
 ## License
 
