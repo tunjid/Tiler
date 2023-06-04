@@ -18,13 +18,12 @@ package com.tunjid.tiler.utilities
 
 import com.tunjid.tiler.Tile
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.transform
 
 /**
  * A class defining the parameters for pivoted pagination
@@ -118,18 +117,15 @@ internal fun <Query> Flow<Query>.pivotWith(
         .distinctUntilChanged()
 
 internal fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.Input<Query, Item>> =
-    flatMapConcat { pivotResult ->
-        buildList<Tile.Input<Query, Item>> {
-            // Evict first because order will be invalid if queries that are not part
-            // of this pivot are ordered with its order
-            pivotResult.evict.forEach { query -> add(Tile.Request.Evict(query)) }
-            pivotResult.off.forEach { query -> add(Tile.Request.Off(query)) }
-            pivotResult.on.forEach { query -> add(Tile.Request.On(query)) }
-            pivotResult.on.lastOrNull()?.let { query ->
-                add(Tile.Order.PivotSorted(query, pivotResult.comparator))
-            }
+    transform { pivotResult ->
+        // Evict first because order will be invalid if queries that are not part
+        // of this pivot are ordered with its order
+        pivotResult.evict.forEach { query -> emit(Tile.Request.Evict(query)) }
+        pivotResult.off.forEach { query -> emit(Tile.Request.Off(query)) }
+        pivotResult.on.forEach { query -> emit(Tile.Request.On(query)) }
+        pivotResult.on.lastOrNull()?.let { query ->
+            emit(Tile.Order.PivotSorted(query, pivotResult.comparator))
         }
-            .asFlow()
     }
 
 internal fun <Query> PivotRequest<Query>.pivotAround(
@@ -144,7 +140,7 @@ internal fun <Query> PivotRequest<Query>.pivotAround(
             increment = nextQuery,
             decrement = previousQuery
         ),
-        off = mutableListOf<Query>().meetSizeQuota(
+        off = if (offCount == 0) emptyList() else mutableListOf<Query>().meetSizeQuota(
             maxSize = offCount,
             context = loopContext,
             increment = nextQuery,
