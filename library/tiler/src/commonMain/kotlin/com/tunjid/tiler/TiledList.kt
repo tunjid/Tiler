@@ -17,7 +17,6 @@
 package com.tunjid.tiler
 
 import com.tunjid.tiler.utilities.EmptyTiledList
-import com.tunjid.tiler.utilities.FilterTransformedTiledList
 import com.tunjid.tiler.utilities.MutablePairedTiledList
 
 /**
@@ -78,17 +77,6 @@ fun <Query, Item> buildTiledList(
     builderAction: MutableTiledList<Query, Item>.() -> Unit
 ): TiledList<Query, Item> = mutableTiledListOf<Query, Item>()
     .also(builderAction::invoke)
-
-/**
- * filters a [TiledList] with the [filterTransformer] provided.
- * Every item in the returned list must also be present in the original list.
- */
-fun <Query, Item> TiledList<Query, Item>.filterTransform(
-    filterTransformer: List<Item>.() -> List<Item>
-): TiledList<Query, Item> = FilterTransformedTiledList(
-    originalList = this,
-    transformedList = filterTransformer(this)
-)
 
 fun <Query, Item> TiledList<Query, Item>.queryAtOrNull(index: Int) =
     if (index in 0..lastIndex) queryAt(index) else null

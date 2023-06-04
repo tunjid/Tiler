@@ -19,8 +19,8 @@ package com.tunjid.demo.common.ui.numbers
 import com.tunjid.tiler.ListTiler
 import com.tunjid.tiler.Tile
 import com.tunjid.tiler.TiledList
+import com.tunjid.tiler.buildTiledList
 import com.tunjid.tiler.emptyTiledList
-import com.tunjid.tiler.filterTransform
 import com.tunjid.tiler.listTiler
 import com.tunjid.tiler.toTiledList
 import com.tunjid.tiler.utilities.PivotRequest
@@ -130,9 +130,16 @@ class Loader(
             isAscending = pageQuery.isAscending,
             currentPage = pageQuery.page,
             pivotSummary = pivotSummary,
-            items = tiledList.filterTransform(
-                filterTransformer = { distinctBy(NumberTile::key) }
-            )
+            items = buildTiledList {
+                val seen = mutableSetOf<NumberTile>()
+                tiledList.forEachIndexed { index , tile ->
+                    if(!seen.contains(tile)) add(
+                        query = tiledList.queryAt(index),
+                        item = tile
+                    )
+                    seen.add(tile)
+                }
+            }
         )
     }
         .stateIn(
