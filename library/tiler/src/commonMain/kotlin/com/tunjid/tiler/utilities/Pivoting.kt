@@ -30,7 +30,7 @@ import kotlinx.coroutines.flow.scan
  * A class defining the parameters for pivoted pagination
  */
 data class PivotRequest<Query>(
-    /** The amount of concurrent queries to collect from at any one time. */
+    /** The amount of concurrent queries to collect from at any one time. Must be at least 3. */
     val onCount: Int,
     /** The amount of queries to keep in memory, but not collect from. */
     val offCount: Int = onCount,
@@ -40,7 +40,11 @@ data class PivotRequest<Query>(
     val nextQuery: Query.() -> Query?,
     /** A function to get the query consecutive to an existing query in descending order. */
     val previousQuery: Query.() -> Query?,
-)
+) {
+    init {
+        check(onCount >= 3) { "There must be at least 3 pages to pivot around" }
+    }
+}
 
 /**
  * A summary of [Query] parameters that are pivoted around [currentQuery]
