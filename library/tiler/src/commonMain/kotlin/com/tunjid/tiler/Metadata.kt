@@ -234,7 +234,6 @@ internal class Metadata<Query, Item> private constructor(
         }
     }
 
-
     private fun isInVisibleRange(query: Query): Boolean =
         if (outputIndices.isEmpty()) false
         else when (order) {

@@ -75,6 +75,9 @@ internal inline fun <Query, Item> chunkedTiledList(
         index: Int,
         crossinline retriever: (chunkIndex: Int, indexInChunk: Int) -> T
     ): T {
+        if (isEmpty()) throw IndexOutOfBoundsException(
+            "Trying to read $index in empty TiledList"
+        )
         // Get item in constant time
         if (chunkSizeHint != null) return retriever(
             index / chunkSizeHint,
