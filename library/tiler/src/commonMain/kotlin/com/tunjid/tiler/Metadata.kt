@@ -210,8 +210,8 @@ internal class Metadata<Query, Item> private constructor(
         // Emit only if there are items to sort, and the order has meaningfully changed
         is Tile.Output.OrderChange -> {
             var willEmit = false
-            val areNotTheSameSize = outputIndices.size != last?.outputIndices?.size
-            if (areNotTheSameSize) when (val currentLast = last) {
+            val areTheSameSize = outputIndices.size == last?.outputIndices?.size
+            if (areTheSameSize) when (val currentLast = last) {
                 // No last emission, do nothing
                 null -> Unit
                 // Compare the values at the indices as they may refer to different things
