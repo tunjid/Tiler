@@ -53,6 +53,7 @@ class IntArrayList(
                 newData[index] = element
                 data = newData
             }
+            // Copy items over and plug in the gap
             else -> {
                 data.copyInto(
                     destination = data,
@@ -64,6 +65,19 @@ class IntArrayList(
             }
         }
         ++size
+    }
+
+    fun removeAt(index: Int) {
+        if (index < 0 || index > lastIndex) throw IndexOutOfBoundsException(
+            "Attempted to remove at $index in IntArrayList of size $size"
+        )
+        data.copyInto(
+            destination = data,
+            destinationOffset = index,
+            startIndex = index + 1,
+            endIndex = size
+        )
+        --size
     }
 
     operator fun get(index: Int): Int {

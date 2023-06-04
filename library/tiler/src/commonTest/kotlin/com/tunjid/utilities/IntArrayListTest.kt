@@ -20,6 +20,7 @@ import com.tunjid.tiler.utilities.IntArrayList
 import com.tunjid.tiler.utilities.toList
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class IntArrayListTest {
 
@@ -27,24 +28,47 @@ class IntArrayListTest {
     fun can_add() {
         val intList = IntArrayList()
         intList.add(1)
-        intList.add(2)
+        assertEquals(
+            expected = 1,
+            actual = intList.size
+        )
 
+        intList.add(2)
         assertEquals(
             expected = listOf(1, 2),
             actual = intList.toList()
+        )
+
+        assertEquals(
+            expected = 2,
+            actual = intList.size
         )
     }
 
     @Test
     fun can_add_at_index() {
         val intList = IntArrayList()
+
         intList.add(1)
+        assertEquals(
+            expected = 1,
+            actual = intList.size
+        )
+
         intList.add(2)
+        assertEquals(
+            expected = 2,
+            actual = intList.size
+        )
+
         intList.add(
             index = 1,
             element = 3
         )
-
+        assertEquals(
+            expected = 3,
+            actual = intList.size
+        )
         assertEquals(
             expected = listOf(1, 3, 2),
             actual = intList.toList()
@@ -53,6 +77,10 @@ class IntArrayListTest {
         intList.add(
             index = 0,
             element = 9
+        )
+        assertEquals(
+            expected = 4,
+            actual = intList.size
         )
         assertEquals(
             expected = listOf(9, 1, 3, 2),
@@ -86,12 +114,69 @@ class IntArrayListTest {
     @Test
     fun can_resize() {
         val intList = IntArrayList(1)
+
         intList.add(1)
+        assertEquals(
+            expected = 1,
+            actual = intList.size
+        )
+
         intList.add(2)
+        assertEquals(
+            expected = 2,
+            actual = intList.size
+        )
 
         assertEquals(
             expected = listOf(1, 2),
             actual = intList.toList()
         )
+    }
+
+    @Test
+    fun can_removeAt() {
+        val intList = IntArrayList(1)
+
+        intList.add(1)
+        intList.add(2)
+        intList.add(3)
+        intList.add(4)
+        intList.add(5)
+
+        assertEquals(
+            expected = listOf(1, 2, 3, 4, 5),
+            actual = intList.toList()
+        )
+
+        intList.removeAt(0)
+        assertEquals(
+            expected = listOf(2, 3, 4, 5),
+            actual = intList.toList()
+        )
+
+        intList.removeAt(2)
+        assertEquals(
+            expected = listOf(2, 3, 5),
+            actual = intList.toList()
+        )
+
+        intList.removeAt(2)
+        assertEquals(
+            expected = listOf(2, 3),
+            actual = intList.toList()
+        )
+    }
+
+    @Test
+    fun cannot_removeAt_out_of_bounds() {
+        val intList = IntArrayList(1)
+
+        intList.add(1)
+        intList.add(2)
+        intList.add(3)
+
+        assertFailsWith<IndexOutOfBoundsException> {
+            intList.removeAt(7)
+        }
     }
 }
