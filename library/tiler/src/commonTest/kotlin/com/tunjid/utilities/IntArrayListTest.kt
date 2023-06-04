@@ -61,6 +61,29 @@ class IntArrayListTest {
     }
 
     @Test
+    fun can_set_at_index() {
+        val intList = IntArrayList()
+        intList.add(1)
+        intList.add(2)
+        intList.add(3)
+        intList.add(4)
+
+        assertEquals(
+            expected = listOf(1, 2, 3, 4),
+            actual = intList.toList()
+        )
+
+        for(i in 0..intList.lastIndex) {
+            intList[i] = intList[i] + 5
+        }
+
+        assertEquals(
+            expected = listOf(6, 7, 8, 9),
+            actual = intList.toList()
+        )
+    }
+
+    @Test
     fun can_resize() {
         val intList = IntArrayList(1)
         intList.add(1)

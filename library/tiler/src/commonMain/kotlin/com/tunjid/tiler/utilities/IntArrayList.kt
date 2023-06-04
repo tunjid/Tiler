@@ -73,6 +73,10 @@ class IntArrayList(
         return data[index]
     }
 
+    operator fun set(index: Int, element: Int) {
+        data[index] = element
+    }
+
     fun isEmpty() = size == 0
 
     fun clear() {
