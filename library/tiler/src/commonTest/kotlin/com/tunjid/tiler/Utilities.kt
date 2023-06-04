@@ -21,7 +21,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 private const val ITEMS_PER_PAGE = 10
 internal fun Int.testRange(
-    itemsPerPage: Int = ITEMS_PER_PAGE
+    itemsPerPage: Int = ITEMS_PER_PAGE,
 ): IntRange {
     val offset = this * itemsPerPage
     val next = offset + itemsPerPage
@@ -30,9 +30,10 @@ internal fun Int.testRange(
 }
 
 internal fun Int.tiledTestRange(
+    itemsPerPage: Int = ITEMS_PER_PAGE,
     transform: List<Int>.() -> List<Int> = { this }
 ) = buildTiledList {
-    addAll(query = this@tiledTestRange, items = transform(testRange().toList()))
+    addAll(query = this@tiledTestRange, items = transform(testRange(itemsPerPage).toList()))
 }
 
 suspend fun <T> Flow<T>.toListWithTimeout(timeoutMillis: Long): List<T> {

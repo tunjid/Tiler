@@ -16,10 +16,15 @@
 
 package com.tunjid.tiler
 
+import com.tunjid.tiler.utilities.PivotRequest
+import com.tunjid.tiler.utilities.toPivotedTileInputs
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -203,6 +208,63 @@ class ListMapTilingSamenessTest {
         )
 
         // No eighth emission, the output has not meaningfully changed.
+    }
+
+    @Test
+    fun sequential_pivoting_works() = runTest {
+        val range = (0..15)
+        (1..10).forEach { itemsPerPage ->
+            (3..10).forEach { numPages ->
+                val comparator = Comparator(Int::compareTo)
+                val pivotRequest: PivotRequest<Int> = PivotRequest(
+                    onCount = numPages,
+                    offCount = 0,
+                    comparator = comparator,
+                    nextQuery = { this + 1 },
+                    previousQuery = { (this - 1).takeIf { it >= 0 } },
+                )
+                val emissions = range
+                    .asFlow()
+                    .onEach { delay(1) }
+                    .toPivotedTileInputs<Int, Int>(pivotRequest = pivotRequest)
+                    .tileWith(
+                        maxQueries = numPages,
+                        queryItemsSize = null,
+                        orderFactory = {
+                            Tile.Order.PivotSorted(
+                                query = 0,
+                                comparator = Int::compareTo
+                            )
+                        },
+                        pageFactory = { page ->
+                            page.testRange(itemsPerPage).toList()
+                        }
+                    )
+                    .onEach { println(it) }
+                    .takeWhile { tiledList ->
+                        if (tiledList.isEmpty()) throw IllegalArgumentException("Should not be empty here")
+                        val middleIndex = tiledList.size / 2
+                        val pivotedPage = tiledList.queryAt(middleIndex)
+                        pivotedPage < range.last
+                    }
+                    .toList()
+
+                val expected = range
+                    .takeWhile { page ->
+                        page < range.last - (numPages / 2)
+                    }
+                    .map { page ->
+                        (0 until numPages).fold(tiledListOf<Int, Int>()) { list, index ->
+                            list + (page + index).tiledTestRange(itemsPerPage = itemsPerPage)
+                        }
+                    }
+
+                assertEquals(
+                    expected = expected,
+                    actual = emissions
+                )
+            }
+        }
     }
 }
 
