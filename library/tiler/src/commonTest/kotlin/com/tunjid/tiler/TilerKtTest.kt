@@ -31,7 +31,7 @@ class TilerKtTest {
                 .map { int ->
                     Tile.Output.Data(
                         query = int,
-                        items = int.testRange.toList()
+                        items = int.testRange().toList()
                     )
                 }
                 .asFlow()
@@ -65,7 +65,7 @@ class TilerKtTest {
                 listOf(
                     Tile.Output.Data(
                         query = int,
-                        items = int.testRange.toList()
+                        items = int.testRange().toList()
                     ),
                 )
             }

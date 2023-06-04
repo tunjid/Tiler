@@ -26,8 +26,8 @@ class TiledListKtTest {
     @Test
     fun tiled_list_builder_works() {
         val tiledList = buildTiledList {
-            addAll(1, 1.testRange.toList())
-            addAll(3, 3.testRange.toList())
+            addAll(1, 1.testRange().toList())
+            addAll(3, 3.testRange().toList())
         }
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),

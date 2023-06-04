@@ -18,21 +18,21 @@ package com.tunjid.tiler
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.test.assertEquals
 
 private const val ITEMS_PER_PAGE = 10
-internal val Int.testRange: IntRange
-    get() {
-        val offset = this * ITEMS_PER_PAGE
-        val next = offset + ITEMS_PER_PAGE
+internal fun Int.testRange(
+    itemsPerPage: Int = ITEMS_PER_PAGE
+): IntRange {
+    val offset = this * itemsPerPage
+    val next = offset + itemsPerPage
 
-        return offset until next
-    }
+    return offset until next
+}
 
 internal fun Int.tiledTestRange(
     transform: List<Int>.() -> List<Int> = { this }
 ) = buildTiledList {
-    addAll(query = this@tiledTestRange, items = transform(testRange.toList()))
+    addAll(query = this@tiledTestRange, items = transform(testRange().toList()))
 }
 
 suspend fun <T> Flow<T>.toListWithTimeout(timeoutMillis: Long): List<T> {

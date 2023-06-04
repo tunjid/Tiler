@@ -209,7 +209,7 @@ class ListMapTilingSamenessTest {
 private fun Flow<Tile.Input<Int, Int>>.tileWith(
     maxQueries: Int,
     queryItemsSize: Int?,
-    pageFactory: (Int) -> List<Int> = { page -> page.testRange.toList() },
+    pageFactory: (Int) -> List<Int> = { page -> page.testRange().toList() },
     orderFactory: () -> Tile.Order<Int, Int>
 ): Flow<TiledList<Int, Int>> = listTiler(
     // Take 3 pages of items

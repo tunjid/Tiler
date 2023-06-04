@@ -48,7 +48,7 @@ class TileKtTest {
         listTiler = listTiler(
             order = Tile.Order.Sorted(Int::compareTo)
         ) { page ->
-            tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }
+            tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange().toList()) }
         }
     }
 
@@ -424,7 +424,7 @@ class TileKtTest {
                 query = 0,
                 comparator = comparator
             )
-        ) { page -> flowOf(page.testRange.toList()) }
+        ) { page -> flowOf(page.testRange().toList()) }
         val inputs = flowOf(0).pivotWith(
             PivotRequest(
                 onCount = 3,
