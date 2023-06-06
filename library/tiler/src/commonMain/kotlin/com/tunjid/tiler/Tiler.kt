@@ -25,7 +25,7 @@ import kotlin.math.min
  * Holds information regarding properties that may be useful when flattening a [Map] of [Query]
  * to [Tile] into a [List]
  */
-internal class Metadata<Query, Item> private constructor(
+internal class Tiler<Query, Item> private constructor(
     private var order: Tile.Order<Query, Item>,
     private var limiter: Tile.Limiter<Query, Item> = Tile.Limiter(
         maxQueries = Int.MIN_VALUE,
@@ -51,7 +51,7 @@ internal class Metadata<Query, Item> private constructor(
         else 10
     )
     private var lastTiledItems: TiledList<Query, Item> = emptyTiledList()
-    private var last: Metadata<Query, Item>? = null
+    private var last: Tiler<Query, Item>? = null
 
     fun process(output: Tile.Output<Query, Item>): TiledList<Query, Item>? {
         updateLast()
@@ -95,7 +95,7 @@ internal class Metadata<Query, Item> private constructor(
 
     private fun updateLast() = when (val lastSnapshot = last) {
         null -> {
-            last = Metadata(
+            last = Tiler(
                 order = order,
                 limiter = limiter,
                 // Share the same map instance

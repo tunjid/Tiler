@@ -27,7 +27,7 @@ class TilerKtTest {
 
     @Test
     fun maintains_all_items() = runTest {
-        val metadata = Metadata<Int, Int>(
+        val tiler = Tiler<Int, Int>(
             limiter = Tile.Limiter(
                 maxQueries = Int.MIN_VALUE,
                 itemSizeHint = 10
@@ -43,7 +43,7 @@ class TilerKtTest {
                     )
                 }
                 .asFlow()
-                .map(metadata::process)
+                .map(tiler::process)
                 .last()
 
         assertEquals(
@@ -56,7 +56,7 @@ class TilerKtTest {
 
     @Test
     fun pivots_around_specific_query_when_limit_exists() = runTest {
-        val metadata = Metadata<Int, Int>(
+        val tiler = Tiler<Int, Int>(
             limiter = Tile.Limiter(
                 maxQueries = 5,
                 itemSizeHint = 10
@@ -77,7 +77,7 @@ class TilerKtTest {
             }
                 .flatten()
                 .asFlow()
-                .map(metadata::process)
+                .map(tiler::process)
                 .toList()
 
         assertEquals(

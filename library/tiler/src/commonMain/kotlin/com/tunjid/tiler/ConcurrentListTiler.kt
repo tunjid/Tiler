@@ -32,7 +32,7 @@ import kotlinx.coroutines.flow.transformWhile
 
 /**
  * Processes [Tile.Input] requests concurrently to produce [TiledList] instances.
- * A mutex is used to synchronize access to the [Metadata] modified.
+ * A mutex is used to synchronize access to the [Tiler] modified.
  */
 fun <Query, Item> concurrentListTiler(
     order: Tile.Order<Query, Item>,
@@ -46,7 +46,7 @@ fun <Query, Item> concurrentListTiler(
             transform = { it }
         )
         .mapNotNull(
-            Metadata(
+            Tiler(
                 limiter = limiter,
                 order = order
             )::process
