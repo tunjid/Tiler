@@ -23,8 +23,8 @@ import com.tunjid.tiler.buildTiledList
 import com.tunjid.tiler.emptyTiledList
 import com.tunjid.tiler.listTiler
 import com.tunjid.tiler.toTiledList
-import com.tunjid.tiler.utilities.PivotRequest
-import com.tunjid.tiler.utilities.toPivotedTileInputs
+import com.tunjid.tiler.PivotRequest
+import com.tunjid.tiler.toPivotedTileInputs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

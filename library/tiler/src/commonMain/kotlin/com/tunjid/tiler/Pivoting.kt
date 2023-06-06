@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package com.tunjid.tiler.utilities
+package com.tunjid.tiler
 
-import com.tunjid.tiler.Tile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged

@@ -17,12 +17,12 @@
 package com.tunjid.utilities
 
 import com.tunjid.tiler.Tile
-import com.tunjid.tiler.utilities.PivotRequest
-import com.tunjid.tiler.utilities.PivotResult
-import com.tunjid.tiler.utilities.pivotAround
-import com.tunjid.tiler.utilities.pivotWith
-import com.tunjid.tiler.utilities.toPivotedTileInputs
-import com.tunjid.tiler.utilities.toTileInputs
+import com.tunjid.tiler.PivotRequest
+import com.tunjid.tiler.PivotResult
+import com.tunjid.tiler.pivotAround
+import com.tunjid.tiler.pivotWith
+import com.tunjid.tiler.toPivotedTileInputs
+import com.tunjid.tiler.toTileInputs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
