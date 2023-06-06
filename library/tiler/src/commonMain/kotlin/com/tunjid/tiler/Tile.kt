@@ -17,6 +17,7 @@
 package com.tunjid.tiler
 
 import kotlinx.coroutines.flow.Flow
+import kotlin.jvm.JvmInline
 
 fun interface ListTiler<Query, Item> {
     fun produce(inputs: Flow<Tile.Input<Query, Item>>): Flow<TiledList<Query, Item>>
@@ -39,14 +40,15 @@ class Tile<Query, Item : Any?> {
     /**
      * [Tile.Input] type for managing data in the [listTiler] function
      */
-    sealed class Request<Query, Item> : Input<Query, Item> {
-        abstract val query: Query
+    sealed interface Request<Query, Item> : Input<Query, Item> {
+        val query: Query
 
         /**
          * Starts collecting from the backing [Flow] for the specified [query].
          * Requesting this is idempotent; multiple requests have no side effects.
          */
-        data class On<Query, Item>(override val query: Query) : Request<Query, Item>()
+        @JvmInline
+        value class On<Query, Item>(override val query: Query) : Request<Query, Item>
 
         /**
          * Stops collecting from the backing [Flow] for the specified [query].
@@ -54,14 +56,16 @@ class Tile<Query, Item : Any?> {
          * in the [List] of items returned
          * Requesting this is idempotent; multiple requests have no side effects.
          */
-        data class Off<Query, Item>(override val query: Query) : Request<Query, Item>()
+        @JvmInline
+        value class Off<Query, Item>(override val query: Query) : Request<Query, Item>
 
         /**
          * Stops collecting from the backing [Flow] for the specified [query] and also evicts
          * the items previously fetched by the [query] from memory.
          * Requesting this is idempotent; multiple requests have no side effects.
          */
-        data class Evict<Query, Item>(override val query: Query) : Request<Query, Item>()
+        @JvmInline
+        value class Evict<Query, Item>(override val query: Query) : Request<Query, Item>
     }
 
     /**
