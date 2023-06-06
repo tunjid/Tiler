@@ -17,9 +17,14 @@
 package com.tunjid.tiler
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
-typealias ListTiler<Query, Item> = (Flow<Tile.Input<Query, Item>>) -> Flow<TiledList<Query, Item>>
+fun interface ListTiler<Query, Item> {
+    fun produce(inputs: Flow<Tile.Input<Query, Item>>): Flow<TiledList<Query, Item>>
+}
+
+operator fun <Query, Item> ListTiler<Query, Item>.invoke(
+    inputs: Flow<Tile.Input<Query, Item>>
+) = produce(inputs)
 
 /**
  * class holding metadata about a [Query] for an [Item], the [Item], and when the [Query] was sent
@@ -105,8 +110,8 @@ class Tile<Query, Item : Any?> {
      */
     internal sealed class Output<Query, Item> {
         data class Data<Query, Item>(
-            val query: Query,
-            val items: List<Item>
+            val items: List<Item>,
+            val query: Query
         ) : Output<Query, Item>()
 
         data class OrderChange<Query, Item>(
@@ -128,8 +133,7 @@ class Tile<Query, Item : Any?> {
  */
 fun <Query, Item> Flow<Tile.Input<Query, Item>>.toTiledList(
     listTiler: ListTiler<Query, Item>
-): Flow<TiledList<Query, Item>> = listTiler(this)
-
+): Flow<TiledList<Query, Item>> = listTiler(inputs = this)
 
 /**
  * Converts a [Flow] of [Query] into a [Flow] of [TiledList] [Item]
@@ -141,12 +145,9 @@ fun <Query, Item> listTiler(
         itemSizeHint = null,
     ),
     fetcher: suspend (Query) -> Flow<List<Item>>
-): ListTiler<Query, Item> = { requests ->
-    tilerFactory(
+): ListTiler<Query, Item> =
+    concurrentListTiler(
         order = order,
         limiter = limiter,
         fetcher = fetcher
     )
-        .invoke(requests)
-        .map(Tiler<Query, Item>::tiledItems)
-}

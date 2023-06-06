@@ -18,7 +18,8 @@ package com.tunjid.tiler
 
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.last
-import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
@@ -26,6 +27,13 @@ class TilerKtTest {
 
     @Test
     fun maintains_all_items() = runTest {
+        val metadata = Metadata<Int, Int>(
+            limiter = Tile.Limiter(
+                maxQueries = Int.MIN_VALUE,
+                itemSizeHint = 10
+            ),
+            order = Tile.Order.Sorted(comparator = Int::compareTo)
+        )
         val tiled =
             (1..9)
                 .map { int ->
@@ -35,20 +43,8 @@ class TilerKtTest {
                     )
                 }
                 .asFlow()
-                .scan(
-                    initial = ImmutableTiler(
-                        metadata = Metadata(
-                            limiter = Tile.Limiter(
-                                maxQueries = Int.MIN_VALUE,
-                                itemSizeHint = 10
-                            ),
-                            order = Tile.Order.Sorted(comparator = Int::compareTo)
-                        )
-                    ),
-                    operation = Tiler<Int, Int>::process
-                )
+                .map(metadata::process)
                 .last()
-                .tiledItems()
 
         assertEquals(
             (1..9)
@@ -60,6 +56,16 @@ class TilerKtTest {
 
     @Test
     fun pivots_around_specific_query_when_limit_exists() = runTest {
+        val metadata = Metadata<Int, Int>(
+            limiter = Tile.Limiter(
+                maxQueries = 5,
+                itemSizeHint = 10
+            ),
+            order = Tile.Order.PivotSorted(
+                query = 4,
+                comparator = Int::compareTo
+            )
+        )
         val tiles =
             (1..9).map { int ->
                 listOf(
@@ -71,28 +77,32 @@ class TilerKtTest {
             }
                 .flatten()
                 .asFlow()
-                .scan(
-                    initial = ImmutableTiler(
-                        metadata = Metadata(
-                            limiter = Tile.Limiter(
-                                maxQueries = 5,
-                                itemSizeHint = 10
-                            ),
-                            order = Tile.Order.PivotSorted(
-                                query = 4,
-                                comparator = Int::compareTo
-                            )
-                        )
-                    ),
-                    operation = Tiler<Int, Int>::process
-                )
-                .last()
-                .tiledItems()
+                .map(metadata::process)
+                .toList()
 
         assertEquals(
-            (2..6)
-                .map(Int::tiledTestRange)
-                .fold(tiledListOf(), TiledList<Int, Int>::plus),
+            listOf(
+                // 1 - 3, pivot hasn't been seen so null will be emitted
+                null,
+                null,
+                null,
+                // 4, Take as many items that can be be seen in the pivot range
+                (1..4)
+                    .map(Int::tiledTestRange)
+                    .fold(tiledListOf(), TiledList<Int, Int>::plus),
+                // 5, Take as many items that can be be seen in the pivot range
+                (1..5)
+                    .map(Int::tiledTestRange)
+                    .fold(tiledListOf(), TiledList<Int, Int>::plus),
+                // 6, Balanced pivot
+                (2..6)
+                    .map(Int::tiledTestRange)
+                    .fold(tiledListOf(), TiledList<Int, Int>::plus),
+                // 7 - 9, outside of visible limiter range so null will be emitted
+                null,
+                null,
+                null,
+            ),
             tiles
         )
     }

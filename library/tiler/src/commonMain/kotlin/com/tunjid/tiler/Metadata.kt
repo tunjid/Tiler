@@ -53,10 +53,7 @@ internal class Metadata<Query, Item> private constructor(
     private var lastTiledItems: TiledList<Query, Item> = emptyTiledList()
     private var last: Metadata<Query, Item>? = null
 
-    var shouldEmit: Boolean = false
-        private set
-
-    fun update(output: Tile.Output<Query, Item>) {
+    fun process(output: Tile.Output<Query, Item>): TiledList<Query, Item>? {
         updateLast()
         when (output) {
             is Tile.Output.Data -> {
@@ -87,17 +84,13 @@ internal class Metadata<Query, Item> private constructor(
             }
         }
         computeOutputIndices(queryItemsMap)
-        shouldEmit = shouldEmitFor(output)
-    }
-
-    fun tiledItems(): TiledList<Query, Item> {
-        lastTiledItems = chunkedTiledList(
+        return if (shouldEmitFor(output)) chunkedTiledList(
             chunkSizeHint = limiter.itemSizeHint,
             indices = outputIndices,
             queryLookup = orderedQueries::get,
             itemsLookup = queryItemsMap::getValue
-        )
-        return lastTiledItems
+        ).also { lastTiledItems = it }
+        else null
     }
 
     private fun updateLast() = when (val lastSnapshot = last) {
@@ -113,7 +106,6 @@ internal class Metadata<Query, Item> private constructor(
         else -> {
             lastSnapshot.order = order
             lastSnapshot.limiter = limiter
-            lastSnapshot.shouldEmit = shouldEmit
             lastSnapshot.lastTiledItems = lastTiledItems
             lastSnapshot.orderedQueries.clear()
             lastSnapshot.orderedQueries.addAll(orderedQueries)
