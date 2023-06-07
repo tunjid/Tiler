@@ -56,7 +56,7 @@ internal class Tiler<Query, Item> private constructor(
     fun process(output: Tile.Output<Query, Item>): TiledList<Query, Item>? {
         updateLast()
         when (output) {
-            is Tile.Output.Data -> {
+            is Tile.Data -> {
                 // Only sort queries when they output the first time to amortize the cost of sorting.
                 if (!queryItemsMap.contains(output.query)) orderedQueries.insertSorted(
                     query = output.query,
@@ -65,7 +65,7 @@ internal class Tiler<Query, Item> private constructor(
                 queryItemsMap[output.query] = output.items
             }
 
-            is Tile.Output.Eviction -> {
+            is Tile.Request.Evict -> {
                 val evictionIndex = orderedQueries.binarySearch(
                     element = output.query,
                     comparator = order.comparator
@@ -74,13 +74,13 @@ internal class Tiler<Query, Item> private constructor(
                 queryItemsMap.remove(output.query)
             }
 
-            is Tile.Output.OrderChange -> {
-                order = output.order
-                orderedQueries.sortWith(output.order.comparator)
+            is Tile.Order-> {
+                order = output
+                orderedQueries.sortWith(output.comparator)
             }
 
-            is Tile.Output.LimiterChange -> {
-                limiter = output.limiter
+            is Tile.Limiter -> {
+                limiter = output
             }
         }
         computeOutputIndices(queryItemsMap)
@@ -185,7 +185,7 @@ internal class Tiler<Query, Item> private constructor(
     }
 
     private fun shouldEmitFor(output: Tile.Output<Query, Item>) = when (output) {
-        is Tile.Output.Data -> when (val existingOrder = order) {
+        is Tile.Data -> when (val existingOrder = order) {
             is Tile.Order.Sorted -> true
 
             is Tile.Order.PivotSorted -> when {
@@ -196,11 +196,11 @@ internal class Tiler<Query, Item> private constructor(
             }
         }
         // Emit only if there's something to evict
-        is Tile.Output.Eviction -> {
+        is Tile.Request.Evict -> {
             isInVisibleRange(output.query) && last?.isInVisibleRange(output.query) == true
         }
         // Emit only if there are items to sort, and the order has meaningfully changed
-        is Tile.Output.OrderChange -> {
+        is Tile.Order -> {
             var willEmit = false
             val areTheSameSize = outputIndices.size == last?.outputIndices?.size
             if (areTheSameSize) when (val currentLast = last) {
@@ -217,7 +217,7 @@ internal class Tiler<Query, Item> private constructor(
             willEmit
         }
         // Emit only if the limiter has meaningfully changed
-        is Tile.Output.LimiterChange -> when (val order = order) {
+        is Tile.Limiter -> when (val order = order) {
             is Tile.Order.Sorted -> queryItemsMap.isNotEmpty()
                     && outputIndices != last?.outputIndices
 

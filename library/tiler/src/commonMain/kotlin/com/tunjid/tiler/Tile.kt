@@ -38,6 +38,11 @@ class Tile<Query, Item : Any?> {
     sealed interface Input<Query, Item>
 
     /**
+     * Summary of changes that can occur as a result of tiling
+     */
+    sealed interface Output<Query, Item>
+
+    /**
      * [Tile.Input] type for managing data in the [listTiler] function
      */
     sealed interface Request<Query, Item> : Input<Query, Item> {
@@ -65,13 +70,15 @@ class Tile<Query, Item : Any?> {
          * Requesting this is idempotent; multiple requests have no side effects.
          */
         @JvmInline
-        value class Evict<Query, Item>(override val query: Query) : Request<Query, Item>
+        value class Evict<Query, Item>(
+            override val query: Query
+        ) : Request<Query, Item>, Output<Query, Item>
     }
 
     /**
      * Describes the order of output items from the tiling functions
      */
-    sealed class Order<Query, Item> : Input<Query, Item> {
+    sealed class Order<Query, Item> : Input<Query, Item>, Output<Query, Item> {
 
         abstract val comparator: Comparator<Query>
 
@@ -107,29 +114,12 @@ class Tile<Query, Item : Any?> {
          * by the last query specified by [Tile.Order] returns less than the size specified.
          */
         val itemSizeHint: Int?,
-    ) : Input<Query, Item>
+    ) : Input<Query, Item>, Output<Query, Item>
 
-    /**
-     * Summary of changes that can occur as a result of tiling
-     */
-    internal sealed class Output<Query, Item> {
-        data class Data<Query, Item>(
-            val items: List<Item>,
-            val query: Query
-        ) : Output<Query, Item>()
-
-        data class OrderChange<Query, Item>(
-            val order: Order<Query, Item>
-        ) : Output<Query, Item>()
-
-        data class LimiterChange<Query, Item>(
-            val limiter: Limiter<Query, Item>
-        ) : Output<Query, Item>()
-
-        data class Eviction<Query, Item>(
-            val query: Query,
-        ) : Output<Query, Item>()
-    }
+    internal data class Data<Query, Item>(
+        val items: List<Item>,
+        val query: Query
+    ) : Output<Query, Item>
 }
 
 /**

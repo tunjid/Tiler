@@ -68,7 +68,7 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
     this@toOutput.collect { input ->
         when (input) {
             is Tile.Order -> emit(
-                flowOf(Tile.Output.OrderChange(order = input))
+                flowOf(input)
             )
 
             is Tile.Request.Evict -> queriesToValves.remove(input.query)?.invoke(input)
@@ -88,7 +88,7 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
             }
 
             is Tile.Limiter -> emit(
-                flowOf(Tile.Output.LimiterChange(limiter = input))
+                flowOf(input)
             )
         }
     }
@@ -122,17 +122,13 @@ private fun <Query, Item> outputFlow(
     { input ->
         when (input) {
             // Eject the query downstream
-            is Tile.Request.Evict -> flowOf(
-                Tile.Output.Eviction(
-                    query = input.query
-                )
-            )
+            is Tile.Request.Evict -> flowOf(input)
             // Stop collecting from the fetcher
             is Tile.Request.Off<Query, Item> -> emptyFlow()
             // Start collecting from the fetcher, keeping track of when the flow was turned on
             is Tile.Request.On<Query, Item> -> fetcher.invoke(input.query)
                 .map<List<Item>, Tile.Output<Query, Item>> { items ->
-                    Tile.Output.Data(
+                    Tile.Data(
                         query = input.query,
                         items = items
                     )

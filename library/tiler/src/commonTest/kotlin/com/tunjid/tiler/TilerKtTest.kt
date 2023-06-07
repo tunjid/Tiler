@@ -37,7 +37,7 @@ class TilerKtTest {
         val tiled =
             (1..9)
                 .map { int ->
-                    Tile.Output.Data(
+                    Tile.Data(
                         query = int,
                         items = int.testRange().toList()
                     )
@@ -69,7 +69,7 @@ class TilerKtTest {
         val tiles =
             (1..9).map { int ->
                 listOf(
-                    Tile.Output.Data(
+                    Tile.Data(
                         query = int,
                         items = int.testRange().toList()
                     ),
