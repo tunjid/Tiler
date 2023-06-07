@@ -45,19 +45,54 @@ data class PivotRequest<Query>(
 }
 
 /**
- * A summary of [Query] parameters that are pivoted around [currentQuery]
+ * A summary of [Query] parameters that are pivoted around [query]
  */
 internal data class PivotResult<Query>(
-    val currentQuery: Query,
+    val query: Query,
     /** The [Comparator] used for sorting queries while pivoting. */
-    val comparator: Comparator<Query>,
+    val pivotRequest: PivotRequest<Query>,
     /** Pages actively being collected and loaded from. */
-    val on: List<Query> = listOf(),
+    val previousResult: PivotResult<Query>?,
+) {
+
+    internal var left: Query? = query
+    internal var right: Query? = query
+
+    val comparator = pivotRequest.comparator
+
+    /** Pages actively being collected and loaded from. */
+    val on: List<Query> = mutableListOf(query).meetSizeQuota(
+        maxSize = pivotRequest.onCount,
+        context = this,
+        increment = pivotRequest.nextQuery,
+        decrement = pivotRequest.previousQuery
+    )
+
     /** Pages whose emissions are in memory, but are not being collected from. */
-    val off: List<Query> = listOf(),
+    val off: List<Query> =
+        if (pivotRequest.offCount == 0) emptyList() else mutableListOf<Query>().meetSizeQuota(
+            maxSize = pivotRequest.offCount,
+            context = this,
+            increment = pivotRequest.nextQuery,
+            decrement = pivotRequest.previousQuery
+        )
+
     /** Pages to remove from memory. */
-    val evict: List<Query> = listOf(),
-)
+    val evict: List<Query>
+
+    init {
+        val keptQueries = (on + off).toSet()
+        val previousQueries = when (previousResult) {
+            null -> emptyList()
+            else -> previousResult.off + previousResult.on
+        }
+        // Evict everything not in the current active and inactive range
+        evict = when {
+            previousQueries.isEmpty() -> previousQueries
+            else -> previousQueries.filterNot(keptQueries::contains)
+        }
+    }
+}
 
 /**
  * Creates a [Flow] of [Tile.Input] where the requests are pivoted around the most recent emission of [Query]
@@ -90,26 +125,18 @@ internal fun <Query> Flow<Query>.pivotWith(
 internal fun <Query> Flow<Query>.pivotWith(
     pivotRequests: Flow<PivotRequest<Query>>
 ): Flow<PivotResult<Query>> =
-    distinctUntilChanged()
-        .combine(
-            pivotRequests.distinctUntilChanged(),
-            ::Pair
-        )
+    combine(
+        this.distinctUntilChanged(),
+        pivotRequests.distinctUntilChanged(),
+        ::Pair
+    )
         .scan<Pair<Query, PivotRequest<Query>>, PivotResult<Query>?>(
             initial = null
         ) { previousResult, (currentQuery, pivotRequest) ->
-            val currentResult = pivotRequest.pivotAround(currentQuery)
-            val keptQueries = (currentResult.on + currentResult.off).toSet()
-            val previousQueries = when (previousResult) {
-                null -> emptyList()
-                else -> previousResult.off + previousResult.on
-            }
-            currentResult.copy(
-                // Evict everything not in the current active and inactive range
-                evict = when {
-                    previousQueries.isEmpty() -> previousQueries
-                    else -> previousQueries.filterNot(keptQueries::contains)
-                }
+            PivotResult(
+                query = currentQuery,
+                pivotRequest = pivotRequest,
+                previousResult = previousResult,
             )
         }
         .filterNotNull()
@@ -127,33 +154,12 @@ internal fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.In
         }
     }
 
-internal fun <Query> PivotRequest<Query>.pivotAround(
-    query: Query
-): PivotResult<Query> = PivotContext(query).let { loopContext ->
-    PivotResult(
-        currentQuery = query,
-        comparator = comparator,
-        on = mutableListOf(query).meetSizeQuota(
-            maxSize = onCount,
-            context = loopContext,
-            increment = nextQuery,
-            decrement = previousQuery
-        ),
-        off = if (offCount == 0) emptyList() else mutableListOf<Query>().meetSizeQuota(
-            maxSize = offCount,
-            context = loopContext,
-            increment = nextQuery,
-            decrement = previousQuery
-        ),
-    )
-}
-
 /**
- * Meets the size quota defined by [maxSize] if possible using the provided [PivotContext]
+ * Meets the size quota defined by [maxSize] if possible using the provided [PivotRequest]
  */
 private fun <Query> MutableList<Query>.meetSizeQuota(
     maxSize: Int,
-    context: PivotContext<Query>,
+    context: PivotResult<Query>,
     increment: Query.() -> Query?,
     decrement: Query.() -> Query?,
 ): List<Query> {
@@ -169,9 +175,4 @@ private fun <Query> MutableList<Query>.meetSizeQuota(
     }
     // Reverse to the pivoted query is at the end of the list
     return this.asReversed()
-}
-
-private class PivotContext<Query>(start: Query) {
-    var left: Query? = start
-    var right: Query? = start
 }
