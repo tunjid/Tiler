@@ -116,7 +116,7 @@ private class OutputFlow<Query, Item>(
         collector: FlowCollector<Flow<Tile.Output<Query, Item>>>
     ) {
         val valve = queriesToValves.remove(query) ?: return
-        valve.invoke(terminate)
+        valve.terminate()
         collector.emit(flowOf(Tile.Request.Evict(query)))
     }
 
@@ -124,7 +124,7 @@ private class OutputFlow<Query, Item>(
         queriesToValves: MutableMap<Query, QueryFlowValve<Query, Item>>,
         query: Query
     ) {
-        queriesToValves[query]?.invoke(off)
+        queriesToValves[query]?.turnOff()
     }
 
     private suspend fun turnOn(
@@ -139,7 +139,7 @@ private class OutputFlow<Query, Item>(
                 // Emit the Flow from the valve, so it can be subscribed to
                 collector.emit(valve.outputFlow)
                 // Turn on the valve before processing other inputs
-                valve.invoke(valve)
+                valve.turnOn()
             }
 
             else -> existingValve.invoke(existingValve)
@@ -175,6 +175,12 @@ private class QueryFlowValve<Query, Item>(
     }
 }
 
+private suspend fun <Query, Item> QueryFlowValve<Query, Item>.turnOn() = invoke(this)
+
+private suspend fun <Query, Item> QueryFlowValve<Query, Item>.turnOff() = invoke(emptyFlow())
+
+private suspend fun <Query, Item> QueryFlowValve<Query, Item>.terminate() = invoke(null)
+
 private fun <Query, Item> Query.toOutputFlow(
     fetcher: QueryFetcher<Query, Item>
 ) = fetcher(this).map {
@@ -183,6 +189,3 @@ private fun <Query, Item> Query.toOutputFlow(
         items = it
     )
 }
-
-private val terminate = null
-private val off = emptyFlow<Nothing>()

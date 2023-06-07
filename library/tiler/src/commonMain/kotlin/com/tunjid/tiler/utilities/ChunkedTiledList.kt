@@ -20,15 +20,8 @@ import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.strictEquals
 
 /**
- * A [TiledList] implementation that offers:
- * 1. Quick insertion for items at either end for a specified [Query] as shifting of items is done in chunks.
- * 2. Reasonably quick retrieval for large chunk sizes, when optimized, retrieval is constant time.
- *
- * For example given a list of 1000 items with a chunk size of 100. Adding another chunk of 100 items to the head of
- * the list will only require shifting 10 items instead of 1000 with a conventional list.
- * Retrieving the 1000th item however will take 10 iterations.
- *
- * This is fine provided that tiled lists should be limited to items that can reasonably fit in a UI container.
+ * A sorted read only [TiledList] implementation that offers O(1) retrieval of items if the size
+ * is known ahead of time or O(log(n)) time otherwise.
  */
 internal inline fun <Query, Item> chunkedTiledList(
     chunkSizeHint: Int?,
@@ -40,8 +33,6 @@ internal inline fun <Query, Item> chunkedTiledList(
     private var sizeIndex = -1
     private val sizes = IntArray(indices.size)
 
-    // TODO: Is it better to allocate two separate lists, or to allocate a single list and
-    //  create a new [Pair] for every chunk inserted?
     private val queries = ArrayList<Query>(indices.size)
     private val chunkedItems = ArrayList<List<Item>>(indices.size)
 
