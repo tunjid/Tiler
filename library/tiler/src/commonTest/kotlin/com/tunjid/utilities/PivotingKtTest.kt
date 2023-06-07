@@ -18,10 +18,8 @@ package com.tunjid.utilities
 
 import com.tunjid.tiler.PivotRequest
 import com.tunjid.tiler.PivotResult
-import com.tunjid.tiler.Tile
 import com.tunjid.tiler.pivotWith
 import com.tunjid.tiler.toPivotedTileInputs
-import com.tunjid.tiler.toTileInputs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
@@ -41,7 +39,7 @@ class PivotingKtTest {
 
     private val comparator: Comparator<Int> = Comparator(Int::compareTo)
 
-    private val pivotRequest: PivotRequest<Int> = PivotRequest(
+    private val pivotRequest: PivotRequest<Int, Int> = PivotRequest(
         onCount = 3,
         offCount = 4,
         comparator = comparator,
@@ -205,7 +203,7 @@ class PivotingKtTest {
         val queries = queriesAndRequests.filterIsInstance<Int>()
             .onStart { emit(0) }
         val pivotRequests = queriesAndRequests
-            .filterIsInstance<PivotRequest<Int>>()
+            .filterIsInstance<PivotRequest<Int, Int>>()
             .onStart { emit(pivotRequest) }
 
         val pivotResults = queries.pivotWith(pivotRequests)
@@ -263,61 +261,41 @@ class PivotingKtTest {
         ).asFlow()
 
         val inputs = queries.pivotWith(pivotRequest)
-            .toTileInputs<Int, Int>()
             .toList()
 
-//        val firstPivotResult = PivotResult(
-//            query = 9,
-//            comparator = comparator,
-//            on = listOf(8, 9, 10).sortedByFurthestDistanceFrom(9),
-//        )
-
-//        val secondPivotResult = PivotResult(
-//            query = 5,
-//            comparator = comparator,
-//            on = listOf(4, 5, 6).sortedByFurthestDistanceFrom(5),
-//        )
-
-        listOf<List<Tile.Input<Int, Int>>>(
-            // first eviction
-            emptyList(),
-            // first off
-            listOf(6, 7, 11, 12).sortedByFurthestDistanceFrom(9).map { Tile.Request.Off(it) },
-            // first on
-            listOf(8, 9, 10).sortedByFurthestDistanceFrom(9).map { Tile.Request.On(it) },
-            // first pivot
-            listOf(Tile.Order.PivotSorted(9, Int::compareTo)),
-            // second eviction
-            listOf(9, 10, 11, 12).sortedByFurthestDistanceFrom(5).map { Tile.Request.Evict(it) },
-            // second off
-            listOf(2, 3, 7, 8).sortedByFurthestDistanceFrom(5).map { Tile.Request.Off(it) },
-            // second on
-            listOf(4, 5, 6).sortedByFurthestDistanceFrom(5).map { Tile.Request.On(it) },
-            // second pivot
-            listOf(Tile.Order.PivotSorted(5, Int::compareTo)),
+        val firstPivotResult = PivotResult(
+            query = 9,
+            pivotRequest = pivotRequest,
+            previousResult = null,
         )
-            .flatten()
-            .zip(inputs)
-            .forEach { (expected, actual) ->
-                when (expected) {
-                    is Tile.Limiter,
-                    is Tile.Order.Sorted -> throw IllegalArgumentException("Unexpected type")
+        firstPivotResult.assertEquals(
+            query = 9,
+            comparator = comparator,
+            on = listOf(8, 9, 10).sortedByFurthestDistanceFrom(9),
+            off = listOf(6, 7, 11, 12).sortedByFurthestDistanceFrom(9),
+            evict = emptyList(),
+        )
+        assertEquals(
+            expected = firstPivotResult,
+            actual = inputs[0],
+        )
 
-                    is Tile.Order.PivotSorted -> assertEquals(
-                        expected = expected.comparator.compare(0, expected.query),
-                        actual = with(actual as Tile.Order.PivotSorted<Int, Int>) {
-                            comparator.compare(0, query)
-                        },
-                    )
-
-                    is Tile.Request.Evict,
-                    is Tile.Request.Off,
-                    is Tile.Request.On -> assertEquals(
-                        expected = expected,
-                        actual = actual
-                    )
-                }
-            }
+        val secondPivotResult = PivotResult(
+            query = 5,
+            pivotRequest = pivotRequest,
+            previousResult = firstPivotResult,
+        )
+        secondPivotResult.assertEquals(
+            query = 5,
+            comparator = comparator,
+            on = listOf(4, 5, 6).sortedByFurthestDistanceFrom(5),
+            off = listOf(2, 3, 7, 8).sortedByFurthestDistanceFrom(5),
+            evict = listOf(9, 10, 11, 12).sortedByFurthestDistanceFrom(5),
+        )
+        assertEquals(
+            expected = secondPivotResult,
+            actual = inputs[1],
+        )
     }
 
     @Test
@@ -328,8 +306,8 @@ class PivotingKtTest {
         ).asFlow()
 
         assertEquals(
-            expected = queries.pivotWith(pivotRequest).toTileInputs<Int, Int>().toList(),
-            actual = queries.toPivotedTileInputs<Int, Int>(pivotRequest).toList()
+            expected = queries.pivotWith(pivotRequest).toList(),
+            actual = queries.toPivotedTileInputs(pivotRequest).toList()
         )
     }
 }
@@ -343,7 +321,7 @@ private fun List<Int>.sortedByFurthestDistanceFrom(pivot: Int) = sortedWith(
     }.reversed()
 )
 
-private fun <Query> PivotResult<Query>.assertEquals(
+private fun <Query, Item> PivotResult<Query, Item>.assertEquals(
     query: Query,
     comparator: Comparator<Query>,
     on: List<Query>,

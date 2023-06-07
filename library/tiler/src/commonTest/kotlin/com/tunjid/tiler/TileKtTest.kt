@@ -395,7 +395,7 @@ class TileKtTest {
             order = Tile.Order.Sorted(Int::compareTo)
         ) { emptyFlow() }
         val inputs = flowOf(0).pivotWith(
-            PivotRequest(
+            PivotRequest<Int, Int>(
                 onCount = 3,
                 offCount = 2,
                 comparator = Int::compareTo,
@@ -403,7 +403,6 @@ class TileKtTest {
                 previousQuery = { (this - 1).takeIf { it >= 0 } }
             )
         )
-            .toTileInputs<Int, Int>()
 
         val emissions = tiler(inputs).toListWithTimeout(200)
 
@@ -423,7 +422,7 @@ class TileKtTest {
             )
         ) { page -> flowOf(page.testRange().toList()) }
         val inputs = flowOf(0).pivotWith(
-            PivotRequest(
+            PivotRequest<Int, Int>(
                 onCount = 3,
                 offCount = 2,
                 comparator = comparator,
@@ -431,7 +430,6 @@ class TileKtTest {
                 previousQuery = { (this - 1).takeIf { it >= 0 } }
             )
         )
-            .toTileInputs<Int, Int>()
 
         val emissions = tiler(inputs).toListWithTimeout(200)
 

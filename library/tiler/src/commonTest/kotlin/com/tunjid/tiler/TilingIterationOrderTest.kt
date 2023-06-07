@@ -214,7 +214,7 @@ class ListMapTilingSamenessTest {
         (1..10).forEach { itemsPerPage ->
             (3..10).forEach { numPages ->
                 val comparator = Comparator(Int::compareTo)
-                val pivotRequest: PivotRequest<Int> = PivotRequest(
+                val pivotRequest: PivotRequest<Int, Int> = PivotRequest(
                     onCount = numPages,
                     offCount = 0,
                     comparator = comparator,
@@ -224,7 +224,7 @@ class ListMapTilingSamenessTest {
                 val emissions = range
                     .asFlow()
                     .onEach { delay(1) }
-                    .toPivotedTileInputs<Int, Int>(pivotRequest = pivotRequest)
+                    .toPivotedTileInputs(pivotRequest = pivotRequest)
                     .tileWith(
                         maxQueries = numPages,
                         queryItemsSize = null,
@@ -238,7 +238,6 @@ class ListMapTilingSamenessTest {
                             page.testRange(itemsPerPage).toList()
                         }
                     )
-                    .onEach { println(it) }
                     .takeWhile { tiledList ->
                         if (tiledList.isEmpty()) throw IllegalArgumentException("Should not be empty here")
                         val middleIndex = tiledList.size / 2

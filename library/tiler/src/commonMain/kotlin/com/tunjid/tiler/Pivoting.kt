@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.transform
 /**
  * A class defining the parameters for pivoted pagination
  */
-data class PivotRequest<Query>(
+data class PivotRequest<Query, Item>(
     /** The amount of concurrent queries to collect from at any one time. Must be at least 3. */
     val onCount: Int,
     /** The amount of queries to keep in memory, but not collect from. */
@@ -47,13 +47,13 @@ data class PivotRequest<Query>(
 /**
  * A summary of [Query] parameters that are pivoted around [query]
  */
-internal data class PivotResult<Query>(
+internal data class PivotResult<Query, Item>(
     val query: Query,
     /** The [Comparator] used for sorting queries while pivoting. */
-    val pivotRequest: PivotRequest<Query>,
+    val pivotRequest: PivotRequest<Query, Item>,
     /** Pages actively being collected and loaded from. */
-    val previousResult: PivotResult<Query>?,
-) {
+    val previousResult: PivotResult<Query, Item>?,
+): Tile.Input<Query, Item> {
 
     internal var left: Query? = query
     internal var right: Query? = query
@@ -94,11 +94,16 @@ internal data class PivotResult<Query>(
     }
 }
 
+internal val <Query, Item> PivotResult<Query, Item>.order get() = Tile.Order.PivotSorted<Query, Item>(
+    query = query,
+    comparator = comparator
+)
+
 /**
  * Creates a [Flow] of [Tile.Input] where the requests are pivoted around the most recent emission of [Query]
  */
 fun <Query, Item> Flow<Query>.toPivotedTileInputs(
-    pivotRequest: PivotRequest<Query>
+    pivotRequest: PivotRequest<Query, Item>
 ): Flow<Tile.Input<Query, Item>> =
     toPivotedTileInputs(flowOf(pivotRequest))
 
@@ -106,31 +111,30 @@ fun <Query, Item> Flow<Query>.toPivotedTileInputs(
  * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query] and [pivotRequests]
  */
 fun <Query, Item> Flow<Query>.toPivotedTileInputs(
-    pivotRequests: Flow<PivotRequest<Query>>
+    pivotRequests: Flow<PivotRequest<Query, Item>>
 ): Flow<Tile.Input<Query, Item>> =
     pivotWith(pivotRequests)
-        .toTileInputs()
 
 /**
  * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query]
  */
-internal fun <Query> Flow<Query>.pivotWith(
-    pivotRequest: PivotRequest<Query>
-): Flow<PivotResult<Query>> =
+internal fun <Query, Item> Flow<Query>.pivotWith(
+    pivotRequest: PivotRequest<Query, Item>
+): Flow<PivotResult<Query, Item>> =
     pivotWith(flowOf(pivotRequest))
 
 /**
  * Creates a [Flow] of [PivotResult] where the requests are pivoted around the most recent emission of [Query] and [pivotRequests]
  */
-internal fun <Query> Flow<Query>.pivotWith(
-    pivotRequests: Flow<PivotRequest<Query>>
-): Flow<PivotResult<Query>> =
+internal fun <Query, Item> Flow<Query>.pivotWith(
+    pivotRequests: Flow<PivotRequest<Query, Item>>
+): Flow<PivotResult<Query, Item>> =
     combine(
         this.distinctUntilChanged(),
         pivotRequests.distinctUntilChanged(),
         ::Pair
     )
-        .scan<Pair<Query, PivotRequest<Query>>, PivotResult<Query>?>(
+        .scan<Pair<Query, PivotRequest<Query, Item>>, PivotResult<Query, Item>?>(
             initial = null
         ) { previousResult, (currentQuery, pivotRequest) ->
             PivotResult(
@@ -142,24 +146,12 @@ internal fun <Query> Flow<Query>.pivotWith(
         .filterNotNull()
         .distinctUntilChanged()
 
-internal fun <Query, Item> Flow<PivotResult<Query>>.toTileInputs(): Flow<Tile.Input<Query, Item>> =
-    transform { pivotResult ->
-        // Evict first because order will be invalid if queries that are not part
-        // of this pivot are ordered with its order
-        pivotResult.evict.forEach { query -> emit(Tile.Request.Evict(query)) }
-        pivotResult.off.forEach { query -> emit(Tile.Request.Off(query)) }
-        pivotResult.on.forEach { query -> emit(Tile.Request.On(query)) }
-        pivotResult.on.lastOrNull()?.let { query ->
-            emit(Tile.Order.PivotSorted(query, pivotResult.comparator))
-        }
-    }
-
 /**
  * Meets the size quota defined by [maxSize] if possible using the provided [PivotRequest]
  */
-private fun <Query> MutableList<Query>.meetSizeQuota(
+private fun <Query, Item> MutableList<Query>.meetSizeQuota(
     maxSize: Int,
-    context: PivotResult<Query>,
+    context: PivotResult<Query, Item>,
     increment: Query.() -> Query?,
     decrement: Query.() -> Query?,
 ): List<Query> {

@@ -66,29 +66,83 @@ private class OutputFlow<Query, Item>(
             when (input) {
                 is Tile.Order -> collector.emit(flowOf(input))
 
-                is Tile.Request.Evict -> queriesToValves.remove(input.query)?.let { valve ->
-                    valve.invoke(terminate)
-                    collector.emit(flowOf(input))
-                }
+                is Tile.Request.Evict -> evict(
+                    queriesToValves = queriesToValves,
+                    query = input.query,
+                    collector = collector
+                )
 
-                is Tile.Request.Off -> queriesToValves[input.query]?.invoke(off)
+                is Tile.Request.Off -> turnOff(
+                    queriesToValves = queriesToValves,
+                    query = input.query
+                )
 
-                is Tile.Request.On -> when (val existingValve = queriesToValves[input.query]) {
-                    null -> QueryFlowValve(input.query.toOutputFlow(fetcher)).let { valve ->
-                        queriesToValves[input.query] = valve
-                        // Emit the Flow from the valve, so it can be subscribed to
-                        collector.emit(valve.outputFlow)
-                        // Turn on the valve before processing other inputs
-                        valve.invoke(valve)
-                    }
-
-                    else -> existingValve.invoke(existingValve)
-                }
+                is Tile.Request.On -> turnOn(
+                    queriesToValves = queriesToValves,
+                    query = input.query,
+                    collector = collector
+                )
 
                 is Tile.Limiter -> collector.emit(
                     flowOf(input)
                 )
+
+                is PivotResult -> {
+                    // Evict first because order will be invalid if queries that are not part
+                    // of this pivot are ordered with its order
+                    for (query in input.evict) evict(
+                        queriesToValves = queriesToValves,
+                        query = query,
+                        collector = collector
+                    )
+                    for (query in input.off) turnOff(
+                        queriesToValves = queriesToValves,
+                        query = query
+                    )
+                    for (query in input.on) turnOn(
+                        queriesToValves = queriesToValves,
+                        query = query,
+                        collector = collector
+                    )
+                    collector.emit(flowOf(input.order))
+                }
             }
+        }
+    }
+
+    private suspend fun evict(
+        queriesToValves: MutableMap<Query, QueryFlowValve<Query, Item>>,
+        query: Query,
+        collector: FlowCollector<Flow<Tile.Output<Query, Item>>>
+    ) {
+        val valve = queriesToValves.remove(query) ?: return
+        valve.invoke(terminate)
+        collector.emit(flowOf(Tile.Request.Evict(query)))
+    }
+
+    private suspend fun turnOff(
+        queriesToValves: MutableMap<Query, QueryFlowValve<Query, Item>>,
+        query: Query
+    ) {
+        queriesToValves[query]?.invoke(off)
+    }
+
+    private suspend fun turnOn(
+        queriesToValves: MutableMap<Query, QueryFlowValve<Query, Item>>,
+        query: Query,
+        collector: FlowCollector<Flow<Tile.Output<Query, Item>>>
+    ) {
+        when (val existingValve = queriesToValves[query]) {
+            null -> {
+                val valve = QueryFlowValve(query.toOutputFlow(fetcher))
+                queriesToValves[query] = valve
+                // Emit the Flow from the valve, so it can be subscribed to
+                collector.emit(valve.outputFlow)
+                // Turn on the valve before processing other inputs
+                valve.invoke(valve)
+            }
+
+            else -> existingValve.invoke(existingValve)
         }
     }
 }
@@ -114,7 +168,9 @@ private class QueryFlowValve<Query, Item>(
 
     override suspend fun invoke(flow: Flow<Tile.Data<Query, Item>>?) {
         // Suspend till the downstream is connected
-        mutableSharedFlow.subscriptionCount.first { it > 0 }
+        if (mutableSharedFlow.subscriptionCount.value < 1) {
+            mutableSharedFlow.subscriptionCount.first { it > 0 }
+        }
         mutableSharedFlow.emit(flow)
     }
 }
