@@ -16,6 +16,7 @@
 
 package com.tunjid.tiler
 
+import kotlinx.coroutines.flow.AbstractFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -23,12 +24,11 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flatMapMerge
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flattenMerge
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.transformWhile
+import kotlinx.coroutines.flow.takeWhile
 
 /**
  * Processes [Tile.Input] requests concurrently to produce [TiledList] instances.
@@ -39,12 +39,8 @@ fun <Query, Item> concurrentListTiler(
     limiter: Tile.Limiter<Query, Item>,
     fetcher: QueryFetcher<Query, Item>
 ): ListTiler<Query, Item> = ListTiler { requests ->
-    requests
-        .toOutput(fetcher)
-        .flatMapMerge(
-            concurrency = Int.MAX_VALUE,
-            transform = { it }
-        )
+    OutputFlow(requests, fetcher)
+        .flattenMerge(concurrency = Int.MAX_VALUE)
         .mapNotNull(
             Tiler(
                 limiter = limiter,
@@ -60,86 +56,77 @@ fun <Query, Item> concurrentListTiler(
  * Each [Tile.Input] is mapped to an instance of an [QueryFlowValve] which manages the lifecycle
  * of the resultant [Flow].
  */
-private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
-    fetcher: QueryFetcher<Query, Item>
-): Flow<Flow<Tile.Output<Query, Item>>> = flow flow@{
-    val queriesToValves = mutableMapOf<Query, QueryFlowValve<Query, Item>>()
+private class OutputFlow<Query, Item>(
+    private val flow: Flow<Tile.Input<Query, Item>>,
+    private val fetcher: QueryFetcher<Query, Item>
+) : AbstractFlow<Flow<Tile.Output<Query, Item>>>() {
+    override suspend fun collectSafely(collector: FlowCollector<Flow<Tile.Output<Query, Item>>>) {
+        val queriesToValves = mutableMapOf<Query, QueryFlowValve<Query, Item>>()
+        flow.collect { input ->
+            when (input) {
+                is Tile.Order -> collector.emit(flowOf(input))
 
-    this@toOutput.collect { input ->
-        when (input) {
-            is Tile.Order -> emit(
-                flowOf(input)
-            )
-
-            is Tile.Request.Evict -> queriesToValves.remove(input.query)?.invoke(input)
-
-            is Tile.Request.Off -> queriesToValves[input.query]?.invoke(input)
-
-            is Tile.Request.On -> when (val existingValve = queriesToValves[input.query]) {
-                null -> QueryFlowValve(fetcher = fetcher).let { valve ->
-                    queriesToValves[input.query] = valve
-                    // Emit the Flow from the valve, so it can be subscribed to
-                    emit(valve.flow)
-                    // Turn on the valve before processing other inputs
-                    valve(input)
+                is Tile.Request.Evict -> queriesToValves.remove(input.query)?.let { valve ->
+                    valve.invoke(terminate)
+                    collector.emit(flowOf(input))
                 }
 
-                else -> existingValve(input)
-            }
+                is Tile.Request.Off -> queriesToValves[input.query]?.invoke(off)
 
-            is Tile.Limiter -> emit(
-                flowOf(input)
-            )
+                is Tile.Request.On -> when (val existingValve = queriesToValves[input.query]) {
+                    null -> QueryFlowValve(input.query.toOutputFlow(fetcher)).let { valve ->
+                        queriesToValves[input.query] = valve
+                        // Emit the Flow from the valve, so it can be subscribed to
+                        collector.emit(valve.outputFlow)
+                        // Turn on the valve before processing other inputs
+                        valve.invoke(valve)
+                    }
+
+                    else -> existingValve.invoke(existingValve)
+                }
+
+                is Tile.Limiter -> collector.emit(
+                    flowOf(input)
+                )
+            }
         }
     }
 }
 
 /**
- * Allows for turning on, off and terminating the [Flow] specified by a given fetcher
+ * Allows for turning on, off and terminating the [Flow] specified by a given fetcher.
+ * It is a
+ * Function: To emit items down stream
+ * Cold Flow: To reduce object allocations and to implement the distinctUntilChanged operator
+ *
  */
 private class QueryFlowValve<Query, Item>(
-    fetcher: QueryFetcher<Query, Item>
-) : suspend (Tile.Request<Query, Item>) -> Unit {
+    downstreamFlow: Flow<Tile.Data<Query, Item>>
+) : suspend (Flow<Tile.Data<Query, Item>>?) -> Unit,
+    Flow<Tile.Data<Query, Item>> by downstreamFlow {
 
-    private val mutableSharedFlow = MutableSharedFlow<Tile.Request<Query, Item>>()
-    private val connectedSignal: suspend (Int) -> Boolean = { it > 0 }
+    private val mutableSharedFlow = MutableSharedFlow<Flow<Tile.Data<Query, Item>>?>()
 
-    val flow: Flow<Tile.Output<Query, Item>> = mutableSharedFlow
+    val outputFlow: Flow<Tile.Output<Query, Item>> = mutableSharedFlow
         .distinctUntilChanged()
-        .transformWhile(terminationSignal())
-        .flatMapLatest(outputFlow(fetcher))
+        .takeWhile { it != null }
+        .flatMapLatest { it ?: emptyFlow() }
 
-    override suspend fun invoke(request: Tile.Request<Query, Item>) {
+    override suspend fun invoke(flow: Flow<Tile.Data<Query, Item>>?) {
         // Suspend till the downstream is connected
-        mutableSharedFlow.subscriptionCount.first(connectedSignal)
-        mutableSharedFlow.emit(request)
+        mutableSharedFlow.subscriptionCount.first { it > 0 }
+        mutableSharedFlow.emit(flow)
     }
 }
 
-private fun <Query, Item> outputFlow(
+private fun <Query, Item> Query.toOutputFlow(
     fetcher: QueryFetcher<Query, Item>
-): suspend (Tile.Request<Query, Item>) -> Flow<Tile.Output<Query, Item>> =
-    { input ->
-        when (input) {
-            // Eject the query downstream
-            is Tile.Request.Evict -> flowOf(input)
-            // Stop collecting from the fetcher
-            is Tile.Request.Off<Query, Item> -> emptyFlow()
-            // Start collecting from the fetcher, keeping track of when the flow was turned on
-            is Tile.Request.On<Query, Item> -> fetcher.invoke(input.query)
-                .map<List<Item>, Tile.Output<Query, Item>> { items ->
-                    Tile.Data(
-                        query = input.query,
-                        items = items
-                    )
-                }
-        }
-    }
+) = fetcher(this).map {
+    Tile.Data(
+        query = this,
+        items = it
+    )
+}
 
-private fun <Query, Item> terminationSignal():
-        suspend FlowCollector<Tile.Request<Query, Item>>.(Tile.Request<Query, Item>) -> Boolean =
-    { request ->
-        emit(request)
-        // Terminate this flow entirely when the eviction signal is sent
-        request !is Tile.Request.Evict<Query, Item>
-    }
+private val terminate = null
+private val off = emptyFlow<Nothing>()
