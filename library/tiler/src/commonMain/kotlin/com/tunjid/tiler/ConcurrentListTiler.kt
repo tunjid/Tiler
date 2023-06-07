@@ -37,7 +37,7 @@ import kotlinx.coroutines.flow.transformWhile
 fun <Query, Item> concurrentListTiler(
     order: Tile.Order<Query, Item>,
     limiter: Tile.Limiter<Query, Item>,
-    fetcher: suspend (Query) -> Flow<List<Item>>
+    fetcher: QueryFetcher<Query, Item>
 ): ListTiler<Query, Item> = ListTiler { requests ->
     requests
         .toOutput(fetcher)
@@ -61,7 +61,7 @@ fun <Query, Item> concurrentListTiler(
  * of the resultant [Flow].
  */
 private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
-    fetcher: suspend (Query) -> Flow<List<Item>>
+    fetcher: QueryFetcher<Query, Item>
 ): Flow<Flow<Tile.Output<Query, Item>>> = flow flow@{
     val queriesToValves = mutableMapOf<Query, QueryFlowValve<Query, Item>>()
 
@@ -98,7 +98,7 @@ private fun <Query, Item> Flow<Tile.Input<Query, Item>>.toOutput(
  * Allows for turning on, off and terminating the [Flow] specified by a given fetcher
  */
 private class QueryFlowValve<Query, Item>(
-    fetcher: suspend (Query) -> Flow<List<Item>>
+    fetcher: QueryFetcher<Query, Item>
 ) : suspend (Tile.Request<Query, Item>) -> Unit {
 
     private val mutableSharedFlow = MutableSharedFlow<Tile.Request<Query, Item>>()
@@ -117,7 +117,7 @@ private class QueryFlowValve<Query, Item>(
 }
 
 private fun <Query, Item> outputFlow(
-    fetcher: suspend (Query) -> Flow<List<Item>>
+    fetcher: QueryFetcher<Query, Item>
 ): suspend (Tile.Request<Query, Item>) -> Flow<Tile.Output<Query, Item>> =
     { input ->
         when (input) {

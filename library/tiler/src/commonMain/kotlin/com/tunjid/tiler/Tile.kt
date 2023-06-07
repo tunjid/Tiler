@@ -19,13 +19,27 @@ package com.tunjid.tiler
 import kotlinx.coroutines.flow.Flow
 import kotlin.jvm.JvmInline
 
+/**
+ * Produces [TiledList] from a [Flow] of a user's [Query]
+ */
 fun interface ListTiler<Query, Item> {
     fun produce(inputs: Flow<Tile.Input<Query, Item>>): Flow<TiledList<Query, Item>>
+}
+
+/**
+ * Describes how to fetch data for a given [Query]
+ */
+fun interface QueryFetcher<Query, Item> {
+    fun fetch(query: Query): Flow<List<Item>>
 }
 
 operator fun <Query, Item> ListTiler<Query, Item>.invoke(
     inputs: Flow<Tile.Input<Query, Item>>
 ) = produce(inputs)
+
+operator fun <Query, Item> QueryFetcher<Query, Item>.invoke(
+    query: Query
+) = fetch(query)
 
 /**
  * class holding metadata about a [Query] for an [Item], the [Item], and when the [Query] was sent
@@ -138,7 +152,7 @@ fun <Query, Item> listTiler(
         maxQueries = Int.MIN_VALUE,
         itemSizeHint = null,
     ),
-    fetcher: suspend (Query) -> Flow<List<Item>>
+    fetcher: QueryFetcher<Query, Item>
 ): ListTiler<Query, Item> =
     concurrentListTiler(
         order = order,
