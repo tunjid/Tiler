@@ -20,7 +20,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlin.jvm.JvmInline
 
 /**
- * Produces [TiledList] from a [Flow] of a user's [Query]
+ * Produces [TiledList] from a [Flow] of a user's [Query].
+ * The [TiledList] produced is sorted by the [Query] that fetched each batch of [Item] instances
+ * according to the [Tile.Order] a [ListTiler] instance is currently configured with.
+ *
+ * The [TiledList] may have duplicate [Item] instances within depending on the outputs of the
+ * [QueryFetcher]. These items may be cheaply filtered out as the [Item] emitted may be
+ * constrained by [Tile.Limiter] or debounced until the queries fetched settle.
  */
 fun interface ListTiler<Query, Item> {
     fun produce(inputs: Flow<Tile.Input<Query, Item>>): Flow<TiledList<Query, Item>>
@@ -147,7 +153,7 @@ fun <Query, Item> Flow<Tile.Input<Query, Item>>.toTiledList(
 ): Flow<TiledList<Query, Item>> = listTiler(inputs = this)
 
 /**
- * Converts a [Flow] of [Query] into a [Flow] of [TiledList] [Item]
+ * Converts a [Flow] of [Query] into a [Flow] of [TiledList] [Item].
  */
 fun <Query, Item> listTiler(
     order: Tile.Order<Query, Item>,

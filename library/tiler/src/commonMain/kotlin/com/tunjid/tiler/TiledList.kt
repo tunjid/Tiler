@@ -24,7 +24,7 @@ import com.tunjid.tiler.utilities.MutablePairedTiledList
  *
  * Note that [TiledList] instances should not be large. They should only contain enough
  * items to fill the device viewport a few items over to accommodate a user's scroll.
- * This is typically under 100 items.
+ * This is typically under 500 items.
  */
 interface TiledList<out Query, out Item> : List<Item> {
     /**
@@ -34,7 +34,9 @@ interface TiledList<out Query, out Item> : List<Item> {
 }
 
 /**
- * A [TiledList] with mutation facilities
+ * A [TiledList] with mutation facilities.
+ *
+ * Note this exists to facilitate transformations on the outputs of a [ListTiler]
  */
 interface MutableTiledList<Query, Item> : TiledList<Query, Item> {
     fun add(index: Int, query: Query, item: Item)
