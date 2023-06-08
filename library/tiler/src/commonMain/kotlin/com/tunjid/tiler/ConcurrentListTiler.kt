@@ -21,10 +21,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flattenMerge
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -64,7 +66,9 @@ private class OutputFlow<Query, Item>(
         val queriesToValves = mutableMapOf<Query, QueryFlowValve<Query, Item>>()
         flow.collect { input ->
             when (input) {
-                is Tile.Order -> collector.emit(flowOf(input))
+                is Tile.Order -> collector.emit(
+                    flowOf(input)
+                )
 
                 is Tile.Request.Evict -> evict(
                     queriesToValves = queriesToValves,
@@ -104,7 +108,9 @@ private class OutputFlow<Query, Item>(
                         query = query,
                         collector = collector
                     )
-                    collector.emit(flowOf(input.order))
+                    collector.emit(
+                        flowOf(input.order)
+                    )
                 }
             }
         }
@@ -134,7 +140,7 @@ private class OutputFlow<Query, Item>(
     ) {
         when (val existingValve = queriesToValves[query]) {
             null -> {
-                val valve = QueryFlowValve(query.toOutputFlow(fetcher))
+                val valve = QueryFlowValve(query, fetcher)
                 queriesToValves[query] = valve
                 // Emit the Flow from the valve, so it can be subscribed to
                 collector.emit(valve.outputFlow)
@@ -142,7 +148,7 @@ private class OutputFlow<Query, Item>(
                 valve.turnOn()
             }
 
-            else -> existingValve.invoke(existingValve)
+            else -> existingValve.turnOn()
         }
     }
 }
@@ -155,9 +161,10 @@ private class OutputFlow<Query, Item>(
  *
  */
 private class QueryFlowValve<Query, Item>(
-    downstreamFlow: Flow<Tile.Data<Query, Item>>
+    query: Query,
+    fetcher: QueryFetcher<Query, Item>,
 ) : suspend (Flow<Tile.Data<Query, Item>>?) -> Unit,
-    Flow<Tile.Data<Query, Item>> by downstreamFlow {
+    Flow<Tile.Data<Query, Item>> by fetcher.toOutputDataFlow(query) {
 
     private val mutableSharedFlow = MutableSharedFlow<Flow<Tile.Data<Query, Item>>?>()
 
@@ -175,17 +182,20 @@ private class QueryFlowValve<Query, Item>(
     }
 }
 
-private suspend fun <Query, Item> QueryFlowValve<Query, Item>.turnOn() = invoke(this)
+private suspend fun <Query, Item> QueryFlowValve<Query, Item>.turnOn() = invoke(flow = this)
 
-private suspend fun <Query, Item> QueryFlowValve<Query, Item>.turnOff() = invoke(emptyFlow())
+private suspend fun <Query, Item> QueryFlowValve<Query, Item>.turnOff() = invoke(flow = emptyFlow())
 
-private suspend fun <Query, Item> QueryFlowValve<Query, Item>.terminate() = invoke(null)
+private suspend fun <Query, Item> QueryFlowValve<Query, Item>.terminate() = invoke(flow = null)
 
-private fun <Query, Item> Query.toOutputFlow(
-    fetcher: QueryFetcher<Query, Item>
-) = fetcher(this).map {
-    Tile.Data(
-        query = this,
-        items = it
-    )
+private fun <Query, Item> QueryFetcher<Query, Item>.toOutputDataFlow(
+    query: Query
+): Flow<Tile.Data<Query, Item>> = flow {
+    val outputs = invoke(query).map {
+        Tile.Data(
+            query = query,
+            items = it
+        )
+    }
+    emitAll(outputs)
 }

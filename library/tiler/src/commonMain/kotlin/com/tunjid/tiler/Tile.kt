@@ -30,14 +30,17 @@ fun interface ListTiler<Query, Item> {
  * Describes how to fetch data for a given [Query]
  */
 fun interface QueryFetcher<Query, Item> {
-    fun fetch(query: Query): Flow<List<Item>>
+    // This is a broken lint warning. This is supported since Kotlin 1.5
+    // [see](https://youtrack.jetbrains.com/issue/KT-45836/Broken-support-of-suspend-function-in-SAM-interface-for-JVM-IR)
+    @Suppress("FUN_INTERFACE_WITH_SUSPEND_FUNCTION")
+    suspend fun fetch(query: Query): Flow<List<Item>>
 }
 
 operator fun <Query, Item> ListTiler<Query, Item>.invoke(
     inputs: Flow<Tile.Input<Query, Item>>
 ) = produce(inputs)
 
-operator fun <Query, Item> QueryFetcher<Query, Item>.invoke(
+suspend operator fun <Query, Item> QueryFetcher<Query, Item>.invoke(
     query: Query
 ) = fetch(query)
 
