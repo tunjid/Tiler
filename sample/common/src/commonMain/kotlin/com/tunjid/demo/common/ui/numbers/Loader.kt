@@ -22,6 +22,7 @@ import com.tunjid.tiler.Pivot
 import com.tunjid.tiler.Tile
 import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.buildTiledList
+import com.tunjid.tiler.distinct
 import com.tunjid.tiler.emptyTiledList
 import com.tunjid.tiler.listTiler
 import com.tunjid.tiler.toPivotedTileInputs
@@ -132,16 +133,7 @@ class Loader(
             isAscending = pageQuery.isAscending,
             currentPage = pageQuery.page,
             pivotSummary = pivotSummary,
-            items = buildTiledList {
-                val seen = mutableSetOf<NumberTile>()
-                tiledList.forEachIndexed { index, tile ->
-                    if (!seen.contains(tile)) add(
-                        query = tiledList.queryAt(index),
-                        item = tile
-                    )
-                    seen.add(tile)
-                }
-            }
+            items = tiledList.distinct()
         )
     }
         .stateIn(
