@@ -17,7 +17,7 @@
 package com.tunjid.utilities
 
 import com.tunjid.tiler.PivotRequest
-import com.tunjid.tiler.PivotResult
+import com.tunjid.tiler.Pivot
 import com.tunjid.tiler.pivotWith
 import com.tunjid.tiler.toPivotedTileInputs
 import kotlinx.coroutines.delay
@@ -49,7 +49,7 @@ class PivotingKtTest {
 
     @Test
     fun pivoting_works_on_both_sides() {
-        PivotResult(
+        Pivot(
             query = 7,
             pivotRequest = pivotRequest,
             previousResult = null,
@@ -64,7 +64,7 @@ class PivotingKtTest {
 
     @Test
     fun pivoting_works_on_one_side() {
-        PivotResult(
+        Pivot(
             query = 0,
             pivotRequest = pivotRequest,
             previousResult = null,
@@ -263,12 +263,12 @@ class PivotingKtTest {
         val inputs = queries.pivotWith(pivotRequest)
             .toList()
 
-        val firstPivotResult = PivotResult(
+        val firstPivotInput = Pivot(
             query = 9,
             pivotRequest = pivotRequest,
             previousResult = null,
         )
-        firstPivotResult.assertEquals(
+        firstPivotInput.assertEquals(
             query = 9,
             comparator = comparator,
             on = listOf(8, 9, 10).sortedByFurthestDistanceFrom(9),
@@ -276,16 +276,16 @@ class PivotingKtTest {
             evict = emptyList(),
         )
         assertEquals(
-            expected = firstPivotResult,
+            expected = firstPivotInput,
             actual = inputs[0],
         )
 
-        val secondPivotResult = PivotResult(
+        val secondPivotInput = Pivot(
             query = 5,
             pivotRequest = pivotRequest,
-            previousResult = firstPivotResult,
+            previousResult = firstPivotInput,
         )
-        secondPivotResult.assertEquals(
+        secondPivotInput.assertEquals(
             query = 5,
             comparator = comparator,
             on = listOf(4, 5, 6).sortedByFurthestDistanceFrom(5),
@@ -293,7 +293,7 @@ class PivotingKtTest {
             evict = listOf(9, 10, 11, 12).sortedByFurthestDistanceFrom(5),
         )
         assertEquals(
-            expected = secondPivotResult,
+            expected = secondPivotInput,
             actual = inputs[1],
         )
     }
@@ -321,7 +321,7 @@ private fun List<Int>.sortedByFurthestDistanceFrom(pivot: Int) = sortedWith(
     }.reversed()
 )
 
-private fun <Query, Item> PivotResult<Query, Item>.assertEquals(
+private fun <Query, Item> Pivot<Query, Item>.assertEquals(
     query: Query,
     comparator: Comparator<Query>,
     on: List<Query>,

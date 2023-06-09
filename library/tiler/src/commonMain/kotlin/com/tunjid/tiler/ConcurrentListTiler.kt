@@ -91,7 +91,7 @@ private class OutputFlow<Query, Item>(
                     flowOf(input)
                 )
 
-                is PivotResult -> {
+                is Pivot -> {
                     // Evict first because order will be invalid if queries that are not part
                     // of this pivot are ordered with its order
                     for (query in input.evict) evict(

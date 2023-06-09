@@ -17,14 +17,15 @@
 package com.tunjid.demo.common.ui.numbers
 
 import com.tunjid.tiler.ListTiler
+import com.tunjid.tiler.PivotRequest
+import com.tunjid.tiler.Pivot
 import com.tunjid.tiler.Tile
 import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.buildTiledList
 import com.tunjid.tiler.emptyTiledList
 import com.tunjid.tiler.listTiler
-import com.tunjid.tiler.toTiledList
-import com.tunjid.tiler.PivotRequest
 import com.tunjid.tiler.toPivotedTileInputs
+import com.tunjid.tiler.toTiledList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.shareIn
@@ -133,8 +134,8 @@ class Loader(
             pivotSummary = pivotSummary,
             items = buildTiledList {
                 val seen = mutableSetOf<NumberTile>()
-                tiledList.forEachIndexed { index , tile ->
-                    if(!seen.contains(tile)) add(
+                tiledList.forEachIndexed { index, tile ->
+                    if (!seen.contains(tile)) add(
                         query = tiledList.queryAt(index),
                         item = tile
                     )
@@ -175,7 +176,7 @@ class Loader(
     private fun pivotRequest(
         isAscending: Boolean,
         numberOfColumns: Int,
-    ) = PivotRequest(
+    ) = PivotRequest<PageQuery, NumberTile>(
         onCount = max(a = 3, b = 2 * numberOfColumns),
         offCount = 2 * numberOfColumns,
         nextQuery = nextQuery,
@@ -215,31 +216,12 @@ private fun numberTiler(
         }
     )
 
-private fun Flow<Tile.Input<PageQuery, NumberTile>>.pivotSummaries(): Flow<String> = flow {
-    val on = mutableListOf<Int>()
-    val off = mutableListOf<Int>()
-    val evict = mutableListOf<Int>()
-    this@pivotSummaries.collect { input ->
-        when (input) {
-            is Tile.Limiter,
-            is Tile.Order.Sorted -> Unit
-
-            is Tile.Order.PivotSorted -> {
-                emit(
-                    listOf(
-                        "Active pages: ${on.sorted()}",
-                        "Pages in memory: ${off.sorted()}",
-                        "Evicted: ${evict.sorted()}"
-                    ).joinToString(separator = "\n")
-                )
-                on.clear()
-                off.clear()
-                evict.clear()
-            }
-
-            is Tile.Request.Evict -> evict.add(input.query.page)
-            is Tile.Request.Off -> off.add(input.query.page)
-            is Tile.Request.On -> on.add(input.query.page)
+private fun Flow<Tile.Input<PageQuery, NumberTile>>.pivotSummaries(): Flow<String> =
+    filterIsInstance<Pivot<PageQuery, NumberTile>>()
+        .map { input ->
+            listOf(
+                "Active pages: ${input.on.map(PageQuery::page).sorted()}",
+                "Pages in memory: ${input.off.map(PageQuery::page).sorted()}",
+                "Evicted: ${input.evict.map(PageQuery::page).sorted()}"
+            ).joinToString(separator = "\n")
         }
-    }
-}
