@@ -106,7 +106,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             ) {
                 // Append at the end
                 append(
-                    queryRange = QueryRange(
+                    range = QueryRange(
                         start = lastIndex + 1,
                         end = lastIndex + count + 1
                     ),
@@ -253,9 +253,9 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         size++
     }
 
-    private fun append(queryRange: QueryRange, value: Query) {
-        if (size != 0 && queryRange.end <= QueryRange(keys[size - 1]).start) {
-            set(queryRange, value)
+    private fun append(range: QueryRange, value: Query) {
+        if (size != 0 && range.end <= QueryRange(keys[size - 1]).start) {
+            set(range, value)
             return
         }
         if (garbage && size >= keys.size) {
@@ -263,7 +263,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         }
         keys = keys.append(
             currentSize = size,
-            element = queryRange.packedValue,
+            element = range.packedValue,
         )
         values = values.append(
             currentSize = size,
