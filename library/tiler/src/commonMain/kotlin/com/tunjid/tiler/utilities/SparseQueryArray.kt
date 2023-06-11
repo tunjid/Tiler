@@ -19,6 +19,7 @@ package com.tunjid.tiler.utilities
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmOverloads
 
+
 /**
  * Describes a range of indices for which a given query may be found
  */
@@ -104,8 +105,8 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
                 count = count
             ) {
                 // Append at the end
-                set(
-                    range = QueryRange(
+                append(
+                    queryRange = QueryRange(
                         start = lastIndex + 1,
                         end = lastIndex + count + 1
                     ),
@@ -214,11 +215,6 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         return indexOfKey(key) >= 0
     }
 
-    /**
-     * Adds a mapping from the specified key to the specified value,
-     * replacing the previous mapping from the specified key if there
-     * was one.
-     */
     private fun set(range: QueryRange, value: Query) {
         var i: Int = keys.indexBinarySearch(
             index = range.start,
@@ -253,6 +249,29 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             currentSize = size,
             index = i,
             element = value
+        )
+        size++
+    }
+
+    /**
+     * Puts a key/value pair into the array, optimizing for the case where
+     * the key is greater than all existing keys in the array.
+     */
+    private fun append(queryRange: QueryRange, value: Query) {
+        if (size != 0 && queryRange.end <= QueryRange(keys[size - 1]).start) {
+            set(queryRange, value)
+            return
+        }
+        if (garbage && size >= keys.size) {
+            gc()
+        }
+        keys = keys.append(
+            currentSize = size,
+            element = queryRange.packedValue,
+        )
+        values = values.append(
+            currentSize = size,
+            element = value,
         )
         size++
     }
@@ -365,7 +384,7 @@ private inline fun LongArray.append(
 
 private inline fun Array<Any?>.append(
     currentSize: Int,
-    element: Any
+    element: Any?
 ): Array<Any?> = append(
     containerSize = Array<Any?>::size,
     containerFactory = ::arrayOfNulls,
