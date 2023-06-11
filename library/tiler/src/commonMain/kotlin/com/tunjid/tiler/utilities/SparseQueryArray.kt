@@ -80,7 +80,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             size = size
         )
         if (i < 0 || values[i] === DELETED) throw IllegalArgumentException(
-            "Unknown key"
+            "Index $index is not present in SparseQueryArray of size $size and contents $this"
         )
         @Suppress("UNCHECKED_CAST")
         return values[i] as Query
@@ -94,10 +94,10 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             range = QueryRange(start = 0, end = count),
             value = query
         )
+
         else -> {
             // Append at the end
             val lastIndex = QueryRange(keys[size - 1]).end - 1
-
             updateExistingQueryOr(
                 index = lastIndex,
                 query = query,
@@ -150,14 +150,15 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             index = index,
             size = size
         )
-        if (i < 0) throw IllegalArgumentException("Index $index is not present")
-
+        if (i < 0) throw IllegalArgumentException(
+            "Index $index is not present in SparseQueryArray of size $size and contents $this"
+        )
         val existingRange = QueryRange(keys[i])
         val newRange = QueryRange(
             start = existingRange.start,
             end = existingRange.end - 1
         )
-        // This range is invalid. Remove it.
+        // This range is now invalid, remove it.
         if (newRange.start == newRange.end) {
             values[i] = DELETED
             gc()
@@ -178,8 +179,9 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             index = index,
             size = size
         )
-        if (i < 0) throw IllegalArgumentException("Index $index is not present")
-
+        if (i < 0) throw IllegalArgumentException(
+            "Index $index is not present in SparseQueryArray of size $size and contents $this"
+        )
         val existing = values[i]
         if (query != existing) return block(i)
 
@@ -297,7 +299,6 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         if (garbage) gc()
         return keys.indexBinarySearch(index = key, size = size)
     }
-
 
     override fun toString(): String =
         keys
