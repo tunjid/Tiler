@@ -253,10 +253,6 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         size++
     }
 
-    /**
-     * Puts a key/value pair into the array, optimizing for the case where
-     * the key is greater than all existing keys in the array.
-     */
     private fun append(queryRange: QueryRange, value: Query) {
         if (size != 0 && queryRange.end <= QueryRange(keys[size - 1]).start) {
             set(queryRange, value)
@@ -277,43 +273,24 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
     }
 
     private fun gc() {
-        val n = size
-        var o = 0
+        val count = size
+        var lag = 0
         val keys = keys
         val values = values
-        for (i in 0 until n) {
-            val value = values[i]
-            if (value !== DELETED) {
-                if (i != o) {
-                    keys[o] = keys[i]
-                    values[o] = value
-                    values[i] = null
-                }
-                o++
+        for (lead in 0 until count) {
+            val value = values[lead]
+            if (value == DELETED) continue
+            if (lead != lag) {
+                keys[lag] = keys[lead]
+                values[lag] = value
+                values[lead] = null
             }
+            lag++
         }
         garbage = false
-        size = o
-
-        // Log.e("SparseArray", "gc end with " + mSize);
+        size = lag
     }
 
-    /**
-     * Returns the number of key-value mappings that this SparseArray
-     * currently stores.
-     */
-    fun size(): Int {
-        if (garbage) {
-            gc()
-        }
-        return size
-    }
-
-    /**
-     * Returns the index for which [.keyAt] would return the
-     * specified key, or a negative number if the specified
-     * key is not mapped.
-     */
     private fun indexOfKey(key: Int): Int {
         if (garbage) gc()
         return keys.indexBinarySearch(index = key, size = size)
