@@ -66,6 +66,26 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         size = 0
     }
 
+    /**
+     * Gets the Object mapped from the specified key, or the specified Object
+     * if no such mapping has been made.
+     */
+    /**
+     * Gets the Object mapped from the specified key, or `null`
+     * if no such mapping has been made.
+     */
+    fun find(index: Int): Query {
+        val i: Int = keys.indexBinarySearch(
+            index = index,
+            size = size
+        )
+        if (i < 0 || values[i] === DELETED) throw IllegalArgumentException(
+            "Unknown key"
+        )
+        @Suppress("UNCHECKED_CAST")
+        return values[i] as Query
+    }
+
     fun appendQuery(
         query: Query,
         count: Int
@@ -123,6 +143,31 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         )
     }
 
+    fun deleteAt(
+        index: Int,
+    ) {
+        val i = keys.indexBinarySearch(
+            index = index,
+            size = size
+        )
+        if (i < 0) throw IllegalArgumentException("Index $index is not present")
+
+        val existingRange = QueryRange(keys[i])
+        val newRange = QueryRange(
+            start = existingRange.start,
+            end = existingRange.end - 1
+        )
+        // This range is invalid. Remove it.
+        if (newRange.start == newRange.end) {
+            values[i] = DELETED
+            gc()
+        }
+        shiftRangesBy(
+            startIndex = i,
+            gap = -1
+        )
+    }
+
     private inline fun updateExistingQueryOr(
         index: Int,
         query: Query,
@@ -153,31 +198,6 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         }
     }
 
-    fun deleteAt(
-        index: Int,
-    ) {
-        val i = keys.indexBinarySearch(
-            index = index,
-            size = size
-        )
-        if (i < 0) throw IllegalArgumentException("Index $index is not present")
-
-        val existingRange = QueryRange(keys[i])
-        val newRange = QueryRange(
-            start = existingRange.start,
-            end = existingRange.end - 1
-        )
-        // This range is invalid. Remove it.
-        if (newRange.start == newRange.end) {
-            values[i] = DELETED
-            gc()
-        }
-        shiftRangesBy(
-            startIndex = i,
-            gap = -1
-        )
-    }
-
     private fun shiftRangesBy(startIndex: Int, gap: Int) {
         for (i in startIndex until size) {
             val existing = QueryRange(keys[i])
@@ -190,26 +210,6 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
 
     operator fun contains(key: Int): Boolean {
         return indexOfKey(key) >= 0
-    }
-
-    /**
-     * Gets the Object mapped from the specified key, or the specified Object
-     * if no such mapping has been made.
-     */
-    /**
-     * Gets the Object mapped from the specified key, or `null`
-     * if no such mapping has been made.
-     */
-    fun find(index: Int): Query {
-        val i: Int = keys.indexBinarySearch(
-            index = index,
-            size = size
-        )
-        if (i < 0 || values[i] === DELETED) throw IllegalArgumentException(
-            "Unknown key"
-        )
-        @Suppress("UNCHECKED_CAST")
-        return values[i] as Query
     }
 
     /**
