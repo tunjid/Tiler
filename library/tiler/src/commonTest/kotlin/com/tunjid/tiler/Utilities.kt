@@ -18,14 +18,22 @@ package com.tunjid.tiler
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.test.assertEquals
 
-internal val Int.testRange get() = this.times(10).rangeTo(this.times(10) + 9)
+private const val ITEMS_PER_PAGE = 10
+internal fun Int.testRange(
+    itemsPerPage: Int = ITEMS_PER_PAGE,
+): IntRange {
+    val offset = this * itemsPerPage
+    val next = offset + itemsPerPage
+
+    return offset until next
+}
 
 internal fun Int.tiledTestRange(
-    transform: List<Int>.() -> List<Int> = {this}
+    itemsPerPage: Int = ITEMS_PER_PAGE,
+    transform: List<Int>.() -> List<Int> = { this }
 ) = buildTiledList {
-    addAll(query = this@tiledTestRange, items = transform(testRange.toList()))
+    addAll(query = this@tiledTestRange, items = transform(testRange(itemsPerPage).toList()))
 }
 
 suspend fun <T> Flow<T>.toListWithTimeout(timeoutMillis: Long): List<T> {
@@ -35,22 +43,6 @@ suspend fun <T> Flow<T>.toListWithTimeout(timeoutMillis: Long): List<T> {
         result
     } ?: result
 }
-
-fun <Query, Item> assertTiledListEquals(
-    expected: TiledList<Query, Item>,
-    actual: TiledList<Query, Item>,
-) = assertEquals(
-    expected = expected.asPairedList(),
-    actual = actual.asPairedList()
-)
-
-fun <Query, Item> assertBatchTiledListEquals(
-    expected: List<TiledList<Query, Item>>,
-    actual: List<TiledList<Query, Item>>,
-) = assertEquals(
-    expected = expected.map(TiledList<Query, Item>::asPairedList),
-    actual = actual.map(TiledList<Query, Item>::asPairedList)
-)
 
 private fun TiledList<*, *>.asPairedList(): List<Pair<*, *>> =
     mapIndexed { index, item -> queryAt(index) to item }

@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package com.tunjid.utilities
+package com.tunjid.tiler.utilities
 
 import com.tunjid.tiler.MutableTiledList
 import com.tunjid.tiler.TiledList
+import com.tunjid.tiler.strictEquals
 
 /**
  * A [TiledList] implementation that associates each [Item] with its [Query] with a [Pair]
@@ -49,9 +50,8 @@ internal class MutablePairedTiledList<Query, Item>(
         queryItemPairs.removeAt(index).second
 
     override fun equals(other: Any?): Boolean =
-        other is TiledList<*, *>
-                && super.equals(other)
-                && (0..lastIndex).all { other.queryAt(it) == queryAt(it) }
+        if (other is TiledList<*, *>) strictEquals(other)
+        else super.equals(other)
 
 }
 

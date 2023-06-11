@@ -14,6 +14,15 @@
  * limitations under the License.
  */
 
-package com.tunjid.utilities
+package com.tunjid.tiler.utilities
 
-internal actual fun epochMillis(): Long = System.currentTimeMillis()
+import com.tunjid.tiler.TiledList
+
+internal object EmptyTiledList : TiledList<Nothing, Nothing>, List<Nothing> by emptyList() {
+    override fun queryAt(index: Int): Nothing =
+        throw IndexOutOfBoundsException("Empty tiled list doesn't contain element at index $index.")
+    override fun equals(other: Any?): Boolean = other is TiledList<*, *> && other.isEmpty()
+    override fun hashCode(): Int = 1
+    override fun toString(): String = "[]"
+}
+

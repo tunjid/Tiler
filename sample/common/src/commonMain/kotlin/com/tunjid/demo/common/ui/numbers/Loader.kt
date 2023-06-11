@@ -17,14 +17,16 @@
 package com.tunjid.demo.common.ui.numbers
 
 import com.tunjid.tiler.ListTiler
+import com.tunjid.tiler.PivotRequest
+import com.tunjid.tiler.Pivot
 import com.tunjid.tiler.Tile
 import com.tunjid.tiler.TiledList
+import com.tunjid.tiler.buildTiledList
+import com.tunjid.tiler.distinct
 import com.tunjid.tiler.emptyTiledList
-import com.tunjid.tiler.filterTransform
 import com.tunjid.tiler.listTiler
+import com.tunjid.tiler.toPivotedTileInputs
 import com.tunjid.tiler.toTiledList
-import com.tunjid.tiler.utilities.PivotRequest
-import com.tunjid.tiler.utilities.toPivotedTileInputs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,12 +34,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlin.math.max
 
 private const val ITEMS_PER_PAGE = 50
 
@@ -103,9 +106,9 @@ class Loader(
         .distinctUntilChanged()
 
     // Change limit to account for dynamic view port size
-    private val limitInputs = numberOfColumns.map { gridSize ->
+    private val limitInputs = numberOfColumns.map { noColumns ->
         Tile.Limiter<PageQuery, NumberTile>(
-            maxQueries = gridSize * 3,
+            maxQueries = noColumns * 2,
             itemSizeHint = ITEMS_PER_PAGE
         )
     }
@@ -130,9 +133,7 @@ class Loader(
             isAscending = pageQuery.isAscending,
             currentPage = pageQuery.page,
             pivotSummary = pivotSummary,
-            items = tiledList.filterTransform(
-                filterTransformer = { distinctBy(NumberTile::key) }
-            )
+            items = tiledList.distinct()
         )
     }
         .stateIn(
@@ -167,8 +168,8 @@ class Loader(
     private fun pivotRequest(
         isAscending: Boolean,
         numberOfColumns: Int,
-    ) = PivotRequest(
-        onCount = 2 * numberOfColumns,
+    ) = PivotRequest<PageQuery, NumberTile>(
+        onCount = max(a = 3, b = 2 * numberOfColumns),
         offCount = 2 * numberOfColumns,
         nextQuery = nextQuery,
         previousQuery = previousQuery,
@@ -207,32 +208,12 @@ private fun numberTiler(
         }
     )
 
-private fun Flow<Tile.Input<PageQuery, NumberTile>>.pivotSummaries(): Flow<String> = flow {
-    val on = mutableListOf<Int>()
-    val off = mutableListOf<Int>()
-    val evict = mutableListOf<Int>()
-    this@pivotSummaries.collect { input ->
-        when (input) {
-            is Tile.Limiter,
-            is Tile.Order.Custom,
-            is Tile.Order.Sorted -> Unit
-
-            is Tile.Order.PivotSorted -> {
-                emit(
-                    listOf(
-                        "Active pages: ${on.sorted()}",
-                        "Pages in memory: ${off.sorted()}",
-                        "Evicted: ${evict.sorted()}"
-                    ).joinToString(separator = "\n")
-                )
-                on.clear()
-                off.clear()
-                evict.clear()
-            }
-
-            is Tile.Request.Evict -> evict.add(input.query.page)
-            is Tile.Request.Off -> off.add(input.query.page)
-            is Tile.Request.On -> on.add(input.query.page)
+private fun Flow<Tile.Input<PageQuery, NumberTile>>.pivotSummaries(): Flow<String> =
+    filterIsInstance<Pivot<PageQuery, NumberTile>>()
+        .map { input ->
+            listOf(
+                "Active pages: ${input.on.map(PageQuery::page).sorted()}",
+                "Pages in memory: ${input.off.map(PageQuery::page).sorted()}",
+                "Evicted: ${input.evict.map(PageQuery::page).sorted()}"
+            ).joinToString(separator = "\n")
         }
-    }
-}

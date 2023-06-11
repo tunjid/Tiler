@@ -16,176 +16,266 @@
 
 package com.tunjid.tiler
 
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-
-internal sealed interface Tiler<Query, Item> {
-    /**
-     * Whether there's [Tiler] any meaningful change in the [Tiler] state requiring it emit data
-     */
-    suspend fun shouldEmit(): Boolean
-
-    /**
-     * The [TiledList] produced my this [Tiler]
-     */
-    suspend fun tiledItems(): TiledList<Query, Item>
-
-    /**
-     * Processes the [Tile.Output] for some [Tile.Input] earlier in the tiling pipeline
-     */
-    suspend fun process(
-        output: Tile.Output<Query, Item>
-    ): Tiler<Query, Item>
-}
+import com.tunjid.tiler.utilities.IntArrayList
+import com.tunjid.tiler.utilities.chunkedTiledList
+import kotlin.math.abs
+import kotlin.math.min
 
 /**
- * Class used as seed for the tiling pipeline
+ * Holds information regarding properties that may be useful when flattening a [Map] of [Query]
+ * to [Tile] into a [List]
  */
-internal data class ImmutableTiler<Query, Item>(
-    val metadata: Tile.Metadata<Query, Item>,
-) : Tiler<Query, Item> {
-    override suspend fun shouldEmit(): Boolean =
-        false
+internal class Tiler<Query, Item> private constructor(
+    private var order: Tile.Order<Query, Item>,
+    private var limiter: Tile.Limiter<Query, Item> = Tile.Limiter(
+        maxQueries = Int.MIN_VALUE,
+        itemSizeHint = null
+    ),
+    private val queryItemsMap: MutableMap<Query, List<Item>>
+) {
+    constructor(
+        order: Tile.Order<Query, Item>,
+        limiter: Tile.Limiter<Query, Item> = Tile.Limiter(
+            maxQueries = Int.MIN_VALUE,
+            itemSizeHint = null
+        )
+    ) : this(
+        order = order,
+        limiter = limiter,
+        queryItemsMap = mutableMapOf()
+    )
 
-    override suspend fun tiledItems(): TiledList<Query, Item> =
-        emptyTiledList()
-
-    override suspend fun process(output: Tile.Output<Query, Item>): Tiler<Query, Item> =
-        MutableTiler(metadata).process(output)
-}
-
-
-/**
- * Mutable [Tiler] implementation for efficient tiling
- */
-internal class MutableTiler<Query, Item>(
-    private var metadata: Tile.Metadata<Query, Item>,
-) : Tiler<Query, Item> {
-    private val mutex = Mutex()
-
-    private var shouldEmit: Boolean = false
+    private val orderedQueries: MutableList<Query> = mutableListOf()
+    private val outputIndices: IntArrayList = IntArrayList(
+        if (limiter.maxQueries >= 0) limiter.maxQueries
+        else 10
+    )
     private var lastTiledItems: TiledList<Query, Item> = emptyTiledList()
-    private val queryItemsMap: MutableMap<Query, List<Item>> = mutableMapOf()
+    private var last: Tiler<Query, Item>? = null
 
-    override suspend fun shouldEmit() = mutex.withLock { shouldEmit }
-
-    override suspend fun tiledItems(): TiledList<Query, Item> = mutex.withLock {
-        lastTiledItems = metadata.toTiledList(queryItemsMap = queryItemsMap)
-        return lastTiledItems
-    }
-
-    /**
-     * Mutates this [MutableTiler] with [Tile.Output] produced from the tiling process.
-     * As tiling collects from multiple flows concurrently, it is imperative a mutex is used to
-     * synchronize access to the variables modified.
-     */
-    override suspend fun process(
-        output: Tile.Output<Query, Item>
-    ): MutableTiler<Query, Item> = mutex.withLock {
+    fun process(output: Tile.Output<Query, Item>): TiledList<Query, Item>? {
+        updateLast()
         when (output) {
-            is Tile.Output.Data -> {
-                shouldEmit = shouldEmit(output)
+            is Tile.Data -> {
                 // Only sort queries when they output the first time to amortize the cost of sorting.
-                metadata = when {
-                    queryItemsMap.contains(output.query) -> metadata.copy(
-                        mostRecentlyEmitted = output.query
-                    )
-
-                    else -> metadata.copy(
-                        orderedQueries = metadata.insertOrderedQuery(output.query),
-                        mostRecentlyEmitted = output.query,
-                    )
-                }
+                if (!queryItemsMap.contains(output.query)) orderedQueries.insertSorted(
+                    query = output.query,
+                    comparator = order.comparator
+                )
                 queryItemsMap[output.query] = output.items
             }
 
-            is Tile.Output.Eviction -> {
-                shouldEmit = shouldEmit(output)
-                metadata = metadata.copy(
-                    orderedQueries = metadata.orderedQueries - output.query
+            is Tile.Request.Evict -> {
+                val evictionIndex = orderedQueries.binarySearch(
+                    element = output.query,
+                    comparator = order.comparator
                 )
+                if (evictionIndex >= 0) orderedQueries.removeAt(evictionIndex)
                 queryItemsMap.remove(output.query)
             }
 
-            is Tile.Output.OrderChange -> {
-                shouldEmit = shouldEmit(output)
-                metadata = metadata.copy(
-                    order = output.order,
-                    orderedQueries = metadata.orderedQueries.sortedWith(output.order.comparator)
-                )
+            is Tile.Order-> {
+                order = output
+                orderedQueries.sortWith(output.comparator)
             }
 
-            is Tile.Output.LimiterChange -> {
-                shouldEmit = shouldEmit(output)
-                metadata = metadata.copy(limiter = output.limiter)
+            is Tile.Limiter -> {
+                limiter = output
             }
         }
-        this
+        computeOutputIndices(queryItemsMap)
+        return if (shouldEmitFor(output)) chunkedTiledList(
+            chunkSizeHint = limiter.itemSizeHint,
+            indices = outputIndices,
+            queryLookup = orderedQueries::get,
+            itemsLookup = queryItemsMap::getValue
+        ).also { lastTiledItems = it }
+        else null
     }
 
-    private fun shouldEmit(
-        output: Tile.Output<Query, Item>
-    ): Boolean = when (output) {
-        is Tile.Output.Data -> when (val order = metadata.order) {
-            is Tile.Order.Custom,
+    private fun updateLast() = when (val lastSnapshot = last) {
+        null -> {
+            last = Tiler(
+                order = order,
+                limiter = limiter,
+                // Share the same map instance
+                queryItemsMap = queryItemsMap
+            )
+        }
+
+        else -> {
+            lastSnapshot.order = order
+            lastSnapshot.limiter = limiter
+            lastSnapshot.lastTiledItems = lastTiledItems
+            lastSnapshot.orderedQueries.clear()
+            lastSnapshot.orderedQueries.addAll(orderedQueries)
+            lastSnapshot.outputIndices.clear()
+            for (i in 0..outputIndices.lastIndex) {
+                lastSnapshot.outputIndices.add(outputIndices[i])
+            }
+        }
+    }
+
+    private fun computeOutputIndices(
+        queryItemsMap: Map<Query, List<Item>>,
+    ) {
+        outputIndices.clear()
+        when (val order = order) {
+            is Tile.Order.Sorted -> {
+                var count = 0
+                var index = -1
+                val maxNumberOfChunks = min(limitedChunkSize(), orderedQueries.size)
+                while (
+                    count < maxNumberOfChunks
+                    && index <= orderedQueries.lastIndex
+                ) {
+                    if (++index <= orderedQueries.lastIndex
+                        // Skip empty chunks
+                        && queryItemsMap.getValue(orderedQueries[index]).isNotEmpty()
+                        && ++count <= maxNumberOfChunks
+                    ) outputIndices.add(
+                        element = index,
+                    )
+                }
+            }
+
+            is Tile.Order.PivotSorted -> {
+                if (orderedQueries.isEmpty()) return
+
+                val pivotQuery: Query = order.query ?: return
+                val startIndex = orderedQueries.binarySearch(pivotQuery, order.comparator)
+
+                if (startIndex < 0) return
+
+                var leftIndex = startIndex
+                var rightIndex = startIndex
+                val maxNumberOfChunks = min(limitedChunkSize(), orderedQueries.size)
+
+                // Check if adding the pivot index will cause it to go over the limit
+                if (maxNumberOfChunks < 1) return
+
+                val pivotIndexIsEmpty = queryItemsMap.getValue(orderedQueries[startIndex]).isEmpty()
+                if (!pivotIndexIsEmpty) outputIndices.add(
+                    element = startIndex,
+                )
+
+                var count = if (pivotIndexIsEmpty) 0 else 1
+                while (
+                    count < maxNumberOfChunks
+                    && (leftIndex >= 0 || rightIndex <= orderedQueries.lastIndex)
+                ) {
+                    if (--leftIndex >= 0
+                        // Skip empty chunks
+                        && queryItemsMap.getValue(orderedQueries[leftIndex]).isNotEmpty()
+                        && ++count <= maxNumberOfChunks
+                    ) outputIndices.add(
+                        index = 0,
+                        element = leftIndex,
+                    )
+                    if (++rightIndex <= orderedQueries.lastIndex
+                        // Skip empty chunks
+                        && queryItemsMap.getValue(orderedQueries[rightIndex]).isNotEmpty()
+                        && ++count <= maxNumberOfChunks
+                    ) outputIndices.add(
+                        element = rightIndex,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun shouldEmitFor(output: Tile.Output<Query, Item>) = when (output) {
+        is Tile.Data -> when (val existingOrder = order) {
             is Tile.Order.Sorted -> true
+
             is Tile.Order.PivotSorted -> when {
-                // Always emit if the pivot item is present
-                queryItemsMap.contains(order.query) -> true
+                // If the pivot item is present, check if the item emitted will be seen
+                queryItemsMap.contains(existingOrder.query) -> isInVisibleRange(output.query)
                 // If the last emission was empty and nothing will still be emitted, do not emit
-                else -> !(lastTiledItems.isEmpty() && order.query != output.query)
+                else -> !(lastTiledItems.isEmpty() && existingOrder.query != output.query)
             }
         }
         // Emit only if there's something to evict
-        is Tile.Output.Eviction -> queryItemsMap.contains(output.query)
+        is Tile.Request.Evict -> {
+            isInVisibleRange(output.query) && last?.isInVisibleRange(output.query) == true
+        }
         // Emit only if there are items to sort, and the order has meaningfully changed
-        is Tile.Output.OrderChange -> queryItemsMap.isNotEmpty() && output.order != metadata.order
+        is Tile.Order -> {
+            var willEmit = false
+            val areTheSameSize = outputIndices.size == last?.outputIndices?.size
+            if (areTheSameSize) when (val currentLast = last) {
+                // No last emission, do nothing
+                null -> Unit
+                // Compare the values at the indices as they may refer to different things
+                else -> for (i in 0..outputIndices.lastIndex) {
+                    if (outputQueryAt(i) == currentLast.outputQueryAt(i)) continue
+                    willEmit = true
+                    break
+                }
+            }
+            else willEmit = queryItemsMap.isNotEmpty() && order != last?.order
+            willEmit
+        }
         // Emit only if the limiter has meaningfully changed
-        is Tile.Output.LimiterChange -> when (val order = metadata.order) {
-            is Tile.Order.Custom,
-            is Tile.Order.Sorted -> queryItemsMap.isNotEmpty() && output.limiter != metadata.limiter
+        is Tile.Limiter -> when (val order = order) {
+            is Tile.Order.Sorted -> queryItemsMap.isNotEmpty()
+                    && outputIndices != last?.outputIndices
 
-            is Tile.Order.PivotSorted -> queryItemsMap.contains(order.query) && output.limiter != metadata.limiter
+            is Tile.Order.PivotSorted -> queryItemsMap.contains(order.query)
+                    && outputIndices != last?.outputIndices
         }
     }
+
+    private fun isInVisibleRange(query: Query): Boolean =
+        if (outputIndices.isEmpty()) false
+        else when (order) {
+            is Tile.Order.PivotSorted -> {
+                val isGreaterOrEqualToFirst = order.comparator.compare(
+                    query,
+                    outputQueryAt(0),
+                ) >= 0
+                val isLessOrEqualToLast = order.comparator.compare(
+                    query,
+                    outputQueryAt(outputIndices.lastIndex),
+                ) <= 0
+                isGreaterOrEqualToFirst && isLessOrEqualToLast
+            }
+
+            is Tile.Order.Sorted -> true
+        }
+
+    private fun outputQueryAt(index: Int) = orderedQueries[outputIndices[index]]
+
+    private fun limitedChunkSize() =
+        when (val numQueries = limiter.maxQueries) {
+            in Int.MIN_VALUE..-1 -> orderedQueries.size
+            else -> numQueries
+        }
 }
 
 /**
- * Inserts a new query into ordered queries in O(N) time.
- *
- * If the List were mutable, binary search could've been used to find the insertion index
- * but requiring immutability restricts to O(N).
+ * Inserts [query] into [this] that has already been sorted by [comparator] with no duplication.
  */
-internal fun <Query, Item> Tile.Metadata<Query, Item>.insertOrderedQuery(
-    middleQuery: Query
-): List<Query> = when {
-    orderedQueries.isEmpty() -> listOf(middleQuery)
-    else -> buildList(orderedQueries.size + 1) {
-        var added = false
+fun <Query> MutableList<Query>.insertSorted(
+    query: Query,
+    comparator: Comparator<Query>
+) {
+    // Not in the list, add it
+    if (isEmpty()) {
+        add(query)
+        return
+    }
+    val index = binarySearch(query, comparator)
+    if (index >= 0) return // Already exists
 
-        for (index in orderedQueries.indices) {
-            val leftQuery = orderedQueries[index]
+    when (val invertedIndex = abs(index + 1)) {
+        in 0..lastIndex -> add(
+            index = invertedIndex,
+            element = query
+        )
 
-            if (added) {
-                add(leftQuery)
-                continue
-            }
-
-            val rightQuery = orderedQueries.getOrNull(index + 1)
-            val leftComparison = order.comparator.compare(leftQuery, middleQuery)
-            val rightComparison = when (rightQuery) {
-                null -> Int.MAX_VALUE
-                else -> order.comparator.compare(rightQuery, middleQuery)
-            }
-            val addBefore = leftComparison > 0
-            val isDuplicate = leftComparison == 0
-            val addAfter = leftComparison < 0 && rightComparison > 0
-
-            if (addBefore) add(middleQuery)
-            add(leftQuery)
-            if (addAfter) add(middleQuery)
-
-            added = addBefore || isDuplicate || addAfter
-        }
+        else -> add(
+            element = query
+        )
     }
 }
