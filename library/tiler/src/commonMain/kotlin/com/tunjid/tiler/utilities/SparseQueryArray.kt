@@ -19,13 +19,9 @@ package com.tunjid.tiler.utilities
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmOverloads
 
-internal fun QueryRange(
-    start: Int,
-    end: Int,
-) = QueryRange(
-    start.toLong().shl(32) or (end.toLong() and 0xFFFFFFFF)
-)
-
+/**
+ * Describes a range of indices for which a given query may be found
+ */
 @JvmInline
 internal value class QueryRange(
     val packedValue: Long
@@ -35,9 +31,22 @@ internal value class QueryRange(
 
     val end: Int get() = packedValue.and(0xFFFFFFFF).toInt()
 
-    override fun toString(): String = "QueryRange(start=$start, end=$end)"
+    override fun toString(): String = "QueryRange(start=$start,end=$end)"
 }
 
+internal fun QueryRange(
+    start: Int,
+    end: Int,
+) = QueryRange(
+    start.toLong().shl(32) or (end.toLong() and 0xFFFFFFFF)
+)
+
+/**
+ * Uses the basic tenets of a
+ * [SparseArray]("https://developer.android.com/reference/android/util/SparseArray")
+ * To map a range of indices to a [Query]. This allows for the association of queries
+ * to indices without allocating an object as seen in [MutablePairedTiledList].
+ */
 internal class SparseQueryArray<Query> @JvmOverloads constructor(
     initialCapacity: Int = 10
 ) {
@@ -45,16 +54,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
     private var keys: LongArray
     private var values: Array<Any?>
     private var size: Int
-    /**
-     * Creates a new SparseArray containing no mappings that will not
-     * require any additional memory allocation to store the specified
-     * number of mappings.  If you supply an initial capacity of 0, the
-     * sparse array will be initialized with a light-weight representation
-     * not requiring any additional array allocations.
-     */
-    /**
-     * Creates a new SparseArray containing no mappings.
-     */
+
     init {
         if (initialCapacity == 0) {
             keys = longArrayOf()
@@ -66,29 +66,31 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         size = 0
     }
 
-    fun appendQuery(query: Query, count: Int) {
-        val lastIndex = if (size == 0) -1 else QueryRange(keys[size - 1]).end - 1
+    fun appendQuery(
+        query: Query,
+        count: Int
+    ) = when (size) {
+        0 -> set(
+            range = QueryRange(start = 0, end = count),
+            value = query
+        )
+        else -> {
+            // Append at the end
+            val lastIndex = QueryRange(keys[size - 1]).end - 1
 
-        when (size) {
-            0 -> set(
-                key = QueryRange(
-                    start = 0,
-                    end = count
-                ),
-                value = query
-            )
-            else -> updateExistingQueryOr(
+            updateExistingQueryOr(
                 index = lastIndex,
                 query = query,
                 count = count
             ) {
                 // Append at the end
-                this[
-                    QueryRange(
+                set(
+                    range = QueryRange(
                         start = lastIndex + 1,
                         end = lastIndex + count + 1
-                    )
-                ] = query
+                    ),
+                    value = query
+                )
             }
         }
     }
@@ -102,24 +104,21 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         query = query,
         count = count
     ) { i ->
-        if (i < 0) throw IllegalArgumentException("Index $index is not present")
+        if (i < 0) throw IllegalArgumentException(
+            "Index $index is not present in SparseQueryArray of size $size and contents $this"
+        )
 
         val newRange = QueryRange(
             start = index,
             end = index + count
         )
         // Shift items to accommodate new entry
-        val gap = newRange.end - newRange.start
-
-        for (j in i until size) {
-            val existing = QueryRange(keys[j])
-            keys[j] = QueryRange(
-                start = existing.start + gap,
-                end = existing.end + gap,
-            ).packedValue
-        }
+        shiftRangesBy(
+            startIndex = i,
+            gap = newRange.end - newRange.start
+        )
         set(
-            key = newRange,
+            range = newRange,
             value = query
         )
     }
@@ -147,15 +146,10 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         keys[i] = newRange.packedValue
 
         if (existingRange.end != newRange.end) {
-            val gap = newRange.end - existingRange.end
-
-            for (j in i + 1 until size) {
-                val range = QueryRange(keys[j])
-                keys[j] = QueryRange(
-                    start = range.start + gap,
-                    end = range.end + gap,
-                ).packedValue
-            }
+            shiftRangesBy(
+                startIndex = i + 1,
+                gap = newRange.end - existingRange.end
+            )
         }
     }
 
@@ -173,29 +167,27 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             start = existingRange.start,
             end = existingRange.end - 1
         )
+        // This range is invalid. Remove it.
         if (newRange.start == newRange.end) {
             values[i] = DELETED
             gc()
         }
+        shiftRangesBy(
+            startIndex = i,
+            gap = -1
+        )
+    }
 
-        val gap = -1
-
-        for (j in i until size) {
-            val existing = QueryRange(keys[j])
-            keys[j] = QueryRange(
+    private fun shiftRangesBy(startIndex: Int, gap: Int) {
+        for (i in startIndex until size) {
+            val existing = QueryRange(keys[i])
+            keys[i] = QueryRange(
                 start = existing.start + gap,
                 end = existing.end + gap,
             ).packedValue
         }
     }
 
-    /**
-     * Returns true if the key exists in the array. This is equivalent to
-     * [.indexOfKey] >= 0.
-     *
-     * @param key Potential key in the mapping
-     * @return true if the key is defined in the mapping
-     */
     operator fun contains(key: Int): Boolean {
         return indexOfKey(key) >= 0
     }
@@ -208,9 +200,9 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
      * Gets the Object mapped from the specified key, or `null`
      * if no such mapping has been made.
      */
-    fun find(key: Int): Query {
+    fun find(index: Int): Query {
         val i: Int = keys.indexBinarySearch(
-            index = key,
+            index = index,
             size = size
         )
         if (i < 0 || values[i] === DELETED) throw IllegalArgumentException(
@@ -225,9 +217,9 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
      * replacing the previous mapping from the specified key if there
      * was one.
      */
-    operator fun set(key: QueryRange, value: Query) {
+    private fun set(range: QueryRange, value: Query) {
         var i: Int = keys.indexBinarySearch(
-            index = key.start,
+            index = range.start,
             size = size
         )
         if (i >= 0) return values.set(
@@ -237,7 +229,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
 
         i = i.inv()
         if (i < size && values[i] === DELETED) {
-            keys[i] = key.packedValue
+            keys[i] = range.packedValue
             values[i] = value
             return
         }
@@ -246,14 +238,14 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
 
             // Search again because indices may have changed.
             i = keys.indexBinarySearch(
-                index = key.start,
+                index = range.start,
                 size = size
             ).inv()
         }
         keys = keys.insert(
             currentSize = size,
             index = i,
-            element = key.packedValue
+            element = range.packedValue
         )
         values = values.insert(
             currentSize = size,
@@ -264,7 +256,6 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
     }
 
     private fun gc() {
-        // Log.e("SparseArray", "gc start with " + mSize);
         val n = size
         var o = 0
         val keys = keys
@@ -308,41 +299,13 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
     }
 
 
-    /**
-     * Puts a key/value pair into the array, optimizing for the case where
-     * the key is greater than all existing keys in the array.
-     */
-//    fun append(key: Int, value: Query) {
-//        if (size != 0 && key <= keys[size - 1]) {
-//            put(key, value)
-//            return
-//        }
-//        if (garbage && size >= keys.size) {
-//            gc()
-//        }
-//        keys = keys.append(size, key)
-//        values = values.append(size, value)
-//        size++
-//    }
-
-    private inline fun <T> checkSize(index: Int, block: () -> T): T {
-        if (index >= size) {
-            // The array might be slightly bigger than mSize, in which case, indexing won't fail.
-            // Check if exception should be thrown outside of the critical path.
-            throw IndexOutOfBoundsException(
-                "Unable to look up index $index bc it is larger than the size ($size) of this SparseArray"
-            )
-        }
-        return block()
-    }
-
     override fun toString(): String =
         keys
             .take(size)
             .map(::QueryRange)
             .zip(values)
             .joinToString(
-                separator = "\n",
+                prefix = "\n",
                 transform = { (key, value) -> "$key - $value" }
             )
 
