@@ -66,50 +66,48 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         size = 0
     }
 
-    inline fun replaceIfMatches(
-        index: Int,
-        query: Query,
-        block: (QueryRange) -> QueryRange
-    ): Boolean {
-        val i = keys.indexBinarySearch(
-            index = index,
-            size = size
-        )
-        if (i < 0) throw IllegalArgumentException("Index $index is not present")
+    fun appendQuery(query: Query, count: Int) {
+        val lastIndex = if (size == 0) -1 else QueryRange(keys[size - 1]).end - 1
 
-        val existing = values[i]
-        if (query != existing) return false
-
-        val existingRange = QueryRange(keys[i])
-        val newRange = block(existingRange)
-        keys[i] = newRange.packedValue
-
-        if (existingRange.end != newRange.end) {
-            val gap = newRange.end - existingRange.end
-
-            for (j in i + 1 until size) {
-                val existing = QueryRange(keys[j])
-                keys[j] = QueryRange(
-                    start = existing.start + gap,
-                    end = existing.end + gap,
-                ).packedValue
+        when (size) {
+            0 -> set(
+                key = QueryRange(
+                    start = 0,
+                    end = count
+                ),
+                value = query
+            )
+            else -> updateExistingQueryOr(
+                index = lastIndex,
+                query = query,
+                count = count
+            ) {
+                // Append at the end
+                this[
+                    QueryRange(
+                        start = lastIndex + 1,
+                        end = lastIndex + count + 1
+                    )
+                ] = query
             }
         }
-
-        return true
     }
 
-    inline fun insert(
+    fun insertQuery(
         index: Int,
         query: Query,
-        newRange: QueryRange,
-    ): Boolean {
-        val i = keys.indexBinarySearch(
-            index = index,
-            size = size
-        )
+        count: Int
+    ) = updateExistingQueryOr(
+        index = index,
+        query = query,
+        count = count
+    ) { i ->
         if (i < 0) throw IllegalArgumentException("Index $index is not present")
 
+        val newRange = QueryRange(
+            start = index,
+            end = index + count
+        )
         // Shift items to accommodate new entry
         val gap = newRange.end - newRange.start
 
@@ -120,13 +118,45 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
                 end = existing.end + gap,
             ).packedValue
         }
-
         set(
             key = newRange,
             value = query
         )
+    }
 
-        return true
+    private inline fun updateExistingQueryOr(
+        index: Int,
+        query: Query,
+        count: Int,
+        block: (Int) -> Unit
+    ) {
+        val i = keys.indexBinarySearch(
+            index = index,
+            size = size
+        )
+        if (i < 0) throw IllegalArgumentException("Index $index is not present")
+
+        val existing = values[i]
+        if (query != existing) return block(i)
+
+        val existingRange = QueryRange(keys[i])
+        val newRange = QueryRange(
+            start = existingRange.start,
+            end = existingRange.end + count
+        )
+        keys[i] = newRange.packedValue
+
+        if (existingRange.end != newRange.end) {
+            val gap = newRange.end - existingRange.end
+
+            for (j in i + 1 until size) {
+                val range = QueryRange(keys[j])
+                keys[j] = QueryRange(
+                    start = range.start + gap,
+                    end = range.end + gap,
+                ).packedValue
+            }
+        }
     }
 
     fun deleteAt(
