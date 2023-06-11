@@ -52,7 +52,7 @@ internal class SparseTiledList<Query, Item>(
         insertQuery(
             index = index,
             query = query,
-            size = 1
+            count = 1
         )
         this.items.add(index, item)
     }
@@ -60,7 +60,7 @@ internal class SparseTiledList<Query, Item>(
     override fun add(query: Query, item: Item): Boolean {
         appendQuery(
             query = query,
-            size = 1
+            count = 1
         )
         return this.items.add(item)
     }
@@ -69,7 +69,7 @@ internal class SparseTiledList<Query, Item>(
         if (items.isEmpty()) return false
         appendQuery(
             query = query,
-            size = items.size
+            count = items.size
         )
         this.items.addAll(items)
         return true
@@ -80,7 +80,7 @@ internal class SparseTiledList<Query, Item>(
         insertQuery(
             index = index,
             query = query,
-            size = items.size
+            count = items.size
         )
         this.items.addAll(index = index, elements = items)
         return true
@@ -91,7 +91,7 @@ internal class SparseTiledList<Query, Item>(
         return items.removeAt(index)
     }
 
-    private fun appendQuery(query: Query, size: Int) {
+    private fun appendQuery(query: Query, count: Int) {
         val lastIndex = items.lastIndex
         // If the queries are consecutive, simply replace the last one
         val replaced = isNotEmpty() && queryRanges.replaceIfMatches(
@@ -100,7 +100,7 @@ internal class SparseTiledList<Query, Item>(
         ) { oldRange ->
             QueryRange(
                 start = oldRange.start,
-                end = oldRange.end + size
+                end = oldRange.end + count
             )
         }
         if (replaced) return
@@ -109,20 +109,20 @@ internal class SparseTiledList<Query, Item>(
         queryRanges[
             QueryRange(
                 start = lastIndex + 1,
-                end = lastIndex + size + 1
+                end = lastIndex + count + 1
             )
         ] = query
 
     }
 
-    private fun insertQuery(index: Int, query: Query, size: Int) {
+    private fun insertQuery(index: Int, query: Query, count: Int) {
         val replaced = queryRanges.replaceIfMatches(
             index = index,
             query = query
         ) { oldRange ->
             QueryRange(
                 start = oldRange.start,
-                end = oldRange.end + size
+                end = oldRange.end + count
             )
         }
         if (replaced) return
@@ -131,7 +131,7 @@ internal class SparseTiledList<Query, Item>(
             index = index,
             newRange = QueryRange(
                 start = index,
-                end = index + size
+                end = index + count
             ),
             query = query
         )
