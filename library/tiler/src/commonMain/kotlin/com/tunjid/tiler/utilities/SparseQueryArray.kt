@@ -386,7 +386,7 @@ private inline fun <Container, Element> Container.append(
         containerCopy(container, newContainer)
         container = newContainer
     }
-    containerSet(currentSize, element)
+    container.containerSet(currentSize, element)
     return container
 }
 
