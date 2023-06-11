@@ -32,6 +32,13 @@ internal class SparseTiledList<Query, Item>(
     val queryRanges = SparseQueryArray<Query>(pairs.size)
     private val items: MutableList<Item> = mutableListOf()
 
+    init {
+        for (pair in pairs) add(
+            query = pair.first,
+            item = pair.second
+        )
+    }
+
     override fun queryAt(index: Int): Query {
         if (isEmpty() || index !in 0..lastIndex) throw IndexOutOfBoundsException()
         return queryRanges.find(index) ?: throw IndexOutOfBoundsException()
