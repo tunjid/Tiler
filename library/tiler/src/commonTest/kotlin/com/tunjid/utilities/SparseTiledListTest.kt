@@ -17,7 +17,7 @@
 package com.tunjid.utilities
 
 import com.tunjid.tiler.TiledList
-import com.tunjid.tiler.mutableTiledListOf
+import com.tunjid.tiler.utilities.MutablePairedTiledList
 import com.tunjid.tiler.utilities.SparseTiledList
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -43,8 +43,8 @@ class SparseTiledListTest {
             query = 1,
             item = 10
         )
-        assertEquals(
-            expected = mutableTiledListOf(
+        assertEquals<TiledList<Int, Int>>(
+            expected = MutablePairedTiledList(
                 1 to 1,
                 1 to 2,
                 1 to 5,
@@ -73,8 +73,8 @@ class SparseTiledListTest {
             query = 1,
             item = 10
         )
-        assertEquals(
-            expected = mutableTiledListOf(
+        assertEquals<TiledList<Int, Int>>(
+            expected = MutablePairedTiledList(
                 1 to 1,
                 1 to 2,
                 1 to 3,
@@ -112,8 +112,8 @@ class SparseTiledListTest {
             query = 1,
             item = 4
         )
-        assertEquals(
-            expected = mutableTiledListOf(
+        assertEquals<TiledList<Int, Int>>(
+            expected = MutablePairedTiledList(
                 1 to 1,
                 1 to 3,
                 1 to 4,
@@ -148,8 +148,8 @@ class SparseTiledListTest {
             item = 18
         )
 
-        assertEquals(
-            expected = mutableTiledListOf(
+        assertEquals<TiledList<Int, Int>>(
+            expected = MutablePairedTiledList(
                 1 to 1,
                 1 to 2,
                 3 to 5,
@@ -189,8 +189,8 @@ class SparseTiledListTest {
             query = 17,
             item = 27
         )
-        assertEquals(
-            expected = mutableTiledListOf(
+        assertEquals<TiledList<Int, Int>>(
+            expected = MutablePairedTiledList(
                 1 to 1,
                 1 to 2,
                 9 to 4,
@@ -225,8 +225,8 @@ class SparseTiledListTest {
             query = 1,
             item = 18
         )
-        assertEquals(
-            expected = mutableTiledListOf(
+        assertEquals<TiledList<Int, Int>>(
+            expected = MutablePairedTiledList(
                 1 to 1,
                 1 to 2,
                 3 to 5,
@@ -238,8 +238,8 @@ class SparseTiledListTest {
 
         sparseTiledList.remove(2)
         println(sparseTiledList.queryRanges)
-        assertEquals(
-            expected = mutableTiledListOf(
+        assertEquals<TiledList<Int, Int>>(
+            expected = MutablePairedTiledList(
                 1 to 1,
                 1 to 2,
                 7 to 10,
@@ -249,8 +249,8 @@ class SparseTiledListTest {
         )
 
         sparseTiledList.remove(1)
-        assertEquals(
-            expected = mutableTiledListOf(
+        assertEquals<TiledList<Int, Int>>(
+            expected = MutablePairedTiledList(
                 1 to 1,
                 7 to 10,
                 1 to 18,
@@ -259,8 +259,8 @@ class SparseTiledListTest {
         )
 
         sparseTiledList.remove(2)
-        assertEquals(
-            expected = mutableTiledListOf(
+        assertEquals<TiledList<Int, Int>>(
+            expected = MutablePairedTiledList(
                 1 to 1,
                 7 to 10,
             ),
@@ -268,6 +268,3 @@ class SparseTiledListTest {
         )
     }
 }
-
-fun <Query, Item> TiledList<Query, Item>.asPairs() =
-    mapIndexed { i: Int, item: Item -> queryAt(i) to item }

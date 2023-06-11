@@ -18,6 +18,7 @@ package com.tunjid.tiler
 
 import com.tunjid.tiler.utilities.EmptyTiledList
 import com.tunjid.tiler.utilities.MutablePairedTiledList
+import com.tunjid.tiler.utilities.SparseTiledList
 
 /**
  * A [List] where each item is backed by the [Query] that fetched it.
@@ -62,7 +63,7 @@ fun <Query, Item> emptyTiledList(): TiledList<Query, Item> =
 fun <Query, Item> tiledListOf(
     vararg pairs: Pair<Query, Item>
 ): TiledList<Query, Item> =
-    if (pairs.isEmpty()) emptyTiledList() else MutablePairedTiledList(*pairs)
+    if (pairs.isEmpty()) emptyTiledList() else SparseTiledList(*pairs)
 
 /**
  * Returns a [MutableTiledList] instance
@@ -70,7 +71,7 @@ fun <Query, Item> tiledListOf(
 fun <Query, Item> mutableTiledListOf(
     vararg pairs: Pair<Query, Item>
 ): MutableTiledList<Query, Item> =
-    MutablePairedTiledList(*pairs)
+    SparseTiledList(*pairs)
 
 /**
  * Builds a new read-only List by populating a MutableList using the given builderAction and returning a read-only list with the same elements.
