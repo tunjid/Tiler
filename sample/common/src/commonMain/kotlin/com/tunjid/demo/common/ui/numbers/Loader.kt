@@ -41,8 +41,9 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlin.math.max
+import kotlin.math.min
 
-private const val ITEMS_PER_PAGE = 50
+private const val ITEMS_PER_PAGE = 100
 
 private const val MIN_ITEMS_PER_PAGE = 50
 
@@ -108,7 +109,10 @@ class Loader(
     // Change limit to account for dynamic view port size
     private val limitInputs = numberOfColumns.map { noColumns ->
         Tile.Limiter<PageQuery, NumberTile>(
-            maxQueries = noColumns * 2,
+            maxQueries = max(
+                a = noColumns * 2,
+                b = 3
+            ),
             itemSizeHint = ITEMS_PER_PAGE
         )
     }
