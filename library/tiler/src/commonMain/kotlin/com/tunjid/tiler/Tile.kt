@@ -132,11 +132,11 @@ class Tile<Query, Item : Any?> {
          */
         val maxQueries: Int,
         /**
-         * Optimizes retrieval speed for items fetched. Use only if your queries return a fixed number
-         * of items each time, for example sql queries with a limit parameter. It is fine if the items returned
-         * by the last query specified by [Tile.Order] returns less than the size specified.
+         * Optimizes retrieval speed for items fetched. Use only if you can guarantee that
+         * your queries return a fixed number of items each time, for example SQL queries with a
+         * limit parameter.
          */
-        val itemSizeHint: Int?,
+        val itemSizeHint: Int? = null,
     ) : Input<Query, Item>, Output<Query, Item>
 
     internal data class Data<Query, Item>(
