@@ -16,10 +16,13 @@
 
 package com.tunjid.tiler
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -96,7 +99,7 @@ class ListMapTilingSamenessTest {
                 },
             )
             .take(requests.size)
-            .toList()
+            .toListWithTimeout(200)
 
         val optimizedEmissions = requests
             .asFlow()
@@ -107,37 +110,21 @@ class ListMapTilingSamenessTest {
                     Tile.Order.PivotSorted(query = 4, comparator = Int::compareTo)
                 },
             )
-            .take(requests.size)
-            .toList()
+            .toListWithTimeout(200)
 
-        // First emission
         assertEquals(
-            expected = 4.tiledTestRange(),
-            actual = emissions[0]
-        )
-
-        // Second emission
-        assertEquals(
-            expected = 3.tiledTestRange() + 4.tiledTestRange(),
-            actual = emissions[1]
-        )
-
-        // Third emission
-        assertEquals(
-            expected = 3.tiledTestRange() + 4.tiledTestRange() + 8.tiledTestRange(),
-            actual = emissions[2]
-        )
-
-        // Fourth emission, 5 should replace 8 in pivoting
-        assertEquals(
-            expected = 3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
-            actual = emissions[3]
-        )
-
-        // Fifth emission, 2 should not show up in the list
-        assertEquals(
-            expected = 3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
-            actual = emissions[4]
+            expected = listOf(
+                // First emission
+                4.tiledTestRange(),
+                // Second emission
+                3.tiledTestRange() + 4.tiledTestRange(),
+                // Third emission
+                3.tiledTestRange() + 4.tiledTestRange() + 8.tiledTestRange(),
+                // Fourth emission, 5 should replace 8 in pivoting
+                3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
+                // Fifth emission, 2 should not show up in the list
+            ),
+            actual = emissions
         )
 
         // Optimizations should not change the results
@@ -173,7 +160,7 @@ class ListMapTilingSamenessTest {
                     else page.tiledTestRange()
                 }
             )
-            .take(requests.size)
+            .take(requests.size - 1)
             .toList()
 
         // First emission
@@ -218,20 +205,72 @@ class ListMapTilingSamenessTest {
             actual = emissions[6]
         )
 
-        // Eighth emission, pivoted around 6.
-        assertEquals(
-            expected = 3.tiledTestRange() + 5.tiledTestRange() + 7.tiledTestRange(),
-            actual = emissions[7]
-        )
+        // No eighth emission, the output has not meaningfully changed.
+    }
+
+    @Test
+    fun sequential_pivoting_works() = runTest {
+        val range = (0..15)
+        (1..10).forEach { itemsPerPage ->
+            (3..10).forEach { numPages ->
+                val comparator = Comparator(Int::compareTo)
+                val pivotRequest: PivotRequest<Int, Int> = PivotRequest(
+                    onCount = numPages,
+                    offCount = 0,
+                    comparator = comparator,
+                    nextQuery = { this + 1 },
+                    previousQuery = { (this - 1).takeIf { it >= 0 } },
+                )
+                val emissions = range
+                    .asFlow()
+                    .onEach { delay(1) }
+                    .toPivotedTileInputs(pivotRequest = pivotRequest)
+                    .tileWith(
+                        maxQueries = numPages,
+                        queryItemsSize = null,
+                        orderFactory = {
+                            Tile.Order.PivotSorted(
+                                query = 0,
+                                comparator = Int::compareTo
+                            )
+                        },
+                        pageFactory = { page ->
+                            page.testRange(itemsPerPage).toList()
+                        }
+                    )
+                    .takeWhile { tiledList ->
+                        if (tiledList.isEmpty()) throw IllegalArgumentException("Should not be empty here")
+                        val middleIndex = tiledList.size / 2
+                        val pivotedPage = tiledList.queryAt(middleIndex)
+                        pivotedPage < range.last
+                    }
+                    .toList()
+
+                val expected = range
+                    .takeWhile { page ->
+                        page < range.last - (numPages / 2)
+                    }
+                    .map { page ->
+                        (0 until numPages).fold(tiledListOf<Int, Int>()) { list, index ->
+                            list + (page + index).tiledTestRange(itemsPerPage = itemsPerPage)
+                        }
+                    }
+
+                assertEquals(
+                    expected = expected,
+                    actual = emissions
+                )
+            }
+        }
     }
 }
 
 private fun Flow<Tile.Input<Int, Int>>.tileWith(
     maxQueries: Int,
     queryItemsSize: Int?,
-    pageFactory: (Int) -> List<Int> = { page -> page.testRange.toList() },
+    pageFactory: (Int) -> List<Int> = { page -> page.testRange().toList() },
     orderFactory: () -> Tile.Order<Int, Int>
-): Flow<List<Int>> = listTiler(
+): Flow<TiledList<Int, Int>> = listTiler(
     // Take 3 pages of items
     limiter = Tile.Limiter(
         maxQueries = maxQueries,

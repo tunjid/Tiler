@@ -17,9 +17,6 @@
 package com.tunjid.tiler
 
 import app.cash.turbine.test
-import com.tunjid.tiler.utilities.PivotRequest
-import com.tunjid.tiler.utilities.pivotWith
-import com.tunjid.tiler.utilities.toTileInputs
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asFlow
@@ -48,7 +45,7 @@ class TileKtTest {
         listTiler = listTiler(
             order = Tile.Order.Sorted(Int::compareTo)
         ) { page ->
-            tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange.toList()) }
+            tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange().toList()) }
         }
     }
 
@@ -64,7 +61,7 @@ class TileKtTest {
             .take(requests.size)
             .toList()
 
-        assertTiledListEquals(
+        assertEquals(
             expected = 1.tiledTestRange(),
             actual = emissions[0]
         )
@@ -83,15 +80,15 @@ class TileKtTest {
             .take(requests.size)
             .toList()
 
-        assertTiledListEquals(
+        assertEquals(
             expected = 1.tiledTestRange(),
             actual = emissions[0]
         )
-        assertTiledListEquals(
+        assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
             actual = emissions[1]
         )
-        assertTiledListEquals(
+        assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
             actual = emissions[2]
         )
@@ -116,7 +113,7 @@ class TileKtTest {
             .take(requests.size)
             .toList()
 
-        assertTiledListEquals(
+        assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
             actual = emissions.last()
         )
@@ -155,7 +152,7 @@ class TileKtTest {
             .take(requests.filterIsInstance<Tile.Request.On<Int, List<Int>>>().size)
             .toList()
 
-        assertTiledListEquals(
+        assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
             actual = emissions.last()
         )
@@ -176,7 +173,7 @@ class TileKtTest {
             .take(1)
             .toList()
 
-        assertTiledListEquals(
+        assertEquals(
             expected = 1.tiledTestRange(),
             actual = emissions.last()
         )
@@ -205,19 +202,19 @@ class TileKtTest {
             .take(requests.size)
             .toList()
 
-        assertTiledListEquals(
+        assertEquals(
             expected = 1.tiledTestRange(),
             actual = emissions[0]
         )
-        assertTiledListEquals(
+        assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
             actual = emissions[1]
         )
-        assertTiledListEquals(
+        assertEquals(
             expected = 3.tiledTestRange(),
             actual = emissions[2]
         )
-        assertTiledListEquals(
+        assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
             actual = emissions[3]
         )
@@ -231,28 +228,28 @@ class TileKtTest {
         items.test {
             // Request page 1
             requests.emit(Tile.Request.On(query = 1))
-            assertTiledListEquals(
+            assertEquals(
                 expected = 1.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Request page 3
             requests.emit(Tile.Request.On(query = 3))
-            assertTiledListEquals(
+            assertEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Request page 8
             requests.emit(Tile.Request.On(query = 8))
-            assertTiledListEquals(
+            assertEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Reverse sort by page
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo).reversed()))
-            assertTiledListEquals(
+            assertEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
                 actual = awaitItem()
             )
@@ -264,7 +261,7 @@ class TileKtTest {
                     itemSizeHint = 10
                 )
             )
-            assertTiledListEquals(
+            assertEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange(),
                 actual = awaitItem()
             )
@@ -276,21 +273,21 @@ class TileKtTest {
                     itemSizeHint = 10
                 )
             )
-            assertTiledListEquals(
+            assertEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Sort ascending
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
-            assertTiledListEquals(
+            assertEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Request 4
             requests.emit(Tile.Request.On(query = 4))
-            assertTiledListEquals(
+            assertEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange() + 4.tiledTestRange(),
                 actual = awaitItem()
             )
@@ -302,14 +299,14 @@ class TileKtTest {
                     comparator = Comparator(Int::compareTo)
                 )
             )
-            assertTiledListEquals(
+            assertEquals(
                 3.tiledTestRange() + 4.tiledTestRange() + 8.tiledTestRange(),
                 awaitItem()
             )
 
             // Sort ascending in absolute terms
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
-            assertTiledListEquals(
+            assertEquals(
                 1.tiledTestRange() + 3.tiledTestRange() + 4.tiledTestRange(),
                 awaitItem()
             )
@@ -355,8 +352,9 @@ class TileKtTest {
             .toTiledList(listTiler)
             .take(inputs.size)
             .toListWithTimeout(200)
+        println(emissions.joinToString(separator = "\n"))
 
-        assertBatchTiledListEquals(
+        assertEquals(
             expected = listOf(
                 0.tiledTestRange(),
                 0.tiledTestRange() + 1.tiledTestRange(),
@@ -383,7 +381,7 @@ class TileKtTest {
                 .take(inputs.size)
                 .toListWithTimeout(200)
 
-            assertBatchTiledListEquals(
+            assertEquals(
                 expected = listOf(
                     2.tiledTestRange()
                 ),
@@ -397,7 +395,7 @@ class TileKtTest {
             order = Tile.Order.Sorted(Int::compareTo)
         ) { emptyFlow() }
         val inputs = flowOf(0).pivotWith(
-            PivotRequest(
+            PivotRequest<Int, Int>(
                 onCount = 3,
                 offCount = 2,
                 comparator = Int::compareTo,
@@ -405,11 +403,10 @@ class TileKtTest {
                 previousQuery = { (this - 1).takeIf { it >= 0 } }
             )
         )
-            .toTileInputs<Int, Int>()
 
         val emissions = tiler(inputs).toListWithTimeout(200)
 
-        assertBatchTiledListEquals(
+        assertEquals(
             expected = emptyList(),
             actual = emissions
         )
@@ -423,9 +420,9 @@ class TileKtTest {
                 query = 0,
                 comparator = comparator
             )
-        ) { page -> flowOf(page.testRange.toList()) }
+        ) { page -> flowOf(page.testRange().toList()) }
         val inputs = flowOf(0).pivotWith(
-            PivotRequest(
+            PivotRequest<Int, Int>(
                 onCount = 3,
                 offCount = 2,
                 comparator = comparator,
@@ -433,11 +430,10 @@ class TileKtTest {
                 previousQuery = { (this - 1).takeIf { it >= 0 } }
             )
         )
-            .toTileInputs<Int, Int>()
 
         val emissions = tiler(inputs).toListWithTimeout(200)
 
-        assertBatchTiledListEquals(
+        assertEquals(
             expected = listOf(
                 0.tiledTestRange() + 1.tiledTestRange() + 2.tiledTestRange()
             ),
@@ -453,21 +449,21 @@ class TileKtTest {
         items.test {
             // Request page 1
             requests.emit(Tile.Request.On(query = 1))
-            assertTiledListEquals(
+            assertEquals(
                 expected = 1.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Request page 2
             requests.emit(Tile.Request.On(query = 2))
-            assertTiledListEquals(
+            assertEquals(
                 expected = 1.tiledTestRange() + 2.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Request page 3
             requests.emit(Tile.Request.On(query = 3))
-            assertTiledListEquals(
+            assertEquals(
                 expected = 1.tiledTestRange() + 2.tiledTestRange() + 3.tiledTestRange(),
                 actual = awaitItem()
             )
@@ -479,14 +475,14 @@ class TileKtTest {
                     itemSizeHint = 10
                 )
             )
-            assertTiledListEquals(
+            assertEquals(
                 expected = 1.tiledTestRange() + 2.tiledTestRange(),
                 actual = awaitItem()
             )
 
             // Reverse sort by page
             requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo).reversed()))
-            assertTiledListEquals(
+            assertEquals(
                 expected = 3.tiledTestRange() + 2.tiledTestRange(),
                 actual = awaitItem()
             )
@@ -498,7 +494,7 @@ class TileKtTest {
                     comparator = Comparator(Int::compareTo)
                 )
             )
-            assertTiledListEquals(
+            assertEquals(
                 expected = 1.tiledTestRange() + 2.tiledTestRange(),
                 actual = awaitItem()
             )
@@ -510,7 +506,7 @@ class TileKtTest {
                     comparator = Comparator(Int::compareTo).reversed()
                 )
             )
-            assertTiledListEquals(
+            assertEquals(
                 expected = 3.tiledTestRange() + 2.tiledTestRange(),
                 actual = awaitItem()
             )

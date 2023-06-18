@@ -28,12 +28,12 @@ fun <T> items(query: Query): Flow<List<T>>
 
 into a paginated API.
 
-It does this by exposing a functional reactive API most similar to a `Map` where:
+It does this by exposing a functional reactive API most similar to the MVI architectural pattern:
 
-* The keys are the queries (`Query`) for data
-* The values are dynamic sets of data returned over time as the result of the `Query` key.
+* The inputs modify the queries for data
+* The output is the data returned over time in a `List`.
 
-The output of tiling is a `TiledList`, a `List` implementation that allows for looking up the query that fetched each item. It is defined as:
+This output of tiling is a `TiledList`, a `List` implementation that allows for looking up the query that fetched each item. It is defined as:
 
 ```Kotlin
 interface TiledList<Query, Item> : List<Item> {
@@ -75,60 +75,6 @@ the entire paginated data set. An example is in the sample in this
 `Tiler` is available on mavenCentral with the latest version indicated by the badge at the top of this readme file.
 
 `implementation com.tunjid.tiler:tiler:version`
-
-## API surface
-
-### Getting your data
-
-Tiling prioritizes access to the data you've paged through, allowing you to read all paginated data at once, or a subset of it
-(using `Input.Limiter`). This allows you to trivially transform the data you've fetched after the fact.
-
-Tilers are implemented as plain functions. Given a `Flow` of `Input`, tiling transforms them into a `Flow<TiledList<Query, Item>>` with a `ListTiler`.
-
-The resulting `TiledList` should be kept at under 100 items. You can then transform this list however way you want.
-
-## Managing requested data
-
-Much like a classic `Map` that supports update and remove methods, a Tiler offers analogous operations in the form
-of `Inputs`.
-
-### `Input.Request`
-
-* On: Analogous to `put` for a `Map`, this starts collecting from the backing `Flow` for the specified `query`. It is
-  idempotent; multiple requests have no side effects for loading, i.e the same `Flow` will not be collect twice.
-
-* Off: Stops collecting from the backing `Flow` for the specified `query`. The items previously fetched by this query
-  are still kept in memory and will be in the `List` of items returned. Requesting this is idempotent; multiple requests
-  have no side effects.
-
-* Evict: Analogous to `remove` for a `Map`, this stops collecting from the backing `Flow` for the specified `query` and
-  also evicts the items previously fetched by the `query` from memory. Requesting this is idempotent; multiple requests
-  have no side effects.
-
-* PivotAround: Only valid when using the `PivotSorted` `Order`, this allows for returing a `TiledList` from results
-  around a certain `Query`.
-
-### `Input.Limiter`
-
-Can be used to select a subset of items tiled instead of the entire paginated set. For example, assuming 1000 items have been
-fetched, there's no need to send a 1000 items to the UI for diffing/display when the UI can only show about 30 at once.
-The `Limiter` allows for selecting an arbitrary amount of items as the situation demands.
-
-### `Input.Order`
-
-Defines the heuristic for selecting tiled items into the output `TiledList`.
-
-* Unspecified: Items will be returned in an undefined order. This is the default.
-
-* Sorted: Sort items with a specified query `comparator`.
-
-* PivotSorted: Sort items with the specified `comparator` but pivoted around a specific `Query`.
-  This allows for showing items that have more priority over others in the current context
-  like example in a list being scrolled. In other words assume tiles have been fetched for queries 1 - 10 but a
-  user can see pages 5 and 6. The UI need only to be aware of pages 4, 5, 6, and 7. This allows for a rolling window of
-  queries based on a user's scroll position.
-
-* Custom: Flattens tiled items produced whichever way you desire.
 
 ## How to page with Tiling
 
@@ -178,33 +124,43 @@ Since tiling is dynamic at it's core, a pipeline can be built to allow for this 
 
 ### Basic example
 
-Imagine a simple contacts app backed by a `ContactsRepository`.
-Each page in the repository returns 100 contacts. A pivoted tiling pipeline for it can be assembled as follows:
+Imagine a social media feed app backed by a `FeedRepository`.
+Each page in the repository returns 100 items. A pivoted tiling pipeline for it can be assembled as follows:
 
 ```kotlin
-class PivotedNumberFetcher(
-    repository: ContactsRepository
+class FeedState(
+    repository: FeedRepository
 ) {
     private val requests = MutableStateFlow(0)
 
-    private val listTiler: ListTiler<Int, Contact> = listTiler(
-        // Limit to only 40 items in UI at any one time
-        limiter = Tile.Limiter { items -> items.size > 40 },
+    private val comparator = Comparator(Int::compareTo)
+
+    private val listTiler: ListTiler<Int, FeedItem> = listTiler(
+        // Start by pivoting around 0
+        order = Tile.Order.PivotSorted(
+          query = 0,
+          comparator = comparator
+        ),
+        // Limit to only 3 pages of data in UI at any one time
+        limiter = Tile.Limiter(
+          maxQueries = 3,
+          itemSizeHint = null,
+        ),
         fetcher = { page ->
           repository.getPage(page)
         }
     )
-
-    // All paginated items in a single list.
   
     // A TiledList is a regular List that has information about what
     // query fetched an item at each index
-    val contacts: Flow<TiledList<Int, Contact>> = requests
-        .toPivotedTileInputs<Int, Contact>(
+    val feed: StateFlow<TiledList<Int, FeedItem>> = requests
+        .toPivotedTileInputs<Int, FeedItem>(
             PivotRequest(
-                onCount = 3,
+                // 5 pages are fetched concurrently, so 500 items
+                onCount = 5,
+                // A buffer of 2 extra pages on either side are kept, so 700 items total
                 offCount = 2,
-                comparator = ascendingPageComparator,
+                comparator = comparator,
                 nextQuery = {
                     this + 1
                 },
@@ -214,6 +170,7 @@ class PivotedNumberFetcher(
             )
         )
         .toTiledList(listTiler)
+        .stateIn(/*...*/)
 
     fun setVisiblePage(page: Int) {
         requests.value = page
@@ -226,26 +183,26 @@ The UI is responsible for setting the visible page. In Jetpack Compose, this is 
 
 ```kotlin
 @Composable
-fun NumberTiles(
-    fetcher: PivotedNumberFetcher
+fun Feed(
+    state: FeedState
 ) {
-    val contacts by fetcher.contacts.collectAsState()
+    val feed by state.feed.collectAsState()
     val lazyState = rememberLazyListState()
   
     LazyColumn(
         state = lazyState,
         content = {
             items(
-                items = contacts,
-                key = NumberTile::key,
-                itemContent = { ... }
+                items = feed,
+                key = FeedItem::key,
+                itemContent = { /*...*/ }
             )
         }
     )
 
     lazyState.PivotedTilingEffect(
-        items = contacts,
-        onQueryChanged = { if (it != null) fetcher.setVisiblePage(it) }
+        items = feed,
+        onQueryChanged = { page -> if (it != null) state.setVisiblePage(page) }
     )
 }
 ```
@@ -253,9 +210,9 @@ fun NumberTiles(
 As the user scrolls, `setVisiblePage` is called to keep pivoting about the current position with the following
 constraints:
 
-* At most 40 contacts from the current page will be in the UI at any one time.
-* 3 pages will be observed concurrently, including the current page of the user. Any changes to the data in any
-of the pages will update the UI.
+* At most 3 pages of content (300 items) will be in the UI at any one time.
+* 5 pages will be observed concurrently, including the current page of the user. Any changes to the data in any
+of the pages will update the UI if it will be seen by the user (it is in th 300 being presented).
 * 2 pages will be kept in memory for quick access to accommodate UI interactions like flinging or jumping to a page.
 
 ### Advanced example
@@ -402,10 +359,69 @@ As tiling loads from multiple flows simultaneously, performance is a function of
 
 In the case of a former, the `Flow` should only emit if the backing dataset has actually changed. This prevents unnecessary emissions downstream.
 
-In the case of the latter, by using `Input.Limiter` and keeping the size of the `TiledList` under 100 items, you can
-create an efficient paging pipeline.
+In the case of the latter, use `PivotRequest(on = x)` and `Input.Limiter` to match the
+output `TiledList` to the view port of the user's device to create an efficient paging pipeline.
 
-For example if tiling is done for the UI, with a viewport that can display 20 items at once, 20 items can be fetched per page, and 100 (20 * 5) pages can be observed at concurrently. Using `Input.Limiter.List { it.size > 100 }`, only 100 items will be sent to the UI at once. The items can be transformed with algorithms of `O(N)` to `O(N^2)` time and space complexity trivially as regardless of the size of the actual paginated set, only 100 items will be transformed at any one time.
+For example if tiling is done for the UI, with a viewport that can display 20 items at once:
+
+* 20 items can be fetched per page
+* 100 items (20 * 5 pages) can be observed at concurrently
+* `Input.Limiter.List(maxQueries = 3)` can be set so only changes to the visible 60 items will be sent to the UI at once.
+
+The items can be transformed with algorithms of `O(N)` to `O(N^2)` time and space complexity
+trivially as regardless of the size of the actual paginated set, only 60 items will be transformed
+at any one time.
+
+## API surface and Tiling primitives
+
+### Getting your data
+
+Tiling prioritizes access to the data you've paged through, allowing you to read all paginated data at once, or a subset of it
+(using `Input.Limiter`). This allows you to trivially transform the data you've fetched after the fact.
+
+Tilers are implemented as plain functions. Given a `Flow` of `Input`, tiling transforms them into a `Flow<TiledList<Query, Item>>` with a `ListTiler`.
+
+The resulting `TiledList` should be kept at under 100 items. You can then transform this list however way you want.
+
+## Managing requested data
+
+Much like a classic `Map` that supports update and remove methods, a Tiler offers analogous operations in the form
+of `Inputs`.
+
+### `Input.Request`
+
+* On: Analogous to `put` for a `Map`, this starts collecting from the backing `Flow` for the specified `query`. It is
+  idempotent; multiple requests have no side effects for loading, i.e the same `Flow` will not be collect twice.
+
+* Off: Stops collecting from the backing `Flow` for the specified `query`. The items previously fetched by this query
+  are still kept in memory and will be in the `List` of items returned. Requesting this is idempotent; multiple requests
+  have no side effects.
+
+* Evict: Analogous to `remove` for a `Map`, this stops collecting from the backing `Flow` for the specified `query` and
+  also evicts the items previously fetched by the `query` from memory. Requesting this is idempotent; multiple requests
+  have no side effects.
+
+* PivotAround: Only valid when using the `PivotSorted` `Order`, this allows for returing a `TiledList` from results
+  around a certain `Query`.
+
+### `Input.Limiter`
+
+Can be used to select a subset of items tiled instead of the entire paginated set. For example, assuming 1000 items have been
+fetched, there's no need to send a 1000 items to the UI for diffing/display when the UI can only show about 30 at once.
+The `Limiter` allows for selecting an arbitrary amount of items as the situation demands.
+
+### `Input.Order`
+
+Defines the heuristic for selecting tiled items into the output `TiledList`.
+
+* Sorted: Sort items with a specified query `comparator`.
+
+* PivotSorted: Sort items with the specified `comparator` but pivoted around a specific `Query`.
+  This allows for showing items that have more priority over others in the current context
+  like example in a list being scrolled. In other words assume tiles have been fetched for queries 1 - 10 but a
+  user can see pages 5 and 6. The UI need only to be aware of pages 4, 5, 6, and 7. This allows for a rolling window of
+  queries based on a user's scroll position.
+
 
 ## License
 

@@ -16,8 +16,11 @@
 
 package com.tunjid.tiler
 
+import com.tunjid.tiler.utilities.toList
+import com.tunjid.utilities.queries
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 
 class TiledListKtTest {
@@ -25,25 +28,16 @@ class TiledListKtTest {
     @Test
     fun tiled_list_builder_works() {
         val tiledList = buildTiledList {
-            addAll(1, 1.testRange.toList())
-            addAll(3, 3.testRange.toList())
+            addAll(1, 1.testRange().toList())
+            addAll(3, 3.testRange().toList())
         }
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
             actual = tiledList
         )
-    }
-
-    @Test
-    fun tiled_list_filter_transform_works() {
-        val tiledList = buildTiledList {
-            addAll(1, 1.testRange.toList())
-            addAll(3, 3.testRange.toList())
-        }
         assertEquals(
-            expected = (1.tiledTestRange() + 3.tiledTestRange())
-                .filterTransform { filter { it % 2 == 0 } },
-            actual = tiledList.filterTransform { filter { it % 2 == 0 } }
+            expected = listOf(1,3),
+            actual = tiledList.queries()
         )
     }
 
@@ -55,4 +49,40 @@ class TiledListKtTest {
         )
     }
 
+    @Test
+    fun equals_fails_with_different_items() {
+        assertNotEquals(
+            illegal = tiledListOf(
+                0 to 0,
+                0 to 1,
+                0 to 2,
+            ),
+            actual = tiledListOf(
+                0 to 0,
+                0 to 3,
+                0 to 2,
+            )
+        )
+    }
+
+    @Test
+    fun equals_works_with_simple_list() {
+        val tiledList = tiledListOf(
+            0 to 0,
+            0 to 1,
+            0 to 2,
+        )
+        assertEquals(
+            expected = listOf(
+                0,
+                1,
+                2,
+            ),
+            actual = tiledList
+        )
+        assertEquals(
+            expected = listOf(0),
+            actual = tiledList.queries()
+        )
+    }
 }

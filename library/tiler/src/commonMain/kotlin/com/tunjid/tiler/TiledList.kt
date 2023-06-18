@@ -16,18 +16,30 @@
 
 package com.tunjid.tiler
 
-import com.tunjid.utilities.EmptyTiledList
-import com.tunjid.utilities.FilterTransformedTiledList
-import com.tunjid.utilities.MutablePairedTiledList
+import com.tunjid.tiler.utilities.EmptyTiledList
+import com.tunjid.tiler.utilities.SparseTiledList
 
 /**
  * A [List] where each item is backed by the [Query] that fetched it.
  *
+ * A [Query] fetches one or more items, this association is called a tile. i.e a tile represents
+ * a query and the range of items associated with that [Query].
+ *
  * Note that [TiledList] instances should not be large. They should only contain enough
  * items to fill the device viewport a few items over to accommodate a user's scroll.
- * This is typically under 100 items.
+ * This is typically under 500 items.
  */
 interface TiledList<out Query, out Item> : List<Item> {
+    /**
+     * The number of tiles or query ranges there are in this [TiledList]
+     */
+    val tileCount: Int
+
+    /**
+     * Returns the query at the specified tile index.
+     */
+    fun queryAtTile(index: Int): Query
+
     /**
      * Returns the query that fetched an [Item] at a specified index.
      */
@@ -35,12 +47,11 @@ interface TiledList<out Query, out Item> : List<Item> {
 }
 
 /**
- * A [TiledList] with mutation facilities
+ * A [TiledList] with mutation facilities.
+ *
+ * Note this exists to facilitate transformations on the outputs of a [ListTiler]
  */
 interface MutableTiledList<Query, Item> : TiledList<Query, Item> {
-    /**
-     * Returns the query that fetched an [Item]
-     */
     fun add(index: Int, query: Query, item: Item)
 
     fun add(query: Query, item: Item): Boolean
@@ -64,7 +75,7 @@ fun <Query, Item> emptyTiledList(): TiledList<Query, Item> =
 fun <Query, Item> tiledListOf(
     vararg pairs: Pair<Query, Item>
 ): TiledList<Query, Item> =
-    if (pairs.isEmpty()) emptyTiledList() else MutablePairedTiledList(*pairs)
+    if (pairs.isEmpty()) emptyTiledList() else SparseTiledList(*pairs)
 
 /**
  * Returns a [MutableTiledList] instance
@@ -72,7 +83,7 @@ fun <Query, Item> tiledListOf(
 fun <Query, Item> mutableTiledListOf(
     vararg pairs: Pair<Query, Item>
 ): MutableTiledList<Query, Item> =
-    MutablePairedTiledList(*pairs)
+    SparseTiledList(*pairs)
 
 /**
  * Builds a new read-only List by populating a MutableList using the given builderAction and returning a read-only list with the same elements.
@@ -81,17 +92,6 @@ fun <Query, Item> buildTiledList(
     builderAction: MutableTiledList<Query, Item>.() -> Unit
 ): TiledList<Query, Item> = mutableTiledListOf<Query, Item>()
     .also(builderAction::invoke)
-
-/**
- * filters a [TiledList] with the [filterTransformer] provided.
- * Every item in the returned list must also be present in the original list.
- */
-fun <Query, Item> TiledList<Query, Item>.filterTransform(
-    filterTransformer: List<Item>.() -> List<Item>
-): TiledList<Query, Item> = FilterTransformedTiledList(
-    originalList = this,
-    transformedList = filterTransformer(this)
-)
 
 fun <Query, Item> TiledList<Query, Item>.queryAtOrNull(index: Int) =
     if (index in 0..lastIndex) queryAt(index) else null
@@ -105,4 +105,14 @@ operator fun <Query, Item> TiledList<Query, Item>.plus(
     other.forEachIndexed { index, item ->
         add(other.queryAt(index), item)
     }
+}
+
+fun TiledList<*, *>.strictEquals(other: TiledList<*, *>): Boolean {
+    if (other === this) return true
+    if (size != other.size) return false
+    for (i in 0..lastIndex) {
+        if (this[i] != other[i]) return false
+        if (queryAt(i) != other.queryAt(i)) return false
+    }
+    return true
 }
