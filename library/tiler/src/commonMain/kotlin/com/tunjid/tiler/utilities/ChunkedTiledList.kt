@@ -66,6 +66,9 @@ internal inline fun <Query, Item> chunkedTiledList(
     @Suppress("UNCHECKED_CAST")
     override fun queryAtTile(index: Int): Query = queries[index] as Query
 
+    override fun hashCode(): Int =
+        (31 * "ChunkedTiledList".hashCode()) + super.hashCode()
+
     override fun equals(other: Any?): Boolean =
         if (other is TiledList<*, *>) strictEquals(other)
         else super.equals(other)

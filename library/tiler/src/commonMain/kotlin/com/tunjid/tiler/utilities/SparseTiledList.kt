@@ -96,6 +96,9 @@ internal class SparseTiledList<Query, Item>(
         return items.removeAt(index)
     }
 
+    override fun hashCode(): Int =
+        (31 * "SparseTiledList".hashCode()) + super.hashCode()
+
     override fun equals(other: Any?): Boolean =
         if (other is TiledList<*, *>) strictEquals(other)
         else super.equals(other)
