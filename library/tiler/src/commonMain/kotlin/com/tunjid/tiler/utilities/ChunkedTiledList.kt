@@ -33,8 +33,8 @@ internal inline fun <Query, Item> chunkedTiledList(
     private var sizeIndex = -1
     private val sizes = IntArray(indices.size)
 
-    private val queries = ArrayList<Query>(indices.size)
-    private val chunkedItems = ArrayList<List<Item>>(indices.size)
+    private val queries = arrayOfNulls<Any>(indices.size)
+    private val chunkedItems = arrayOfNulls<List<Item>>(indices.size)
 
     override var size: Int = 0
         private set
@@ -45,18 +45,20 @@ internal inline fun <Query, Item> chunkedTiledList(
             val items = itemsLookup(query)
             size += items.size
             sizes[++sizeIndex] = size
-            queries.add(element = query)
-            chunkedItems.add(element = items)
+            queries[i] = query
+            chunkedItems[i] = items
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun queryAt(index: Int): Query = withItemAtIndex(
         index
-    ) { chunkIndex, _ -> queries[chunkIndex] }
+    ) { chunkIndex, _ -> queries[chunkIndex] as Query }
 
+    @Suppress("UNCHECKED_CAST")
     override fun get(index: Int): Item = withItemAtIndex(
         index
-    ) { chunkIndex, indexInChunk -> chunkedItems[chunkIndex][indexInChunk] }
+    ) { chunkIndex, indexInChunk -> chunkedItems[chunkIndex]?.get(indexInChunk) as Item }
 
     override fun equals(other: Any?): Boolean =
         if (other is TiledList<*, *>) strictEquals(other)
