@@ -39,6 +39,9 @@ internal inline fun <Query, Item> chunkedTiledList(
     override var size: Int = 0
         private set
 
+    override val tileCount: Int
+        get() = indices.size
+
     init {
         for (i in 0..indices.lastIndex) {
             val query = queryLookup(indices[i])
@@ -59,6 +62,9 @@ internal inline fun <Query, Item> chunkedTiledList(
     override fun get(index: Int): Item = withItemAtIndex(
         index
     ) { chunkIndex, indexInChunk -> chunkedItems[chunkIndex]?.get(indexInChunk) as Item }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun queryAtTile(index: Int): Query = queries[index] as Query
 
     override fun equals(other: Any?): Boolean =
         if (other is TiledList<*, *>) strictEquals(other)

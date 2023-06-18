@@ -20,6 +20,7 @@ import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.tiledListOf
 import com.tunjid.tiler.utilities.IntArrayList
 import com.tunjid.tiler.utilities.chunkedTiledList
+import com.tunjid.tiler.utilities.toList
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -28,7 +29,7 @@ class ChunkedTiledListTest {
     @Test
     fun chunked_tiled_indexing_works() {
         (0..10).forEach { chunkSize ->
-            val (constantTimeChunkedTiledList, binarySearchChunkedTiledList) =
+            val (constantTimeChunkedTiledList, binarySearchChunkedTiledList, indices) =
                 optimizedAndIterativeChunkedLists(chunkSize)
 
             val expectedTiledList = consecutiveIntegerTiledList(
@@ -42,13 +43,21 @@ class ChunkedTiledListTest {
                 expected = constantTimeChunkedTiledList,
                 actual = binarySearchChunkedTiledList
             )
+            assertEquals(
+                expected = indices.toList(),
+                actual = constantTimeChunkedTiledList.queries()
+            )
+            assertEquals(
+                expected = indices.toList(),
+                actual = binarySearchChunkedTiledList.queries()
+            )
         }
     }
 }
 
 private fun optimizedAndIterativeChunkedLists(
     chunkSize: Int
-): Pair<TiledList<Int, Int>, TiledList<Int, Int>> {
+): Triple<TiledList<Int, Int>, TiledList<Int, Int>, IntArrayList> {
     val indices = IntArrayList(chunkSize).apply {
         (0 until chunkSize).forEach(::add)
     }
@@ -71,7 +80,11 @@ private fun optimizedAndIterativeChunkedLists(
             (0 until chunkSize).map(offset::plus)
         }
     )
-    return Pair(constantTimeChunkedTiledList, binarySearchChunkedTiledList)
+    return Triple(
+        first = constantTimeChunkedTiledList,
+        second = binarySearchChunkedTiledList,
+        third = indices
+    )
 }
 
 private fun consecutiveIntegerTiledList(

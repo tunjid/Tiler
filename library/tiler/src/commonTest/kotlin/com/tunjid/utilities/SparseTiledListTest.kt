@@ -16,6 +16,7 @@
 
 package com.tunjid.utilities
 
+import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.utilities.SparseTiledList
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -50,6 +51,10 @@ class SparseTiledListTest {
             ),
             actual = sparseTiledList.toPairedList()
         )
+        assertEquals(
+            expected = listOf(1),
+            actual = sparseTiledList.queries()
+        )
     }
 
     @Test
@@ -83,6 +88,10 @@ class SparseTiledListTest {
                 1 to 10,
             ),
             actual = sparseTiledList.toPairedList()
+        )
+        assertEquals(
+            expected = listOf(1),
+            actual = sparseTiledList.queries()
         )
     }
 
@@ -120,6 +129,10 @@ class SparseTiledListTest {
             ),
             actual = sparseTiledList.toPairedList()
         )
+        assertEquals(
+            expected = listOf(1),
+            actual = sparseTiledList.queries()
+        )
     }
 
     @Test
@@ -155,6 +168,15 @@ class SparseTiledListTest {
                 1 to 18,
             ),
             actual = sparseTiledList.toPairedList()
+        )
+        assertEquals(
+            expected = listOf(
+                1,
+                3,
+                7,
+                1
+            ),
+            actual = sparseTiledList.queries()
         )
     }
 
@@ -198,6 +220,16 @@ class SparseTiledListTest {
             ),
             actual = sparseTiledList.toPairedList()
         )
+        assertEquals(
+            expected = listOf(
+                1,
+                9,
+                17,
+                3,
+                7,
+            ),
+            actual = sparseTiledList.queries()
+        )
     }
 
     @Test
@@ -233,6 +265,15 @@ class SparseTiledListTest {
             ),
             actual = sparseTiledList.toPairedList()
         )
+        assertEquals(
+            expected = listOf(
+                1,
+                3,
+                7,
+                1,
+            ),
+            actual = sparseTiledList.queries()
+        )
 
         sparseTiledList.remove(2)
         println(sparseTiledList.queryRanges)
@@ -245,6 +286,14 @@ class SparseTiledListTest {
             ),
             actual = sparseTiledList.toPairedList()
         )
+        assertEquals(
+            expected = listOf(
+                1,
+                7,
+                1,
+            ),
+            actual = sparseTiledList.queries()
+        )
 
         sparseTiledList.remove(1)
         assertEquals(
@@ -255,6 +304,14 @@ class SparseTiledListTest {
             ),
             actual = sparseTiledList.toPairedList()
         )
+        assertEquals(
+            expected = listOf(
+                1,
+                7,
+                1,
+            ),
+            actual = sparseTiledList.queries()
+        )
 
         sparseTiledList.remove(2)
         assertEquals(
@@ -264,6 +321,13 @@ class SparseTiledListTest {
             ),
             actual = sparseTiledList.toPairedList()
         )
+        assertEquals(
+            expected = listOf(
+                1,
+                7,
+            ),
+            actual = sparseTiledList.queries()
+        )
     }
 }
 
@@ -271,3 +335,6 @@ private fun <Query, Item> SparseTiledList<Query, Item>.toPairedList() =
     mapIndexed { index, item ->
         queryAt(index) to item
     }
+
+fun <Query, Item> TiledList<Query, Item>.queries() =
+    (0 until tileCount).map(::queryAtTile)

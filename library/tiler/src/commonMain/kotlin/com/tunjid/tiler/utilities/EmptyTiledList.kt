@@ -21,6 +21,13 @@ import com.tunjid.tiler.TiledList
 internal object EmptyTiledList : TiledList<Nothing, Nothing>, List<Nothing> by emptyList() {
     override fun queryAt(index: Int): Nothing =
         throw IndexOutOfBoundsException("Empty tiled list doesn't contain element at index $index.")
+
+    override val tileCount: Int
+        get() = 0
+
+    override fun queryAtTile(index: Int): Nothing =
+        throw IndexOutOfBoundsException("Empty tiled list doesn't contain query at tile index $index.")
+
     override fun equals(other: Any?): Boolean = other is TiledList<*, *> && other.isEmpty()
     override fun hashCode(): Int = 1
     override fun toString(): String = "[]"

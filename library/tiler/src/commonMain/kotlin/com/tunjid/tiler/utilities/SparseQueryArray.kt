@@ -54,7 +54,8 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
     private var garbage = false
     private var keys: LongArray
     private var values: Array<Any?>
-    private var size: Int
+    var size: Int
+        private set
 
     init {
         if (initialCapacity == 0) {
@@ -68,14 +69,10 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
     }
 
     /**
-     * Gets the Object mapped from the specified key, or the specified Object
-     * if no such mapping has been made.
-     */
-    /**
      * Gets the Object mapped from the specified key, or `null`
      * if no such mapping has been made.
      */
-    fun find(index: Int): Query {
+    fun queryAt(index: Int): Query {
         val i: Int = keys.indexBinarySearch(
             index = index,
             size = size
@@ -85,6 +82,11 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         )
         @Suppress("UNCHECKED_CAST")
         return values[i] as Query
+    }
+
+    fun queryAtTile(index: Int): Query {
+        @Suppress("UNCHECKED_CAST")
+        return values[index] as Query
     }
 
     fun appendQuery(

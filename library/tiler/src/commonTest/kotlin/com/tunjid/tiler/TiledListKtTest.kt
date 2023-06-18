@@ -16,6 +16,8 @@
 
 package com.tunjid.tiler
 
+import com.tunjid.tiler.utilities.toList
+import com.tunjid.utilities.queries
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -32,6 +34,10 @@ class TiledListKtTest {
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
             actual = tiledList
+        )
+        assertEquals(
+            expected = listOf(1,3),
+            actual = tiledList.queries()
         )
     }
 
@@ -61,17 +67,22 @@ class TiledListKtTest {
 
     @Test
     fun equals_works_with_simple_list() {
+        val tiledList = tiledListOf(
+            0 to 0,
+            0 to 1,
+            0 to 2,
+        )
         assertEquals(
-            expected = tiledListOf(
-                0 to 0,
-                0 to 1,
-                0 to 2,
-            ),
-            actual = listOf(
+            expected = listOf(
                 0,
                 1,
                 2,
-            )
+            ),
+            actual = tiledList
+        )
+        assertEquals(
+            expected = listOf(0),
+            actual = tiledList.queries()
         )
     }
 }

@@ -22,11 +22,24 @@ import com.tunjid.tiler.utilities.SparseTiledList
 /**
  * A [List] where each item is backed by the [Query] that fetched it.
  *
+ * A [Query] fetches one or more items, this association is called a tile. i.e a tile represents
+ * a query and the range of items associated with that [Query].
+ *
  * Note that [TiledList] instances should not be large. They should only contain enough
  * items to fill the device viewport a few items over to accommodate a user's scroll.
  * This is typically under 500 items.
  */
 interface TiledList<out Query, out Item> : List<Item> {
+    /**
+     * The number of tiles or query ranges there are in this [TiledList]
+     */
+    val tileCount: Int
+
+    /**
+     * Returns the query at the specified tile index.
+     */
+    fun queryAtTile(index: Int): Query
+
     /**
      * Returns the query that fetched an [Item] at a specified index.
      */
