@@ -28,30 +28,42 @@ internal inline fun <Query, Item> chunkedTiledList(
     indices: IntArrayList,
     crossinline queryLookup: (Int) -> Query,
     crossinline itemsLookup: (Query) -> List<Item>,
-): TiledList<Query, Item> = object : AbstractList<Item>(), TiledList<Query, Item> {
+): TiledList<Query, Item> {
 
-    private var sizeIndex = -1
-    private val sizes = IntArray(indices.size)
+    val numberOfChunks = indices.size
+    val chunkSizes = IntArray(numberOfChunks)
+    val queries = arrayOfNulls<Any>(numberOfChunks)
+    val chunkedItems = arrayOfNulls<List<Item>>(numberOfChunks)
 
-    private val queries = arrayOfNulls<Any>(indices.size)
-    private val chunkedItems = arrayOfNulls<List<Item>>(indices.size)
+    var size = 0
 
-    override var size: Int = 0
-        private set
-
-    override val tileCount: Int
-        get() = indices.size
-
-    init {
-        for (i in 0..indices.lastIndex) {
-            val query = queryLookup(indices[i])
-            val items = itemsLookup(query)
-            size += items.size
-            sizes[++sizeIndex] = size
-            queries[i] = query
-            chunkedItems[i] = items
-        }
+    for (i in 0 until numberOfChunks) {
+        val query = queryLookup(indices[i])
+        val items = itemsLookup(query)
+        size += items.size
+        chunkSizes[i] = size
+        queries[i] = query
+        chunkedItems[i] = items
     }
+
+    return ChunkedTiledList(
+        chunkSizeHint = chunkSizeHint,
+        size = size,
+        chunkSizes = chunkSizes,
+        queries = queries,
+        chunkedItems = chunkedItems,
+    )
+}
+
+internal class ChunkedTiledList<Query, Item>(
+    private val chunkSizeHint: Int?,
+    override val size: Int,
+    private val chunkSizes: IntArray,
+    private val queries: Array<Any?>,
+    private val chunkedItems: Array<List<Item>?>,
+) : AbstractList<Item>(), TiledList<Query, Item> {
+
+    override val tileCount: Int = queries.size
 
     @Suppress("UNCHECKED_CAST")
     override fun queryAt(index: Int): Query = withItemAtIndex(
@@ -85,14 +97,14 @@ internal inline fun <Query, Item> chunkedTiledList(
             index / chunkSizeHint,
             index % chunkSizeHint
         )
-        val chunkIndex = sizes.findIndexInChunkSizes(index)
+        val chunkIndex = chunkSizes.findIndexInChunkSizes(index)
 
         // Get Item in O(log(N)) time
         return retriever(
             chunkIndex,
             when (chunkIndex) {
                 0 -> index
-                else -> index - sizes[chunkIndex - 1]
+                else -> index - chunkSizes[chunkIndex - 1]
             }
         )
     }
