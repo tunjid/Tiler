@@ -16,7 +16,7 @@
 
 package com.tunjid.tiler.utilities
 
-class IntArrayList(
+internal class IntArrayList(
     initialSize: Int = 10
 ) {
 
@@ -132,7 +132,7 @@ class IntArrayList(
     }
 }
 
-fun IntArrayList.toList(): List<Int> = buildList build@{
+internal fun IntArrayList.toList(): List<Int> = buildList build@{
     for (i in 0..this@toList.lastIndex) {
         this@build.add(this@toList[i])
     }
