@@ -56,8 +56,8 @@ internal inline fun <Query, Item> chunkedTiledList(
 }
 
 internal class ChunkedTiledList<Query, Item>(
-    private val chunkSizeHint: Int?,
     override val size: Int,
+    private val chunkSizeHint: Int?,
     private val chunkSizes: IntArray,
     private val queries: Array<Any?>,
     private val chunkedItems: Array<List<Item>?>,
