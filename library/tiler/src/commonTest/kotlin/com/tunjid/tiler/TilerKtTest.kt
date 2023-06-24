@@ -153,4 +153,102 @@ class TilerKtTest {
             message = "inserting ordered query fails at inserting at the end"
         )
     }
+
+    @Test
+    fun previously_seen_items_that_become_empty_are_reflected_in_output() = runTest {
+        val tiler = Tiler<Int, Int>(
+            limiter = Tile.Limiter(
+                maxQueries = 3,
+            ),
+            order = Tile.Order.PivotSorted(
+                query = 0,
+                comparator = Int::compareTo
+            )
+        )
+        val updates = (0..2)
+            .map { page ->
+                Tile.Data(
+                    query = page,
+                    items = page.testRange(itemsPerPage = 1).toList()
+                )
+            } + Tile.Data(
+            query = 2,
+            items = emptyList()
+        )
+        val tiled =
+            updates
+                .asFlow()
+                .map(tiler::process)
+                .toList()
+
+        assertEquals(
+            expected = listOf(
+                tiledListOf(
+                    0 to 0
+                ),
+                tiledListOf(
+                    0 to 0,
+                    1 to 1,
+                ),
+                tiledListOf(
+                    0 to 0,
+                    1 to 1,
+                    2 to 2,
+                ),
+                tiledListOf(
+                    0 to 0,
+                    1 to 1,
+                ),
+            ),
+            actual = tiled
+        )
+    }
+
+    @Test
+    fun items_that_are_out_of_range_that_become_empty_are_not_reflected_in_output() = runTest {
+        val tiler = Tiler<Int, Int>(
+            limiter = Tile.Limiter(
+                maxQueries = 3,
+            ),
+            order = Tile.Order.PivotSorted(
+                query = 0,
+                comparator = Int::compareTo
+            )
+        )
+        val updates = (0..3)
+            .map { page ->
+                Tile.Data(
+                    query = page,
+                    items = page.testRange(itemsPerPage = 1).toList()
+                )
+            } + Tile.Data(
+            query = 3,
+            items = emptyList()
+        )
+        val tiled =
+            updates
+                .asFlow()
+                .map(tiler::process)
+                .toList()
+
+        assertEquals(
+            expected = listOf(
+                tiledListOf(
+                    0 to 0
+                ),
+                tiledListOf(
+                    0 to 0,
+                    1 to 1,
+                ),
+                tiledListOf(
+                    0 to 0,
+                    1 to 1,
+                    2 to 2,
+                ),
+                null,
+                null,
+            ),
+            actual = tiled
+        )
+    }
 }

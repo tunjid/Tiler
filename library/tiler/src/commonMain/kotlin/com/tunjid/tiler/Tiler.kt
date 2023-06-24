@@ -51,7 +51,15 @@ internal class Tiler<Query, Item> private constructor(
         else 10
     )
     private var lastTiledItems: TiledList<Query, Item> = emptyTiledList()
-    private var last: Tiler<Query, Item>? = null
+    // This is lazy to prevent a recursive initialization loop
+    private val last: Tiler<Query, Item> by lazy {
+        Tiler(
+            order = order,
+            limiter = limiter,
+            // Share the same map instance
+            queryItemsMap = queryItemsMap
+        )
+    }
 
     fun process(output: Tile.Output<Query, Item>): TiledList<Query, Item>? {
         updateLast()
@@ -74,7 +82,7 @@ internal class Tiler<Query, Item> private constructor(
                 queryItemsMap.remove(output.query)
             }
 
-            is Tile.Order-> {
+            is Tile.Order -> {
                 order = output
                 orderedQueries.sortWith(output.comparator)
             }
@@ -93,26 +101,15 @@ internal class Tiler<Query, Item> private constructor(
         else null
     }
 
-    private fun updateLast() = when (val lastSnapshot = last) {
-        null -> {
-            last = Tiler(
-                order = order,
-                limiter = limiter,
-                // Share the same map instance
-                queryItemsMap = queryItemsMap
-            )
-        }
-
-        else -> {
-            lastSnapshot.order = order
-            lastSnapshot.limiter = limiter
-            lastSnapshot.lastTiledItems = lastTiledItems
-            lastSnapshot.orderedQueries.clear()
-            lastSnapshot.orderedQueries.addAll(orderedQueries)
-            lastSnapshot.outputIndices.clear()
-            for (i in 0..outputIndices.lastIndex) {
-                lastSnapshot.outputIndices.add(outputIndices[i])
-            }
+    private fun updateLast() {
+        last.order = order
+        last.limiter = limiter
+        last.lastTiledItems = lastTiledItems
+        last.orderedQueries.clear()
+        last.orderedQueries.addAll(orderedQueries)
+        last.outputIndices.clear()
+        for (i in 0..outputIndices.lastIndex) {
+            last.outputIndices.add(outputIndices[i])
         }
     }
 
@@ -190,39 +187,36 @@ internal class Tiler<Query, Item> private constructor(
 
             is Tile.Order.PivotSorted -> when {
                 // If the pivot item is present, check if the item emitted will be seen
-                queryItemsMap.contains(existingOrder.query) -> isInVisibleRange(output.query)
+                queryItemsMap.contains(existingOrder.query) -> isInVisibleRange(output.query) ||
+                        last.isInVisibleRange(output.query)
                 // If the last emission was empty and nothing will still be emitted, do not emit
                 else -> !(lastTiledItems.isEmpty() && existingOrder.query != output.query)
             }
         }
         // Emit only if there's something to evict
         is Tile.Request.Evict -> {
-            isInVisibleRange(output.query) && last?.isInVisibleRange(output.query) == true
+            isInVisibleRange(output.query) && last.isInVisibleRange(output.query)
         }
         // Emit only if there are items to sort, and the order has meaningfully changed
         is Tile.Order -> {
             var willEmit = false
-            val areTheSameSize = outputIndices.size == last?.outputIndices?.size
-            if (areTheSameSize) when (val currentLast = last) {
-                // No last emission, do nothing
-                null -> Unit
-                // Compare the values at the indices as they may refer to different things
-                else -> for (i in 0..outputIndices.lastIndex) {
-                    if (outputQueryAt(i) == currentLast.outputQueryAt(i)) continue
-                    willEmit = true
-                    break
-                }
+            val areTheSameSize = outputIndices.size == last.outputIndices.size
+            // Compare the values at the indices as they may refer to different things
+            if (areTheSameSize) for (i in 0..outputIndices.lastIndex) {
+                if (outputQueryAt(i) == last.outputQueryAt(i)) continue
+                willEmit = true
+                break
             }
-            else willEmit = queryItemsMap.isNotEmpty() && order != last?.order
+            else willEmit = queryItemsMap.isNotEmpty() && order != last.order
             willEmit
         }
         // Emit only if the limiter has meaningfully changed
         is Tile.Limiter -> when (val order = order) {
             is Tile.Order.Sorted -> queryItemsMap.isNotEmpty()
-                    && outputIndices != last?.outputIndices
+                    && outputIndices != last.outputIndices
 
             is Tile.Order.PivotSorted -> queryItemsMap.contains(order.query)
-                    && outputIndices != last?.outputIndices
+                    && outputIndices != last.outputIndices
         }
     }
 
