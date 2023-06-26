@@ -16,6 +16,7 @@
 
 package com.tunjid.tiler.utilities
 
+import com.tunjid.tiler.Tile
 import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.strictEquals
 
@@ -65,6 +66,14 @@ internal class ChunkedTiledList<Query, Item>(
 
     override val tileCount: Int = queries.size
 
+    override fun tileAt(index: Int): Tile = Tile(
+        start = if (index == 0) 0 else chunkSizes[index - 1],
+        end = chunkSizes[index]
+    )
+
+    @Suppress("UNCHECKED_CAST")
+    override fun queryAtTile(index: Int): Query = queries[index] as Query
+
     @Suppress("UNCHECKED_CAST")
     override fun queryAt(index: Int): Query = withItemAtIndex(
         index
@@ -74,9 +83,6 @@ internal class ChunkedTiledList<Query, Item>(
     override fun get(index: Int): Item = withItemAtIndex(
         index
     ) { chunkIndex, indexInChunk -> chunkedItems[chunkIndex]?.get(indexInChunk) as Item }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun queryAtTile(index: Int): Query = queries[index] as Query
 
     override fun hashCode(): Int =
         (31 * "ChunkedTiledList".hashCode()) + super.hashCode()

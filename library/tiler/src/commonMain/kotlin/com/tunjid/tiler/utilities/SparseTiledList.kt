@@ -17,6 +17,7 @@
 package com.tunjid.tiler.utilities
 
 import com.tunjid.tiler.MutableTiledList
+import com.tunjid.tiler.Tile
 import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.strictEquals
 
@@ -29,7 +30,7 @@ internal class SparseTiledList<Query, Item>(
     vararg pairs: Pair<Query, Item>
 ) : AbstractList<Item>(), MutableTiledList<Query, Item> {
 
-    val queryRanges = SparseQueryArray<Query>(pairs.size)
+    val tileQueryMap = SparseQueryArray<Query>(pairs.size)
     private val items: MutableList<Item> = mutableListOf()
 
     init {
@@ -42,19 +43,21 @@ internal class SparseTiledList<Query, Item>(
     override val size: Int get() = items.size
 
     override val tileCount: Int
-        get() = queryRanges.size
+        get() = tileQueryMap.size
+
+    override fun tileAt(index: Int): Tile = tileQueryMap.tileAt(index)
 
     override fun queryAt(index: Int): Query {
         if (isEmpty() || index !in 0..lastIndex) throw IndexOutOfBoundsException()
-        return queryRanges.queryAt(index) ?: throw IndexOutOfBoundsException()
+        return tileQueryMap.queryAt(index) ?: throw IndexOutOfBoundsException()
     }
 
-    override fun queryAtTile(index: Int): Query = queryRanges.queryAtTile(index)
+    override fun queryAtTile(index: Int): Query = tileQueryMap.queryAtTile(index)
 
     override fun get(index: Int): Item = items[index]
 
     override fun add(index: Int, query: Query, item: Item) {
-        queryRanges.insertQuery(
+        tileQueryMap.insertQuery(
             index = index,
             query = query,
             count = 1
@@ -63,7 +66,7 @@ internal class SparseTiledList<Query, Item>(
     }
 
     override fun add(query: Query, item: Item): Boolean {
-        queryRanges.appendQuery(
+        tileQueryMap.appendQuery(
             query = query,
             count = 1
         )
@@ -72,7 +75,7 @@ internal class SparseTiledList<Query, Item>(
 
     override fun addAll(query: Query, items: Collection<Item>): Boolean {
         if (items.isEmpty()) return false
-        queryRanges.appendQuery(
+        tileQueryMap.appendQuery(
             query = query,
             count = items.size
         )
@@ -82,7 +85,7 @@ internal class SparseTiledList<Query, Item>(
 
     override fun addAll(index: Int, query: Query, items: Collection<Item>): Boolean {
         if (items.isEmpty()) return false
-        queryRanges.insertQuery(
+        tileQueryMap.insertQuery(
             index = index,
             query = query,
             count = items.size
@@ -92,7 +95,7 @@ internal class SparseTiledList<Query, Item>(
     }
 
     override fun remove(index: Int): Item {
-        queryRanges.deleteAt(index)
+        tileQueryMap.deleteAt(index)
         return items.removeAt(index)
     }
 

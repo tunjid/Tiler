@@ -51,9 +51,36 @@ suspend operator fun <Query, Item> QueryFetcher<Query, Item>.invoke(
 ) = fetch(query)
 
 /**
- * class holding metadata about a [Query] for an [Item], the [Item], and when the [Query] was sent
+ * The number of items inside a tile
  */
-class Tile<Query, Item : Any?> {
+val Tile.size get() = end - start
+
+/**
+ * Describes a range of indices for which a given query may be found in a [TiledList]
+ */
+@JvmInline
+value class Tile internal constructor(
+    internal val packedValue: Long
+) {
+
+    internal constructor(
+        start: Int,
+        end: Int,
+    ) : this(
+        start.toLong().shl(32) or (end.toLong() and 0xFFFFFFFF)
+    )
+
+    /**
+     * first index of the range described by this [Tile]
+     */
+    val start: Int get() = packedValue.shr(32).toInt()
+
+    /**
+     * End exclusive index of the range described by this [Tile]
+     */
+    val end: Int get() = packedValue.and(0xFFFFFFFF).toInt()
+
+    override fun toString(): String = "Tile(start=$start,end=$end)"
 
     /**
      * Defines input parameters for the [listTiler] function
