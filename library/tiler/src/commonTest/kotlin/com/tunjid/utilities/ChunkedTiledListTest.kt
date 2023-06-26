@@ -17,6 +17,7 @@
 package com.tunjid.utilities
 
 import com.tunjid.tiler.TiledList
+import com.tunjid.tiler.size
 import com.tunjid.tiler.tiledListOf
 import com.tunjid.tiler.utilities.IntArrayList
 import com.tunjid.tiler.utilities.chunkedTiledList
@@ -51,6 +52,16 @@ class ChunkedTiledListTest {
                 expected = indices.toList(),
                 actual = binarySearchChunkedTiledList.queries()
             )
+            (0 until constantTimeChunkedTiledList.tileCount).forEach { tileIndex ->
+                assertEquals(
+                    expected = chunkSize,
+                    actual = constantTimeChunkedTiledList.tileAt(tileIndex).size
+                )
+                assertEquals(
+                    expected = chunkSize,
+                    actual = binarySearchChunkedTiledList.tileAt(tileIndex).size
+                )
+            }
         }
     }
 }

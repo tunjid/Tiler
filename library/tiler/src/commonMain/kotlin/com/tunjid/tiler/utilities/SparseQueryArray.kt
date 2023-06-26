@@ -16,37 +16,15 @@
 
 package com.tunjid.tiler.utilities
 
-import kotlin.jvm.JvmInline
+import com.tunjid.tiler.Tile
 import kotlin.jvm.JvmOverloads
-
-
-/**
- * Describes a range of indices for which a given query may be found
- */
-@JvmInline
-internal value class QueryRange(
-    val packedValue: Long
-) {
-
-    val start: Int get() = packedValue.shr(32).toInt()
-
-    val end: Int get() = packedValue.and(0xFFFFFFFF).toInt()
-
-    override fun toString(): String = "QueryRange(start=$start,end=$end)"
-}
-
-internal fun QueryRange(
-    start: Int,
-    end: Int,
-) = QueryRange(
-    start.toLong().shl(32) or (end.toLong() and 0xFFFFFFFF)
-)
+import kotlin.math.max
 
 /**
  * Uses the basic tenets of a
  * [SparseArray]("https://developer.android.com/reference/android/util/SparseArray")
  * To map a range of indices to a [Query]. This allows for the association of queries
- * to indices without allocating an object as seen in [MutablePairedTiledList].
+ * to indices without allocating an object.
  */
 internal class SparseQueryArray<Query> @JvmOverloads constructor(
     initialCapacity: Int = 10
@@ -67,6 +45,8 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         }
         size = 0
     }
+
+    fun tileAt(index: Int): Tile = Tile(keys[index])
 
     /**
      * Gets the Object mapped from the specified key, or `null`
@@ -94,13 +74,13 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         count: Int
     ) = when (size) {
         0 -> set(
-            range = QueryRange(start = 0, end = count),
+            range = Tile(start = 0, end = count),
             value = query
         )
 
         else -> {
             // Append at the end
-            val lastIndex = QueryRange(keys[size - 1]).end - 1
+            val lastIndex = Tile(keys[size - 1]).end - 1
             updateExistingQueryOr(
                 index = lastIndex,
                 query = query,
@@ -108,7 +88,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             ) {
                 // Append at the end
                 append(
-                    range = QueryRange(
+                    tile = Tile(
                         start = lastIndex + 1,
                         end = lastIndex + count + 1
                     ),
@@ -131,7 +111,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             "Index $index is not present in SparseQueryArray of size $size and contents $this"
         )
 
-        val newRange = QueryRange(
+        val newRange = Tile(
             start = index,
             end = index + count
         )
@@ -156,13 +136,12 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         if (i < 0) throw IllegalArgumentException(
             "Index $index is not present in SparseQueryArray of size $size and contents $this"
         )
-        val existingRange = QueryRange(keys[i])
-        val newRange = QueryRange(
-            start = existingRange.start,
-            end = existingRange.end - 1
-        )
+        val existingRange = Tile(keys[i])
+        val start = existingRange.start
+        val end = existingRange.end - 1
+
         // This range is now invalid, remove it.
-        if (newRange.start == newRange.end) {
+        if (start >= end) {
             values[i] = DELETED
             gc()
         }
@@ -188,8 +167,8 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         val existing = values[i]
         if (query != existing) return block(i)
 
-        val existingRange = QueryRange(keys[i])
-        val newRange = QueryRange(
+        val existingRange = Tile(keys[i])
+        val newRange = Tile(
             start = existingRange.start,
             end = existingRange.end + count
         )
@@ -205,10 +184,16 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
 
     private fun shiftRangesBy(startIndex: Int, gap: Int) {
         for (i in startIndex until size) {
-            val existing = QueryRange(keys[i])
-            keys[i] = QueryRange(
-                start = existing.start + gap,
-                end = existing.end + gap,
+            val existing = Tile(keys[i])
+            keys[i] = Tile(
+                start = max(
+                    a = 0,
+                    b = existing.start + gap
+                ),
+                end = max(
+                    a = 0,
+                    b = existing.end + gap
+                ),
             ).packedValue
         }
     }
@@ -217,7 +202,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         return indexOfKey(key) >= 0
     }
 
-    private fun set(range: QueryRange, value: Query) {
+    private fun set(range: Tile, value: Query) {
         var i: Int = keys.indexBinarySearch(
             index = range.start,
             size = size
@@ -255,9 +240,9 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         size++
     }
 
-    private fun append(range: QueryRange, value: Query) {
-        if (size != 0 && range.end <= QueryRange(keys[size - 1]).start) {
-            set(range, value)
+    private fun append(tile: Tile, value: Query) {
+        if (size != 0 && tile.end <= Tile(keys[size - 1]).start) {
+            set(tile, value)
             return
         }
         if (garbage && size >= keys.size) {
@@ -265,7 +250,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         }
         keys = keys.append(
             currentSize = size,
-            element = range.packedValue,
+            element = tile.packedValue,
         )
         values = values.append(
             currentSize = size,
@@ -301,7 +286,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
     override fun toString(): String =
         keys
             .take(size)
-            .map(::QueryRange)
+            .map(::Tile)
             .zip(values)
             .joinToString(
                 prefix = "\n",
@@ -321,7 +306,7 @@ private fun LongArray.indexBinarySearch(
     var high = size - 1
     while (low <= high) {
         val mid = (low + high).ushr(1)
-        val queryRange = QueryRange(this[mid])
+        val queryRange = Tile(this[mid])
 
         val comparison = when (index) {
             in Int.MIN_VALUE until queryRange.start -> 1
