@@ -30,7 +30,7 @@ internal class SparseTiledList<Query, Item>(
     vararg pairs: Pair<Query, Item>
 ) : AbstractList<Item>(), MutableTiledList<Query, Item> {
 
-    val tileQueryMap = SparseQueryArray<Query>(pairs.size)
+    private val tileQueryMap = SparseQueryArray<Query>(pairs.size)
     private val items: MutableList<Item> = mutableListOf()
 
     init {
