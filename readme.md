@@ -33,16 +33,76 @@ It does this by exposing a functional reactive API most similar to the MVI archi
 * The inputs modify the queries for data
 * The output is the data returned over time in a `List`.
 
-This output of tiling is a `TiledList`, a `List` implementation that allows for looking up the query that fetched each item. It is defined as:
+This output of tiling is a `TiledList`. It a `List` implementation that allows for looking up the query that fetched each item.
+This is done by associating a range of indices in the `List` with a `Tile`. Effectively a `TiledList` "chunks" its items by query. 
+For example, the `TiledList` below is a `List` with 10 items, and two tiles. Each `Tile` covers 5 indices:
 
-```Kotlin
+```
+|    1       |        2      |
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+```
+
+A `Tile` is a `value` class with the following public properties:
+
+```kotlin
+value class Tile(..) {
+    // start index for a chunk
+    val start: Int
+    // end exclusive index for a chunk
+    val end: Int
+}
+``` 
+
+A `TiledList` is defined as:
+
+```kotlin
 interface TiledList<Query, Item> : List<Item> {
+    /**
+     * The number of [Tile] instances or query ranges there are in this [TiledList]
+     */
+    val tileCount: Int
+
+    /**
+     * Returns the [Tile] at the specified tile index.
+     */
+    fun tileAt(index: Int): Tile
+
+    /**
+     * Returns the query at the specified tile index.
+     */
+    fun queryAtTile(index: Int): Query
+
     /**
      * Returns the query that fetched an [Item] at a specified index.
      */
     fun queryAt(index: Int): Query
 }
 ```
+
+Mutable `TiledList` instances also exist so items may be added to the `TiledList` from outher sources after fetching. This is useful for modifying the `TiledList` returned. Actions like:
+
+* Inserting separators or other interstitial content
+* Mapping items with in memory data after fetching from a database
+* General list modification
+
+can be easily performed.
+
+```kotlin
+interface MutableTiledList<Query, Item> : TiledList<Query, Item> {
+    fun add(index: Int, query: Query, item: Item)
+
+    fun add(query: Query, item: Item): Boolean
+
+    fun addAll(query: Query, items: Collection<Item>): Boolean
+
+    fun addAll(index: Int, query: Query, items: Collection<Item>): Boolean
+
+    fun remove(index: Int): Item
+}
+```
+
+The performance of each operation for the default `MutableTiledList` implementation is comparable to an `ArrayList` + O(log(T))
+where T is the number of `Tile` instances (pages) in the `TiledList`. This makes them perfect for use in recycling and scrolling containers.
 
 ## Demo
 
