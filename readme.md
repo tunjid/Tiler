@@ -18,6 +18,12 @@ taken as anything more than its face value.
 
 ## Introduction
 
+### Paging as state
+
+Paging as state is the representation of paginated data in a form that is idiomatic and easy to consume with declarative and/or functional programming paradigms. This typically means the data paged through offers APIs that are identical to, or similar enough to a `List`; offering constant time or near constanr time access to items at indices, and the ability to introspect the items paged through.
+
+### Tiling as a paging as state implementation
+
 Tiling is a kotlin multiplatform experiment for loading chunks of structured data from reactive sources.
 
 Tiling is achieved with a Tiler; a pure function that has the ability to adapt any generic method of the form:
@@ -28,17 +34,17 @@ fun <T> items(query: Query): Flow<List<T>>
 
 into a paginated API.
 
-It does this by exposing a functional reactive API most similar to the MVI architectural pattern:
+It does this by exposing a functional reactive API:
 
 * The inputs modify the queries for data
 * The output is the data returned over time in a `List`.
 
-This output of tiling is a `TiledList`. It a `List` implementation that allows for looking up the query that fetched each item.
+This output of tiling is a `TiledList`. Its a `List` implementation that allows for looking up the query that fetched each item.
 This is done by associating a range of indices in the `List` with a `Tile`. Effectively a `TiledList` "chunks" its items by query. 
 For example, the `TiledList` below is a `List` with 10 items, and two tiles. Each `Tile` covers 5 indices:
 
 ```
-|    1       |        2      |
+|     1      |        2      |
 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 ```
 
