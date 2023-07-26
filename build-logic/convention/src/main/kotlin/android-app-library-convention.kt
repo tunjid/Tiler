@@ -42,10 +42,10 @@ fun org.gradle.api.Project.androidConfiguration(
     extension: CommonExtension<*, *, *, *>
 ) = extension.apply {
     namespace = "com.tunjid.tiler.${project.name}"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 23
     }
 
     buildFeatures {
