@@ -42,6 +42,13 @@ inline fun <Query, Item> TiledList<Query, Item>.filter(
         predicate(item)
     }
 
+@Suppress("UNCHECKED_CAST")
+inline fun <Query, reified Item> TiledList<Query, *>.filterIsInstance(
+): TiledList<Query, Item> =
+    filter { item ->
+        item is Item
+    } as TiledList<Query, Item>
+
 inline fun <Query, T, R> TiledList<Query, T>.mapIndexed(
     mapper: (Int, T) -> R
 ): TiledList<Query, R> =
