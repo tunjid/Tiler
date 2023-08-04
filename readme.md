@@ -39,8 +39,12 @@ It does this by exposing a functional reactive API:
 * The inputs modify the queries for data
 * The output is the data returned over time in a `List`.
 
-This output of tiling is a `TiledList`. Its a `List` implementation that allows for looking up the query that fetched each item.
-This is done by associating a range of indices in the `List` with a `Tile`. Effectively a `TiledList` "chunks" its items by query. 
+This output of tiling is a `TiledList`. Its a `List` implementation that:
+
+* Allows for looking up the query that fetched each item.
+* Is a sub list of all items in the backing data source.
+
+The former is done by associating a range of indices in the `List` with a `Tile`. Effectively a `TiledList` "chunks" its items by query. 
 For example, the `TiledList` below is a `List` with 10 items, and two tiles. Each `Tile` covers 5 indices:
 
 ```
@@ -51,7 +55,7 @@ For example, the `TiledList` below is a `List` with 10 items, and two tiles. Eac
 A `Tile` is a `value` class with the following public properties:
 
 ```kotlin
-value class Tile(..) {
+value class Tile(...) {
     // start index for a chunk
     val start: Int
     // end exclusive index for a chunk

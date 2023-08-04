@@ -38,12 +38,12 @@ interface TiledList<out Query, out Item> : List<Item> {
     /**
      * Returns the [Tile] at the specified tile index.
      */
-    fun tileAt(index: Int): Tile
+    fun tileAt(tileIndex: Int): Tile
 
     /**
      * Returns the query at the specified tile index.
      */
-    fun queryAtTile(index: Int): Query
+    fun queryAtTile(tileIndex: Int): Query
 
     /**
      * Returns the query that fetched an [Item] at a specified index.

@@ -45,14 +45,14 @@ internal class SparseTiledList<Query, Item>(
     override val tileCount: Int
         get() = tileQueryMap.size
 
-    override fun tileAt(index: Int): Tile = tileQueryMap.tileAt(index)
+    override fun tileAt(tileIndex: Int): Tile = tileQueryMap.tileAt(tileIndex)
 
     override fun queryAt(index: Int): Query {
         if (isEmpty() || index !in 0..lastIndex) throw IndexOutOfBoundsException()
         return tileQueryMap.queryAt(index) ?: throw IndexOutOfBoundsException()
     }
 
-    override fun queryAtTile(index: Int): Query = tileQueryMap.queryAtTile(index)
+    override fun queryAtTile(tileIndex: Int): Query = tileQueryMap.queryAtTile(tileIndex)
 
     override fun get(index: Int): Item = items[index]
 
