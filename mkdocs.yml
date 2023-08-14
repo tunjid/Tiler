@@ -32,3 +32,4 @@ nav:
       - Search: usecases/search.md
       - Adaptive Paging Example: usecases/adaptive-paging.md
       - Jetpack Compose: usecases/compose.md
+      - Complex pipelines: usecases/complex-tiling.md

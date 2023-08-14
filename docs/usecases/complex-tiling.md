@@ -38,7 +38,7 @@ In a range of items in a query/page that has 20 items:
 
 The steps above will allow you to achieve smooth item animations in complex pagination pipelines.
 
-## Practical example
+# Practical example
 
 See the `ArchiveList` state production pipeline in the [me](https://github.com/tunjid/me/blob/main/common/ui/archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveListStateHolder.kt)
 github project for an example of a a complex tiled pagination pipeline with key preservation across
