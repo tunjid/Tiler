@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+site_name: My Docs
+theme:
+  name: material
+  palette:
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+repo_url: https://github.com/tunjid/Tiler
+nav:
+  - Home: index.md
+  - How tiling works:
+      - Primitives: implementation/primitives.md
+      - Pivoting: implementation/pivoted-tiling.md
+      - Performance: implementation/performance.md
+  - Tiling use cases and examples:
+      - Overview: usecases/overview.md
+      - Basic Example: usecases/basic-example.md
+      - Transformations: usecases/transformations.md
+      - Placeholders: usecases/placeholders.md
+      - Search: usecases/search.md
+      - Adaptive Paging Example: usecases/adaptive-paging.md
+      - Jetpack Compose: usecases/compose.md
