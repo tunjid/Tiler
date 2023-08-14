@@ -86,3 +86,20 @@ inline fun <Query, T, K> TiledList<Query, T>.distinctBy(
 
 inline fun <Query, T> TiledList<Query, T>.distinct(): TiledList<Query, T> =
     distinctBy { it }
+
+inline fun <Query, T, K> TiledList<Query, T>.groupBy(
+    keySelector: (T) -> K
+): Map<K, TiledList<Query, T>> {
+    val groupedItems = linkedMapOf<K, MutableTiledList<Query, T>>()
+    forEachIndexed { index, item ->
+        val mutableTiledList = groupedItems.getOrPut(
+            key = keySelector(item),
+            defaultValue = ::mutableTiledListOf
+        )
+        mutableTiledList.add(
+            query = queryAt(index),
+            item = item
+        )
+    }
+    return groupedItems
+}
