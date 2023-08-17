@@ -46,14 +46,14 @@ data class PivotRequest<Query, Item>(
 /**
  * A summary of [Query] parameters that are pivoted around [query]
  */
- class Pivot<Query, Item> internal constructor(
+internal class Pivot<Query, Item> internal constructor(
     /** The query pivoted around */
     val query: Query,
     /** The [Comparator] used for sorting queries while pivoting. */
     private val pivotRequest: PivotRequest<Query, Item>,
     /** Pages actively being collected and loaded from. */
     private val previousResult: Pivot<Query, Item>?,
-): Tile.Input<Query, Item> {
+) : Tile.Batch<Query, Item> {
 
     internal var left: Query? = query
     internal var right: Query? = query
@@ -61,7 +61,7 @@ data class PivotRequest<Query, Item>(
     internal val comparator = pivotRequest.comparator
 
     /** Pages actively being collected and loaded from. */
-    val on: List<Query> = mutableListOf(query).meetSizeQuota(
+    override val on: List<Query> = mutableListOf(query).meetSizeQuota(
         maxSize = pivotRequest.onCount,
         context = this,
         increment = pivotRequest.nextQuery,
@@ -69,7 +69,7 @@ data class PivotRequest<Query, Item>(
     )
 
     /** Pages whose emissions are in memory, but are not being collected from. */
-    val off: List<Query> =
+    override val off: List<Query> =
         if (pivotRequest.offCount == 0) emptyList() else mutableListOf<Query>().meetSizeQuota(
             maxSize = pivotRequest.offCount,
             context = this,
@@ -78,7 +78,7 @@ data class PivotRequest<Query, Item>(
         )
 
     /** Pages to remove from memory. */
-    val evict: List<Query>
+    override val evict: List<Query>
 
     init {
         val keptQueries = (on + off).toSet()
@@ -92,6 +92,11 @@ data class PivotRequest<Query, Item>(
             else -> previousQueries.filterNot(keptQueries::contains)
         }
     }
+
+    override val order = Tile.Order.PivotSorted<Query, Item>(
+        query = query,
+        comparator = comparator
+    )
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -113,11 +118,6 @@ data class PivotRequest<Query, Item>(
         return result
     }
 }
-
-internal val <Query, Item> Pivot<Query, Item>.order get() = Tile.Order.PivotSorted<Query, Item>(
-    query = query,
-    comparator = comparator
-)
 
 /**
  * Creates a [Flow] of [Tile.Input] where the requests are pivoted around the most recent emission of [Query]

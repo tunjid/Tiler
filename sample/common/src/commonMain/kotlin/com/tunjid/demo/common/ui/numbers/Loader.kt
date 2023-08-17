@@ -18,10 +18,8 @@ package com.tunjid.demo.common.ui.numbers
 
 import com.tunjid.tiler.ListTiler
 import com.tunjid.tiler.PivotRequest
-import com.tunjid.tiler.Pivot
 import com.tunjid.tiler.Tile
 import com.tunjid.tiler.TiledList
-import com.tunjid.tiler.buildTiledList
 import com.tunjid.tiler.distinct
 import com.tunjid.tiler.emptyTiledList
 import com.tunjid.tiler.listTiler
@@ -41,7 +39,6 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlin.math.max
-import kotlin.math.min
 
 private const val ITEMS_PER_PAGE = 100
 
@@ -88,7 +85,7 @@ class Loader(
     ).distinctUntilChanged()
 
     // Define inputs that match the current pivoted position
-    private val pivotInputs = currentQuery.toPivotedTileInputs<PageQuery, NumberTile>(
+    private val pivotInputs = currentQuery.toPivotedTileInputs(
         pivotRequests = pivotRequests
     )
         .shareIn(scope, SharingStarted.WhileSubscribed())
@@ -213,7 +210,8 @@ private fun numberTiler(
     )
 
 private fun Flow<Tile.Input<PageQuery, NumberTile>>.pivotSummaries(): Flow<String> =
-    filterIsInstance<Pivot<PageQuery, NumberTile>>()
+    // Use batch requests as a snapshot of the tiling pipeline
+    filterIsInstance<Tile.Batch<PageQuery, NumberTile>>()
         .map { input ->
             listOf(
                 "Active pages: ${input.on.map(PageQuery::page).sorted()}",
