@@ -25,16 +25,16 @@ It offers constant time access to items at indices, and the ability to introspec
 
 The result is a paging pipeline that allows for the following UI/UX paradigms that may be supported by paging:
 
-| Basic                    | Search                  |   Placeholders                            |
-|:-------------------------:|:-------------------------:|:-------------------------------:|
-| ![m](/images/basic.gif)  | ![](/images/search.gif) | ![](/images/placeholders.gif) |
+|              Basic               |               Search               |                  Placeholders                  |
+|:--------------------------------:|:----------------------------------:|:----------------------------------------------:|
+| ![Basic](/docs/images/basic.gif) | ![Search](/docs/images/search.gif) | ![Placeholders](/docs/images/placeholders.gif) |
 
 
 For large screened devices:
 
-| Adaptive                | Complex                  |
-|:-------------------------:|:--------------------------:|
-| ![](/images/adaptive.gif) | ![](/images/complex.gif) |
+|                Adaptive                |               Complex                |
+|:--------------------------------------:|:------------------------------------:|
+| ![Adaptive](/docs/images/adaptive.gif) | ![Complex](/docs/images/complex.gif) |
 
 Please see the [documentation page](https://tunjid.github.io/Tiler/) for more details.
 
