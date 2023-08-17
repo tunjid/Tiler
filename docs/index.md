@@ -23,6 +23,19 @@ taken as anything more than its face value.
 Tiling is a state based paging implementation that presents a sublist of paged dataset in a simple `List`.
 It offers constant time access to items at indices, and the ability to introspect the items paged through.
 
+The result is a paging pipeline that allows for the following UI/UX paradigms that may be supported by paging:
+
+| Basic                    | Search                  |   Placeholders                            |
+|:-------------------------:|:-------------------------:|:-------------------------------:|
+| ![m](/images/basic.gif)  | ![](/images/search.gif) | ![](/images/placeholders.gif) |
+
+
+For large screened devices:
+
+| Adaptive                | Complex                  |
+|:-------------------------:|:--------------------------:|
+| ![](/images/adaptive.gif) | ![](/images/complex.gif) |
+
 Tiling is achieved with a Tiler; a pure function that has the ability to adapt any generic method of the form:
 
 ```kotlin
@@ -123,12 +136,6 @@ This is useful for modifying `TiledList` instances returned. Actions like:
 * General list modification
 
 can be easily performed.
-
-## Demo
-
-The demo app is cheekily implemented as a dynamic grid of tiles with dynamic colors that update many times per second:
-
-![Demo image](https://github.com/tunjid/tiler/blob/develop/misc/demo.gif)
 
 
 ## Get it

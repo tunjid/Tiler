@@ -1,3 +1,18 @@
+## A guide on achieving...
+
+The following guide should help create the UI/UX seen below:
+
+<p align="center">
+    <img src="../../images/complex.gif" alt="Complex" width="200"/>
+</p>
+
+See the `ArchiveList` state production pipeline in the [me](https://github.com/tunjid/me/blob/main/common/ui/archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveListStateHolder.kt)
+github project for an example of a a complex tiled pagination pipeline with key preservation across
+multiple queries. In it, the current item the user is viewing can remain anchored even as the
+search filter changes.
+
+## Guide
+
 In your application you may have scenarios that are a combination of all the use cases covered:
 
 * Adapts to different screen sizes
@@ -37,9 +52,3 @@ In a range of items in a query/page that has 20 items:
 * Make sure ids are not duplicated.
 
 The steps above will allow you to achieve smooth item animations in complex pagination pipelines.
-
-# Practical example
-
-See the `ArchiveList` state production pipeline in the [me](https://github.com/tunjid/me/blob/main/common/ui/archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveListStateHolder.kt)
-github project for an example of a a complex tiled pagination pipeline with key preservation across
-multiple queries.

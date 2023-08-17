@@ -1,9 +1,20 @@
 # Search
 
+## A guide on achieving...
+
+The following guide should help create the UI/UX seen below:
+
+<p align="center">
+    <img src="../../images/search.gif" alt="Search" width="200"/>
+</p>
+
+The code for the above can be seen in the Musify Spotify clone, on the search
+[screen](https://github.com/tunjid/Musify/blob/main/app/src/main/java/com/example/musify/ui/screens/podcastshowdetailscreen/StateProduction.kt).
+
+## Guide
+
 Tiling provides data as a continuous stream, so search can be easily implemented without losing
 items that were previously fetched by debouncing as the queries change.
-
-## Example
 
 Consider a paginated API that allows that allows for filtering results that matches a query:
 
@@ -75,8 +86,3 @@ fun toTiledList(
             else 0L
         }
 ```
-
-## Practical example
-
-An example of tiling for paginated search can be seen in the Musify Spotify clone, on the search
-[screen](https://github.com/tunjid/Musify/blob/main/app/src/main/java/com/example/musify/ui/screens/podcastshowdetailscreen/StateProduction.kt).

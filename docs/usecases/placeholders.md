@@ -1,5 +1,18 @@
 # Placeholders
 
+## A guide on achieving...
+
+The following guide should help create the UI/UX seen below:
+
+<p align="center">
+    <img src="../../images/placeholders.gif" alt="Placeholders" width="200"/>
+</p>
+
+## Guide
+
+The code for the above can be seen in the Musify Spotify clone, on the Podcast
+episode detail [screen](https://github.com/tunjid/Musify/blob/main/app/src/main/java/com/example/musify/ui/screens/searchscreen/StateProduction.kt).
+
 When loading data from asynchronous sources, it is sometimes required to show static data first.
 Since tiling exposes a `List`, inserting placeholders typically involves emitting the placeholder
 items first.
@@ -102,9 +115,3 @@ fun toTiledList(
         )
     )
 ```
-
-## Practical example
-
-An example of placeholder use can be seen in the Musify Spotify clone, on the Podcast
-episode detail [screen](https://github.com/tunjid/Musify/blob/main/app/src/main/java/com/example/musify/ui/screens/searchscreen/StateProduction.kt).
-

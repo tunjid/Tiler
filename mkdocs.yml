@@ -1,12 +1,25 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
-site_name: My Docs
+
+# General setup
+site_name: Tiler
+site_url: https://tunjid.github.io/Tiler/
+site_author: Adetunji Dahunsi
+site_description: A reactive state based pagination library
+
 theme:
   name: material
+  logo: assets/logo.png
+  icon:
+    repo: fontawesome/brands/github
+  language: en
+  include_search_page: false
+  search_index_only: true
   palette:
-
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
+      primary: teal
+      accent: teal
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
@@ -14,22 +27,24 @@ theme:
     # Palette toggle for dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
+      primary: teal
+      accent: teal
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
 repo_url: https://github.com/tunjid/Tiler
 nav:
   - Home: index.md
+  - Tiling use cases and examples:
+      - Overview: usecases/overview.md
+      - Basic Example: usecases/basic-example.md
+      - Placeholders: usecases/placeholders.md
+      - Search: usecases/search.md
+      - Adaptive Paging Example: usecases/adaptive-paging.md
+      - Complex pipelines: usecases/complex-tiling.md
+      - Transformations: usecases/transformations.md
+      - Jetpack Compose: usecases/compose.md
   - How tiling works:
       - Primitives: implementation/primitives.md
       - Pivoting: implementation/pivoted-tiling.md
       - Performance: implementation/performance.md
-  - Tiling use cases and examples:
-      - Overview: usecases/overview.md
-      - Basic Example: usecases/basic-example.md
-      - Transformations: usecases/transformations.md
-      - Placeholders: usecases/placeholders.md
-      - Search: usecases/search.md
-      - Adaptive Paging Example: usecases/adaptive-paging.md
-      - Jetpack Compose: usecases/compose.md
-      - Complex pipelines: usecases/complex-tiling.md

@@ -1,5 +1,16 @@
 # Adaptive paging
 
+
+## A guide on achieving...
+
+The following guide should help create the UI/UX seen below:
+
+<p align="center">
+    <img src="../../images/adaptive.gif" alt="Adaptive" width="200"/>
+</p>
+
+## Guide
+
 Situations can arise that can require more dynamic pagination.
 Consider paging for an adaptive layout. The items fetched can be a function of:
 
