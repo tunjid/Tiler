@@ -64,9 +64,7 @@ kotlin {
             binaryOptions["memoryModel"] = "experimental"
         }
     }
-    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions.jvmTarget = "11"
-    }
+    configureKotlinJvm()
     configurations.all {
         coerceComposeVersion(this)
     }

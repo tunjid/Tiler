@@ -21,14 +21,13 @@ plugins {
 android {
     androidConfiguration(this)
 
-    defaultConfig {
-        targetSdk = 33
-    }
-
     sourceSets {
         named("main") {
-            manifest.srcFile("src/androidMain/AndroidManifest.xml")
-            res.srcDirs("src/androidMain/res")
+            // Pull Android manifest from src/androidMain in multiplatform dirs
+            if (file("src/androidMain").exists()) {
+                manifest.srcFile("src/androidMain/AndroidManifest.xml")
+                res.srcDirs("src/androidMain/res")
+            }
         }
     }
     configurations.all {

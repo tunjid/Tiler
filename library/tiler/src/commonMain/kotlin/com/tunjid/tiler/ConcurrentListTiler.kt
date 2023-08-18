@@ -91,7 +91,7 @@ private class OutputFlow<Query, Item>(
                     flowOf(input)
                 )
 
-                is Pivot -> {
+                is Tile.Batch -> {
                     // Evict first because order will be invalid if queries that are not part
                     // of this pivot are ordered with its order
                     for (query in input.evict) evict(
@@ -108,9 +108,13 @@ private class OutputFlow<Query, Item>(
                         query = query,
                         collector = collector
                     )
-                    collector.emit(
-                        flowOf(input.order)
-                    )
+                    input.order
+                        ?.let(::flowOf)
+                        ?.let { collector.emit(it) }
+
+                    input.limiter
+                        ?.let(::flowOf)
+                        ?.let { collector.emit(it) }
                 }
             }
         }

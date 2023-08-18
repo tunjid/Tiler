@@ -42,6 +42,13 @@ inline fun <Query, Item> TiledList<Query, Item>.filter(
         predicate(item)
     }
 
+@Suppress("UNCHECKED_CAST")
+inline fun <Query, reified Item> TiledList<Query, *>.filterIsInstance(
+): TiledList<Query, Item> =
+    filter { item ->
+        item is Item
+    } as TiledList<Query, Item>
+
 inline fun <Query, T, R> TiledList<Query, T>.mapIndexed(
     mapper: (Int, T) -> R
 ): TiledList<Query, R> =
@@ -79,3 +86,20 @@ inline fun <Query, T, K> TiledList<Query, T>.distinctBy(
 
 inline fun <Query, T> TiledList<Query, T>.distinct(): TiledList<Query, T> =
     distinctBy { it }
+
+inline fun <Query, T, K> TiledList<Query, T>.groupBy(
+    keySelector: (T) -> K
+): Map<K, TiledList<Query, T>> {
+    val groupedItems = linkedMapOf<K, MutableTiledList<Query, T>>()
+    forEachIndexed { index, item ->
+        val mutableTiledList = groupedItems.getOrPut(
+            key = keySelector(item),
+            defaultValue = ::mutableTiledListOf
+        )
+        mutableTiledList.add(
+            query = queryAt(index),
+            item = item
+        )
+    }
+    return groupedItems
+}

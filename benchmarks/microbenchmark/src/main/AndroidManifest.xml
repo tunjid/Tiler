@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+
+        <!-- Note, that Activities are part of :benchmarkable module -->
+
+        <!-- enable profiling for benchmarks -->
+        <profileable
+            android:shell="true" />
+    </application>
+
+</manifest>

@@ -17,6 +17,7 @@
 plugins {
     kotlin("multiplatform")
     id("publishing-library-convention")
+    id("kotlin-jvm-convention")
     id("maven-publish")
     signing
     id("org.jetbrains.dokka")
@@ -29,9 +30,6 @@ kotlin {
         browser()
     }
     jvm {
-        compilations.all {
-            kotlinOptions.jvmTarget = "1.8"
-        }
         withJava()
         testRuns["test"].executionTask.configure {
             useJUnit()

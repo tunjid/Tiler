@@ -23,11 +23,11 @@ internal object EmptyTiledList : TiledList<Nothing, Nothing>, List<Nothing> by e
     override val tileCount: Int
         get() = 0
 
-    override fun tileAt(index: Int): Tile =
-        throw IndexOutOfBoundsException("Empty tiled list doesn't contain tile at index $index.")
+    override fun tileAt(tileIndex: Int): Tile =
+        throw IndexOutOfBoundsException("Empty tiled list doesn't contain tile at index $tileIndex.")
 
-    override fun queryAtTile(index: Int): Nothing =
-        throw IndexOutOfBoundsException("Empty tiled list doesn't contain query at tile index $index.")
+    override fun queryAtTile(tileIndex: Int): Nothing =
+        throw IndexOutOfBoundsException("Empty tiled list doesn't contain query at tile index $tileIndex.")
 
     override fun queryAt(index: Int): Nothing =
         throw IndexOutOfBoundsException("Empty tiled list doesn't contain element at index $index.")

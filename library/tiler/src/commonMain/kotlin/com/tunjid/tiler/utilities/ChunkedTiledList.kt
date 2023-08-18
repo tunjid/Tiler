@@ -66,13 +66,13 @@ internal class ChunkedTiledList<Query, Item>(
 
     override val tileCount: Int = queries.size
 
-    override fun tileAt(index: Int): Tile = Tile(
-        start = if (index == 0) 0 else chunkSizes[index - 1],
-        end = chunkSizes[index]
+    override fun tileAt(tileIndex: Int): Tile = Tile(
+        start = if (tileIndex == 0) 0 else chunkSizes[tileIndex - 1],
+        end = chunkSizes[tileIndex]
     )
 
     @Suppress("UNCHECKED_CAST")
-    override fun queryAtTile(index: Int): Query = queries[index] as Query
+    override fun queryAtTile(tileIndex: Int): Query = queries[tileIndex] as Query
 
     @Suppress("UNCHECKED_CAST")
     override fun queryAt(index: Int): Query = withItemAtIndex(

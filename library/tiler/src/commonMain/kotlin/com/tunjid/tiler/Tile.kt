@@ -102,8 +102,9 @@ value class Tile internal constructor(
          * Starts collecting from the backing [Flow] for the specified [query].
          * Requesting this is idempotent; multiple requests have no side effects.
          */
-        @JvmInline
-        value class On<Query, Item>(override val query: Query) : Request<Query, Item>
+        data class On<Query, Item>(
+            override val query: Query
+        ) : Request<Query, Item>
 
         /**
          * Stops collecting from the backing [Flow] for the specified [query].
@@ -111,16 +112,16 @@ value class Tile internal constructor(
          * in the [List] of items returned
          * Requesting this is idempotent; multiple requests have no side effects.
          */
-        @JvmInline
-        value class Off<Query, Item>(override val query: Query) : Request<Query, Item>
+        data class Off<Query, Item>(
+            override val query: Query
+        ) : Request<Query, Item>
 
         /**
          * Stops collecting from the backing [Flow] for the specified [query] and also evicts
          * the items previously fetched by the [query] from memory.
          * Requesting this is idempotent; multiple requests have no side effects.
          */
-        @JvmInline
-        value class Evict<Query, Item>(
+        data class Evict<Query, Item>(
             override val query: Query
         ) : Request<Query, Item>, Output<Query, Item>
     }
@@ -165,6 +166,22 @@ value class Tile internal constructor(
          */
         val itemSizeHint: Int? = null,
     ) : Input<Query, Item>, Output<Query, Item>
+
+    /**
+     * A [Tile.Input] for applying multiple [Tile.Request]s and a single [Tile.Order].
+     * Note: The batch request is not applied atomically or in a transaction. Each [Tile.Input]
+     * generated from the arguments provided may cause new emissions of a [TiledList].
+     * Instead, it is a definition to contain tiling logic that requires dispatch of other
+     * [Tile.Input] primitives and avoid extra allocations of [Tile.Request] instances for
+     * [Batch.on], [Batch.off], and [Batch.evict] queries.
+     */
+    interface Batch<Query, Item> : Input<Query, Item> {
+        val on: List<Query> get() = emptyList()
+        val off: List<Query> get() = emptyList()
+        val evict: List<Query> get() = emptyList()
+        val order: Order<Query, Item>? get() = null
+        val limiter: Limiter<Query, Item>? get() = null
+    }
 
     internal data class Data<Query, Item>(
         val items: List<Item>,

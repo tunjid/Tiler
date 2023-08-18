@@ -15,11 +15,9 @@
  */
 
 import com.android.build.api.dsl.CommonExtension
-import org.gradle.api.Action
 import org.gradle.api.JavaVersion
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.VersionCatalogsExtension
-import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
 
 /*
  * Copyright 2021 Google LLC
@@ -43,10 +41,11 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
 fun org.gradle.api.Project.androidConfiguration(
     extension: CommonExtension<*, *, *, *>
 ) = extension.apply {
-    compileSdk = 33
+    namespace = "com.tunjid.tiler.${project.name}"
+    compileSdk = 34
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 23
     }
 
     buildFeatures {
@@ -63,22 +62,7 @@ fun org.gradle.api.Project.androidConfiguration(
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-
-    (this as org.gradle.api.plugins.ExtensionAware).apply {
-        val kotlinOptions = "kotlinOptions"
-        if (extensions.findByName(kotlinOptions) != null) {
-            extensions.configure(kotlinOptions, Action<KotlinJvmOptions> {
-                jvmTarget = "11"
-                freeCompilerArgs = freeCompilerArgs + listOf(
-                    "-Xuse-experimental=androidx.compose.animation.ExperimentalAnimationApi",
-                    "-Xuse-experimental=androidx.compose.material.ExperimentalMaterialApi",
-                    "-Xuse-experimental=kotlinx.serialization.ExperimentalSerializationApi",
-                    "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
-                    "-Xuse-experimental=kotlinx.coroutines.FlowPreview"
-                )
-            })
-        }
-    }
+    configureKotlinJvm()
 }
 
 fun org.gradle.api.Project.coerceComposeVersion(configuration: Configuration) {
