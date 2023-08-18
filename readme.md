@@ -36,7 +36,7 @@ For large screened devices:
 |:--------------------------------------:|:------------------------------------:|
 | ![Adaptive](/docs/images/adaptive.gif) | ![Complex](/docs/images/complex.gif) |
 
-Please see the [documentation page](https://tunjid.github.io/Tiler/) for more details.
+Please see the [documentation](https://tunjid.github.io/Tiler/) for more details.
 
 ## License
 

@@ -35,6 +35,7 @@ theme:
 repo_url: https://github.com/tunjid/Tiler
 nav:
   - Home: index.md
+  - Tiled lists: tiledlist.md
   - Tiling use cases and examples:
       - Overview: usecases/overview.md
       - Basic Example: usecases/basic-example.md
