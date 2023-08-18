@@ -1,7 +1,5 @@
 # Basic example
 
-## A guide on achieving...
-
 The following guide should help create the UI/UX seen below:
 
 <p align="center">

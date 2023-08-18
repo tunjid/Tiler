@@ -1,12 +1,9 @@
 # Adaptive paging
 
-
-## A guide on achieving...
-
-The following guide should help create the UI/UX seen below:
+The following guide helps create the UI/UX seen below:
 
 <p align="center">
-    <img src="../../images/adaptive.gif" alt="Adaptive" width="200"/>
+    <img src="../../images/adaptive.gif" alt="Adaptive"/>
 </p>
 
 ## Guide

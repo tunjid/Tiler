@@ -35,14 +35,14 @@ theme:
 repo_url: https://github.com/tunjid/Tiler
 nav:
   - Home: index.md
-  - Tiled lists: tiledlist.md
+  - Tiled lists: implementation/tiledlist.md
   - Tiling use cases and examples:
       - Overview: usecases/overview.md
       - Basic Example: usecases/basic-example.md
       - Placeholders: usecases/placeholders.md
       - Search: usecases/search.md
-      - Adaptive Paging Example: usecases/adaptive-paging.md
-      - Complex pipelines: usecases/complex-tiling.md
+      - Adaptive Paging: usecases/adaptive-paging.md
+      - Adaptive Paged Search with Placeholders: usecases/complex-tiling.md
       - Transformations: usecases/transformations.md
       - Jetpack Compose: usecases/compose.md
   - How tiling works:

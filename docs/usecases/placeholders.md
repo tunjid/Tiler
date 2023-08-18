@@ -1,8 +1,6 @@
 # Placeholders
 
-## A guide on achieving...
-
-The following guide should help create the UI/UX seen below:
+The following guide helps create the UI/UX seen below:
 
 <p align="center">
     <img src="../../images/placeholders.gif" alt="Placeholders" width="200"/>

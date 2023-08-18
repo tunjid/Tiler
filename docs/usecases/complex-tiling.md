@@ -1,9 +1,7 @@
-## A guide on achieving...
-
 The following guide should help create the UI/UX seen below:
 
 <p align="center">
-    <img src="../../images/complex.gif" alt="Complex" width="200"/>
+    <img src="../../images/complex.gif" alt="Complex"/>
 </p>
 
 See the `ArchiveList` state production pipeline in the [me](https://github.com/tunjid/me/blob/main/common/ui/archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveListStateHolder.kt)

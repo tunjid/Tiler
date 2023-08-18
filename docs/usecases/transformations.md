@@ -1,6 +1,5 @@
-## Standard library like transformations
-The output of `ListTiler` is a `TiledList<Query, Item>`. The `TiledList` API offers many standard library
-like transformation extensions to allow for easy `TiledList` modification. These include:
+There are extensions on `TiledList` that offer many standard library like transformations
+to allow for easy `TiledList` modification. These include:
 
 * `TiledList.map` and `TiledList.mapIndexed`
 * `TiledList.filter`, `TiledList.filterIndexed` and `TiledList.filterisInstance`
