@@ -282,19 +282,6 @@
     Introduction
   </a>
   
-    <nav class="md-nav" aria-label="Introduction">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#tiling-as-a-paging-as-state-implementation" class="md-nav__link">
-    Tiling as a paging as state implementation
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -589,19 +576,6 @@
     Introduction
   </a>
   
-    <nav class="md-nav" aria-label="Introduction">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#tiling-as-a-paging-as-state-implementation" class="md-nav__link">
-    Tiling as a paging as state implementation
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -651,16 +625,15 @@
 about API stability or long term support. None of the works presented here are production tested, and should not be
 taken as anything more than its face value.</p>
 <h2 id="introduction">Introduction</h2>
-<h3 id="tiling-as-a-paging-as-state-implementation">Tiling as a paging as state implementation</h3>
 <p>Tiling is a state based paging implementation that presents a sublist of paged dataset in a simple <code>List</code>.
 It offers constant time access to items at indices, and the ability to introspect the items paged through.</p>
-<p>The result is a paging pipeline that allows for the following UI/UX paradigms that may be supported by paging:</p>
+<p>The following are examples of paged UI/UX paradigms that were built using tiling:</p>
 <table>
 <thead>
 <tr>
-<th style="text-align: center;">Basic</th>
-<th style="text-align: center;">Search</th>
-<th style="text-align: center;">Placeholders</th>
+<th style="text-align: center;"><a href="https://github.com/tunjid/Tiler">Basic</a></th>
+<th style="text-align: center;"><a href="https://github.com/tunjid/Musify">Search</a></th>
+<th style="text-align: center;"><a href="https://github.com/tunjid/me">Placeholders</a></th>
 </tr>
 </thead>
 <tbody>
@@ -675,8 +648,8 @@ It offers constant time access to items at indices, and the ability to introspec
 <table>
 <thead>
 <tr>
-<th style="text-align: center;">Adaptive</th>
-<th style="text-align: center;">Adaptive, search and placeholders</th>
+<th style="text-align: center;"><a href="https://github.com/tunjid/Tiler">Adaptive</a></th>
+<th style="text-align: center;"><a href="(https://github.com/tunjid/me)">Adaptive search with placeholders</a></th>
 </tr>
 </thead>
 <tbody>
@@ -699,9 +672,40 @@ It offers constant time access to items at indices, and the ability to introspec
 <li>The <a href="./implementation/primitives#inputrequest">inputs</a> modify the queries for data</li>
 <li>The output is the data returned over time in a <code>List</code> implementation: A <code>TiledList</code>.</li>
 </ul>
+<p>Typical use of Tiling is the <code>toTiledList</code> extension on a <code>Flow&lt;Query&gt;</code>:</p>
+<pre><code class="language-kotlin">val pageRequestFlow = MutableSharedFlow&lt;Tile.Input&lt;Int, Item&gt;&gt;()
+
+val items: Flow&lt;TiledList&lt;Int, Item&gt;&gt; = pageRequestFlow.toTiledList(
+    listTiler(
+        order = Tile.Order.Sorted(
+            comparator = compareBy(Int::compareTo)
+        ),
+        limiter = Tile.Limiter(
+            maxQueries = 3
+        ),
+        fetcher = { page -&gt;
+            repository.itemsFor(page)
+        }
+    )
+)
+</code></pre>
+<p>Requests for pages are sent on each emission of <code>pageRequestFlow</code>:</p>
+<pre><code class="language-kotlin">// Request page 1
+pageRequestFlow.emit(Tile.Request.On(1))
+
+// Request page 5
+pageRequestFlow.emit(Tile.Request.On(5))
+
+// Stop updates from page 1
+pageRequestFlow.emit(Tile.Request.Off(1))
+
+// Delete cached results from page 1
+pageRequestFlow.emit(Tile.Request.Evict(1)) 
+</code></pre>
 <p>For most practical purposes, the <code>TiledList</code> produced will be anchored or
-<a href="./implementation/pivoted-tiling">"pivoted"</a> around a particular query for data.</p>
-<p>See the <a href="./usecases/basic-example">basic example</a> for a pivoted paging pipeline.</p>
+<a href="./implementation/pivoted-tiling">"pivoted"</a> around a particular page; typically the user's
+scroll position. For how to implement this with the library, see the
+<a href="./usecases/basic-example">basic example</a>.</p>
 <h2 id="get-it">Get it</h2>
 <p><code>Tiler</code> is available on mavenCentral with the latest version indicated by the badge at the top of this readme file.</p>
 <p><code>implementation com.tunjid.tiler:tiler:version</code></p>
