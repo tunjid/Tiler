@@ -16,7 +16,7 @@
       
       
       
-        <link rel="next" href="usecases/overview/">
+        <link rel="next" href="implementation/tiledlist/">
       
       <link rel="icon" href="assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.5.2, mkdocs-material-9.1.21">
@@ -290,19 +290,6 @@
     Tiling as a paging as state implementation
   </a>
   
-    <nav class="md-nav" aria-label="Tiling as a paging as state implementation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#tiledlist" class="md-nav__link">
-    TiledList
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
         
       </ul>
@@ -339,23 +326,38 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="implementation/tiledlist/" class="md-nav__link">
+        Tiled lists
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
     
     <li class="md-nav__item md-nav__item--nested">
       
       
       
       
-      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
       
       
       
-        <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
           Tiling use cases and examples
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
-        <label class="md-nav__title" for="__nav_2">
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3">
           <span class="md-nav__icon md-icon"></span>
           Tiling use cases and examples
         </label>
@@ -424,7 +426,7 @@
   
     <li class="md-nav__item">
       <a href="usecases/adaptive-paging/" class="md-nav__link">
-        Adaptive Paging Example
+        Adaptive Paging
       </a>
     </li>
   
@@ -438,7 +440,7 @@
   
     <li class="md-nav__item">
       <a href="usecases/complex-tiling/" class="md-nav__link">
-        Complex pipelines
+        Adaptive Paged Search with Placeholders
       </a>
     </li>
   
@@ -492,17 +494,17 @@
       
       
       
-      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
       
       
       
-        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+        <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
           How tiling works
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-        <label class="md-nav__title" for="__nav_3">
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_4">
           <span class="md-nav__icon md-icon"></span>
           How tiling works
         </label>
@@ -595,19 +597,6 @@
     Tiling as a paging as state implementation
   </a>
   
-    <nav class="md-nav" aria-label="Tiling as a paging as state implementation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#tiledlist" class="md-nav__link">
-    TiledList
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
         
       </ul>
@@ -676,9 +665,9 @@ It offers constant time access to items at indices, and the ability to introspec
 </thead>
 <tbody>
 <tr>
-<td style="text-align: center;"><img alt="m" src="/images/basic.gif" /></td>
-<td style="text-align: center;"><img alt="" src="/images/search.gif" /></td>
-<td style="text-align: center;"><img alt="" src="/images/placeholders.gif" /></td>
+<td style="text-align: center;"><img alt="Basic" src="images/basic.gif" /></td>
+<td style="text-align: center;"><img alt="Search" src="images/search.gif" /></td>
+<td style="text-align: center;"><img alt="Placeholders" src="images/placeholders.gif" /></td>
 </tr>
 </tbody>
 </table>
@@ -687,13 +676,13 @@ It offers constant time access to items at indices, and the ability to introspec
 <thead>
 <tr>
 <th style="text-align: center;">Adaptive</th>
-<th style="text-align: center;">Complex</th>
+<th style="text-align: center;">Adaptive, search and placeholders</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align: center;"><img alt="" src="/images/adaptive.gif" /></td>
-<td style="text-align: center;"><img alt="" src="/images/complex.gif" /></td>
+<td style="text-align: center;"><img alt="Adaptive" src="images/adaptive.gif" /></td>
+<td style="text-align: center;"><img alt="Adaptive, search and placeholders" src="images/complex.gif" /></td>
 </tr>
 </tbody>
 </table>
@@ -707,75 +696,12 @@ It offers constant time access to items at indices, and the ability to introspec
 }
 </code></pre>
 <ul>
-<li>The <a href="/implementation/primitives#inputrequest">inputs</a> modify the queries for data</li>
+<li>The <a href="./implementation/primitives#inputrequest">inputs</a> modify the queries for data</li>
 <li>The output is the data returned over time in a <code>List</code> implementation: A <code>TiledList</code>.</li>
 </ul>
 <p>For most practical purposes, the <code>TiledList</code> produced will be anchored or
-<a href="/implementation/pivoted-tiling">"pivoted"</a> around a particular query for data.</p>
-<p>See the <a href="/usecases/basic-example">basic example</a> for a pivoted paging pipeline.</p>
-<h4 id="tiledlist">TiledList</h4>
-<p>A <code>TiledList</code> is a <code>List</code> that:</p>
-<ul>
-<li>Allows for looking up the query that fetched each item.</li>
-<li>Is a sublist of the items in the backing data source.</li>
-</ul>
-<p>The former is done by associating a range of indices in the <code>List</code> with a <code>Tile</code>.
-Effectively a <code>TiledList</code> "chunks" its items by query.
-For example, the <code>TiledList</code> below is a <code>List</code> with 10 items, and two tiles. Each <code>Tile</code> covers 5 indices:</p>
-<pre><code>|     1      |        2      |
-[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-</code></pre>
-<p>A <code>Tile</code> is a <code>value</code> class with the following public properties:</p>
-<pre><code class="language-kotlin">value class Tile(...) {
-    // start index for a chunk
-    val start: Int
-    // end exclusive index for a chunk
-    val end: Int
-}
-</code></pre>
-<p>A <code>TiledList</code> is defined as:</p>
-<pre><code class="language-kotlin">interface TiledList&lt;Query, Item&gt; : List&lt;Item&gt; {
-  /**
-   * The number of [Tile] instances or query ranges there are in this [TiledList]
-   */
-  val tileCount: Int
-
-  /**
-   * Returns the [Tile] at the specified tile index.
-   */
-  fun tileAt(tileIndex: Int): Tile
-
-  /**
-   * Returns the query at the specified tile index.
-   */
-  fun queryAtTile(tileIndex: Int): Query
-
-  /**
-   * Returns the query that fetched an [Item] at a specified index.
-   */
-  fun queryAt(index: Int): Query
-}
-</code></pre>
-<p><code>MutableTiledList</code> instances also exist:</p>
-<pre><code class="language-kotlin">interface MutableTiledList&lt;Query, Item&gt; : TiledList&lt;Query, Item&gt; {
-    fun add(index: Int, query: Query, item: Item)
-
-    fun add(query: Query, item: Item): Boolean
-
-    fun addAll(query: Query, items: Collection&lt;Item&gt;): Boolean
-
-    fun addAll(index: Int, query: Query, items: Collection&lt;Item&gt;): Boolean
-
-    fun remove(index: Int): Item
-}
-</code></pre>
-<p>This is useful for modifying <code>TiledList</code> instances returned. Actions like:</p>
-<ul>
-<li>Inserting separators or other interstitial content</li>
-<li>Mapping items with in memory data after fetching from a database</li>
-<li>General list modification</li>
-</ul>
-<p>can be easily performed.</p>
+<a href="./implementation/pivoted-tiling">"pivoted"</a> around a particular query for data.</p>
+<p>See the <a href="./usecases/basic-example">basic example</a> for a pivoted paging pipeline.</p>
 <h2 id="get-it">Get it</h2>
 <p><code>Tiler</code> is available on mavenCentral with the latest version indicated by the badge at the top of this readme file.</p>
 <p><code>implementation com.tunjid.tiler:tiler:version</code></p>

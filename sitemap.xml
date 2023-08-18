@@ -2,62 +2,67 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://tunjid.github.io/Tiler/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/implementation/performance/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/implementation/pivoted-tiling/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/implementation/primitives/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://tunjid.github.io/Tiler/implementation/tiledlist/</loc>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/usecases/adaptive-paging/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/usecases/basic-example/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/usecases/complex-tiling/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/usecases/compose/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/usecases/overview/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/usecases/placeholders/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/usecases/search/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/usecases/transformations/</loc>
-         <lastmod>2023-08-17</lastmod>
+         <lastmod>2023-08-18</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>

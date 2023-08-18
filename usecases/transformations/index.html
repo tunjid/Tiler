@@ -77,7 +77,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#standard-library-like-transformations" class="md-skip">
+        <a href="#generic-transformations" class="md-skip">
           Skip to content
         </a>
       
@@ -259,6 +259,21 @@
 
   
   
+  
+    <li class="md-nav__item">
+      <a href="../../implementation/tiledlist/" class="md-nav__link">
+        Tiled lists
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
     
   
   
@@ -268,17 +283,17 @@
       
       
       
-      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
       
       
       
-        <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
           Tiling use cases and examples
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
-        <label class="md-nav__title" for="__nav_2">
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <label class="md-nav__title" for="__nav_3">
           <span class="md-nav__icon md-icon"></span>
           Tiling use cases and examples
         </label>
@@ -347,7 +362,7 @@
   
     <li class="md-nav__item">
       <a href="../adaptive-paging/" class="md-nav__link">
-        Adaptive Paging Example
+        Adaptive Paging
       </a>
     </li>
   
@@ -361,7 +376,7 @@
   
     <li class="md-nav__item">
       <a href="../complex-tiling/" class="md-nav__link">
-        Complex pipelines
+        Adaptive Paged Search with Placeholders
       </a>
     </li>
   
@@ -402,13 +417,6 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#standard-library-like-transformations" class="md-nav__link">
-    Standard library like transformations
-  </a>
-  
-</li>
       
         <li class="md-nav__item">
   <a href="#generic-transformations" class="md-nav__link">
@@ -459,17 +467,17 @@
       
       
       
-      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
       
       
       
-        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+        <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
           How tiling works
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-        <label class="md-nav__title" for="__nav_3">
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_4">
           <span class="md-nav__icon md-icon"></span>
           How tiling works
         </label>
@@ -548,13 +556,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#standard-library-like-transformations" class="md-nav__link">
-    Standard library like transformations
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#generic-transformations" class="md-nav__link">
     Generic transformations
   </a>
@@ -581,9 +582,8 @@
 
   <h1>Transformations</h1>
 
-<h2 id="standard-library-like-transformations">Standard library like transformations</h2>
-<p>The output of <code>ListTiler</code> is a <code>TiledList&lt;Query, Item&gt;</code>. The <code>TiledList</code> API offers many standard library
-like transformation extensions to allow for easy <code>TiledList</code> modification. These include:</p>
+<p>There are extensions on <code>TiledList</code> that offer many standard library like transformations
+to allow for easy <code>TiledList</code> modification. These include:</p>
 <ul>
 <li><code>TiledList.map</code> and <code>TiledList.mapIndexed</code></li>
 <li><code>TiledList.filter</code>, <code>TiledList.filterIndexed</code> and <code>TiledList.filterisInstance</code></li>
