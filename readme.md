@@ -18,23 +18,21 @@ taken as anything more than its face value.
 
 ## Introduction
 
-### Tiling as a paging as state implementation
-
 Tiling is a state based paging implementation that presents a sublist of paged dataset in a simple `List`.
 It offers constant time access to items at indices, and the ability to introspect the items paged through.
 
-The result is a paging pipeline that allows for the following UI/UX paradigms that may be supported by paging:
+The following are examples of paged UI/UX paradigms that were built using tiling:
 
-|              Basic               |               Search               |                  Placeholders                  |
-|:--------------------------------:|:----------------------------------:|:----------------------------------------------:|
-| ![Basic](/docs/images/basic.gif) | ![Search](/docs/images/search.gif) | ![Placeholders](/docs/images/placeholders.gif) |
+| [Basic](https://github.com/tunjid/Tiler) | [Search](https://github.com/tunjid/Musify) |  [Placeholders](https://github.com/tunjid/me)  |
+|:----------------------------------------:|:------------------------------------------:|:----------------------------------------------:|
+|     ![Basic](/docs/images/basic.gif)     |     ![Search](/docs/images/search.gif)     | ![Placeholders](/docs/images/placeholders.gif) |
 
 
 For large screened devices:
 
-|                Adaptive                |               Complex                |
-|:--------------------------------------:|:------------------------------------:|
-| ![Adaptive](/docs/images/adaptive.gif) | ![Complex](/docs/images/complex.gif) |
+| [Adaptive](https://github.com/tunjid/Tiler) | [Adaptive search with placeholders]((https://github.com/tunjid/me)) |
+|:-------------------------------------------:|:-------------------------------------------------------------------:|
+|   ![Adaptive](/docs/images/adaptive.gif)    |                ![Complex](/docs/images/complex.gif)                 |
 
 Please see the [documentation](https://tunjid.github.io/Tiler/) for more details.
 

@@ -18,23 +18,21 @@ taken as anything more than its face value.
 
 ## Introduction
 
-### Tiling as a paging as state implementation
-
 Tiling is a state based paging implementation that presents a sublist of paged dataset in a simple `List`.
 It offers constant time access to items at indices, and the ability to introspect the items paged through.
 
-The result is a paging pipeline that allows for the following UI/UX paradigms that may be supported by paging:
+The following are examples of paged UI/UX paradigms that were built using tiling:
 
-|            Basic             |             Search             |                Placeholders                |
-|:----------------------------:|:------------------------------:|:------------------------------------------:|
-| ![Basic](./images/basic.gif) | ![Search](./images/search.gif) | ![Placeholders](./images/placeholders.gif) |
+| [Basic](https://github.com/tunjid/Tiler) | [Search](https://github.com/tunjid/Musify) | [Placeholders](https://github.com/tunjid/me) |
+|:----------------------------------------:|:------------------------------------------:|:--------------------------------------------:|
+|       ![Basic](./images/basic.gif)       |       ![Search](./images/search.gif)       |  ![Placeholders](./images/placeholders.gif)  |
 
 
 For large screened devices:
 
-|              Adaptive              |             Adaptive, search and placeholders              |
-|:----------------------------------:|:----------------------------------------------------------:|
-| ![Adaptive](./images/adaptive.gif) | ![Adaptive, search and placeholders](./images/complex.gif) |
+| [Adaptive](https://github.com/tunjid/Tiler) | [Adaptive search with placeholders]((https://github.com/tunjid/me)) |
+|:-------------------------------------------:|:-------------------------------------------------------------------:|
+|     ![Adaptive](./images/adaptive.gif)      |     ![Adaptive, search and placeholders](./images/complex.gif)      |
 
 Tiling is achieved with a Tiler; a pure function that has the ability to adapt any generic method of the form:
 
@@ -55,11 +53,45 @@ fun interface ListTiler<Query, Item> {
 * The [inputs](./implementation/primitives#inputrequest) modify the queries for data
 * The output is the data returned over time in a `List` implementation: A `TiledList`.
 
+Typical use of Tiling is the `toTiledList` extension on a `Flow<Query>`:
+
+```kotlin
+val pageRequestFlow = MutableSharedFlow<Tile.Input<Int, Item>>()
+
+val items: Flow<TiledList<Int, Item>> = pageRequestFlow.toTiledList(
+    listTiler(
+        order = Tile.Order.Sorted(
+            comparator = compareBy(Int::compareTo)
+        ),
+        limiter = Tile.Limiter(
+            maxQueries = 3
+        ),
+        fetcher = { page ->
+            repository.itemsFor(page)
+        }
+    )
+)
+```
+Requests for pages are sent on each emission of `pageRequestFlow`:
+
+```kotlin
+// Request page 1
+pageRequestFlow.emit(Tile.Request.On(1))
+
+// Request page 5
+pageRequestFlow.emit(Tile.Request.On(5))
+
+// Stop updates from page 1
+pageRequestFlow.emit(Tile.Request.Off(1))
+
+// Delete cached results from page 1
+pageRequestFlow.emit(Tile.Request.Evict(1)) 
+```
+
 For most practical purposes, the `TiledList` produced will be anchored or
-["pivoted"](./implementation/pivoted-tiling) around a particular query for data.
-
-See the [basic example](./usecases/basic-example) for a pivoted paging pipeline.
-
+["pivoted"](./implementation/pivoted-tiling) around a particular page; typically the user's
+scroll position. For how to implement this with the library, see the
+[basic example](./usecases/basic-example).
 
 ## Get it
 
