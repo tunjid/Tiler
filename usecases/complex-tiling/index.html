@@ -655,8 +655,8 @@ search filter changes.</p>
 independent by and large. That said, the most difficult issue faced with combined use cases is
 key preservation.</p>
 <h1 id="key-preservation">Key preservation</h1>
-<p>In UIs, keys provide unique tokens to represent items in lists. This is necessary for scroll
-state preservation and animations. In a tiled paging pipeline where items change due to:</p>
+<p>In UIs, keys provide unique tokens to represent individual items in lists. This is necessary for
+scroll state preservation and animations. In a tiled paging pipeline where items change due to:</p>
 <ul>
 <li>Placeholders being replaced</li>
 <li>Items being sorted or reordered differently</li>
@@ -677,7 +677,7 @@ a way to identify them in the new list.</p>
 <ul>
 <li>Keep a reference to the current list presented in the UI</li>
 <li>When the new <code>TiledList</code> is emitted, compare the old list to the new list</li>
-<li>If the old list has items that not placeholders that are present in the new list, replace the ids in the new list with the ids from the old list.</li>
+<li>If the old list has items that are not placeholders that are present in the new list, replace the ids in the new list with the ids from the old list.</li>
 <li>Make sure ids are not duplicated.</li>
 </ul>
 <p>The steps above will allow you to achieve smooth item animations in complex pagination pipelines.</p>

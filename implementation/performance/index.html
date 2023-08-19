@@ -607,7 +607,8 @@
 </ul>
 <p>In the case of a former, the <code>Flow</code> should only emit if the backing dataset has actually changed. This prevents unnecessary emissions downstream.</p>
 <p>In the case of the latter, use <code>PivotRequest(on = x)</code> and <code>Input.Limiter</code> to match the
-output <code>TiledList</code> to the view port of the user's device to create an efficient paging pipeline.</p>
+output <code>TiledList</code> to the size of the view port of the user's device to create an efficient
+paging pipeline.</p>
 <p>For example if tiling is done for the UI, with a viewport that can display 20 items at once:</p>
 <ul>
 <li>20 items can be fetched per page</li>
@@ -618,8 +619,10 @@ output <code>TiledList</code> to the view port of the user's device to create an
 trivially as regardless of the size of the actual paginated set, only 60 items will be transformed
 at any one time.</p>
 <h2 id="mutabletiledlist">MutableTiledList</h2>
-<p>The performance of each operation for the default <code>MutableTiledList</code> implementation is comparable to an <code>ArrayList</code> + O(log(T))
-where T is the number of <code>Tile</code> instances (pages) in the <code>TiledList</code>. This makes them perfect for use in recycling and scrolling containers.</p>
+<p>The performance of each method for the default <code>MutableTiledList</code> implementation is
+comparable to the cost of the same method in an <code>ArrayList</code> + O(log(T))
+where T is the number of <code>Tile</code> instances (queries/pages) in the <code>TiledList</code>.
+This makes them perfect for use in recycling and scrolling containers.</p>
 
 
 

@@ -631,16 +631,18 @@ It offers constant time access to items at indices, and the ability to introspec
 <table>
 <thead>
 <tr>
-<th style="text-align: center;"><a href="https://github.com/tunjid/Tiler">Basic</a></th>
-<th style="text-align: center;"><a href="https://github.com/tunjid/Musify">Search</a></th>
-<th style="text-align: center;"><a href="https://github.com/tunjid/me">Placeholders</a></th>
+<th><a href="https://github.com/tunjid/Tiler">Basic pagination</a></th>
+<th><a href="https://github.com/tunjid/Tiler">Pagination with sticky headers</a></th>
+<th style="text-align: center;"><a href="https://github.com/tunjid/Musify">Pagination with search</a></th>
+<th style="text-align: center;"><a href="https://github.com/tunjid/me">Pagination with placeholders</a></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align: center;"><img alt="Basic" src="images/basic.gif" /></td>
-<td style="text-align: center;"><img alt="Search" src="images/search.gif" /></td>
-<td style="text-align: center;"><img alt="Placeholders" src="images/placeholders.gif" /></td>
+<td><img alt="Basic pagination" src="images/basic.gif" /></td>
+<td><img alt="Pagination with sticky headers" src="images/sticky.gif" /></td>
+<td style="text-align: center;"><img alt="Pagination with search" src="images/search.gif" /></td>
+<td style="text-align: center;"><img alt="Pagination with placeholders" src="images/placeholders.gif" /></td>
 </tr>
 </tbody>
 </table>
@@ -648,14 +650,14 @@ It offers constant time access to items at indices, and the ability to introspec
 <table>
 <thead>
 <tr>
-<th style="text-align: center;"><a href="https://github.com/tunjid/Tiler">Adaptive</a></th>
-<th style="text-align: center;"><a href="(https://github.com/tunjid/me)">Adaptive search with placeholders</a></th>
+<th style="text-align: center;"><a href="https://github.com/tunjid/Tiler">Pagination with adaptive layouts</a></th>
+<th style="text-align: center;"><a href="(https://github.com/tunjid/me)">Pagination with adaptive layouts, search and placeholders</a></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align: center;"><img alt="Adaptive" src="images/adaptive.gif" /></td>
-<td style="text-align: center;"><img alt="Adaptive, search and placeholders" src="images/complex.gif" /></td>
+<td style="text-align: center;"><img alt="Pagination with adaptive layouts" src="images/adaptive.gif" /></td>
+<td style="text-align: center;"><img alt="Pagination with adaptive layouts, search and placeholders" src="images/complex.gif" /></td>
 </tr>
 </tbody>
 </table>
@@ -702,7 +704,7 @@ pageRequestFlow.emit(Tile.Request.Off(1))
 // Delete cached results from page 1
 pageRequestFlow.emit(Tile.Request.Evict(1)) 
 </code></pre>
-<p>For most practical purposes, the <code>TiledList</code> produced will be anchored or
+<p>For most practical purposes, the <code>TiledList</code> produced should be anchored or
 <a href="./implementation/pivoted-tiling">"pivoted"</a> around a particular page; typically the user's
 scroll position. For how to implement this with the library, see the
 <a href="./usecases/basic-example">basic example</a>.</p>

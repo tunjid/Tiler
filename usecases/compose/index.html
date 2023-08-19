@@ -440,6 +440,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#unique-keys" class="md-nav__link">
+    Unique keys
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sticky-headers" class="md-nav__link">
     Sticky headers
   </a>
@@ -570,6 +577,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#unique-keys" class="md-nav__link">
+    Unique keys
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sticky-headers" class="md-nav__link">
     Sticky headers
   </a>
@@ -618,11 +632,109 @@ fun Feed(
 
     lazyState.PivotedTilingEffect(
         items = feed,
+        // Update the user's current visible query
         onQueryChanged = { page -&gt; if (it != null) state.setVisiblePage(page) }
     )
 }
 </code></pre>
 <p>As the user scrolls, <code>setVisiblePage</code> is called to keep pivoting about the current position.</p>
+<h2 id="unique-keys">Unique keys</h2>
+<p>Tiling collects from each <code>Flow</code> for all queries that are on concurrently. For pagination from
+a database where items can be inserted, items may be duplicated in the produced <code>TIledList</code>.</p>
+<p>For example consider a DB table consisting of chats:</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>Author</th>
+<th>Message</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>...</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>0998</td>
+<td>Jess</td>
+<td>Hi Mel!</td>
+</tr>
+<tr>
+<td>0999</td>
+<td>Mel</td>
+<td>Hello Jess!</td>
+</tr>
+<tr>
+<td>1000</td>
+<td>Jess</td>
+<td>Were you able to get the birthday cake?</td>
+</tr>
+<tr>
+<td>...</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Assuming 20 items per query, messages 0950 - 1000 will be contained in a query for page 50.</p>
+<p>After Mel responds, the messages table becomes:</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>Author</th>
+<th>Message</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>...</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>0998</td>
+<td>Jess</td>
+<td>Hi Mel</td>
+</tr>
+<tr>
+<td>0999</td>
+<td>Mel</td>
+<td>Hello Jess</td>
+</tr>
+<tr>
+<td>1000</td>
+<td>Jess</td>
+<td>Were you able to get the birthday cake?</td>
+</tr>
+<tr>
+<td>1001</td>
+<td>Mel</td>
+<td>I did! Bringing it over!</td>
+</tr>
+<tr>
+<td>...</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>There are now 51 pages of messages. When page 51 emits:</p>
+<ul>
+<li>It will have the exact same items as page 50 except message 0951.</li>
+<li>Page 50 will still have messages 0950 - 1000.</li>
+<li>At some point in the future, page 50 will update to contain messages 0901 - 0951.</li>
+</ul>
+<p>Until page 50 updates, there will be 49 duplicate items in the list. To address this, the
+produced <code>TiledList</code> will need to be filtered for duplicates since keys must be unique in Compose
+lazy layouts and indices cannot be used for keys without losing animations.</p>
+<p>This is easily done using <code>TiledList.distinct()</code> or <code>TiledList.distinctBy()</code>. The cost of this fixed
+since a <code>TiledList</code> is a sublist of the entire collection. Using a pivoted tiling
+pipeline where 5 queries are kept on, but 3 queries are presented to the UI at any one
+time (using <code>Tile.Limiter</code>), the fixed cost for de-duplicating items for every message
+received is O(60).</p>
 <h2 id="sticky-headers">Sticky headers</h2>
 <p>For a <code>LazyList</code> in Compose, sticky headers can be implemented using the following:</p>
 <pre><code class="language-kotlin">// This ideally would be done in the ViewModel
@@ -644,9 +756,9 @@ fun ContactsList(grouped: Map&lt;Char, List&lt;Contact&gt;&gt;) {
     }
 }
 </code></pre>
-<p>When paging with a <code>TiledList</code>, grouping can still be performed however make sure to use the <code>groupBy</code>
-extension on a <code>TiledList</code>, and not on the one exposed on a <code>List</code>. The returned <code>Map</code> can then be
-used in Jetpack Compose like the snippet above.</p>
+<p>When paging with a <code>TiledList</code>, grouping can still be performed. If you do not need <code>TiledList</code>
+metadata on the grouped data use <code>List.groupBy()</code>, otherwise use <code>TiledList.groupBy()</code> which will
+return a <code>Map&lt;Key, TiledList&lt;Query, Item&gt;</code>.</p>
 
 
 

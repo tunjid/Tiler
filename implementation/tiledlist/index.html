@@ -533,11 +533,11 @@
 
 <p>A <code>TiledList</code> is a <code>List</code> that:</p>
 <ul>
-<li>Allows for looking up the query that fetched each item.</li>
 <li>Is a sublist of the items in the backing data source.</li>
+<li>Allows for looking up the query that fetched each item.</li>
 </ul>
-<p>The former is done by associating a range of indices in the <code>List</code> with a <code>Tile</code>.
-Effectively a <code>TiledList</code> "chunks" its items by query.
+<p>The latter is done by associating a range of indices in the <code>List</code> with a <code>Tile</code>.
+Effectively, a <code>TiledList</code> "chunks" its items by query.
 For example, the <code>TiledList</code> below is a <code>List</code> with 10 items, and two tiles. Each <code>Tile</code> covers 5 indices:</p>
 <pre><code>|     1      |        2      |
 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]

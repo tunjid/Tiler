@@ -77,7 +77,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adaptive-paging" class="md-skip">
+        <a href="#guide" class="md-skip">
           Skip to content
         </a>
       
@@ -367,8 +367,6 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
-        
-      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           Adaptive Paging
@@ -384,8 +382,6 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
-  
-    
   
   
     <label class="md-nav__title" for="__toc">
@@ -552,8 +548,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -586,7 +580,8 @@
   
 
 
-<h1 id="adaptive-paging">Adaptive paging</h1>
+  <h1>Adaptive Paging</h1>
+
 <p>The following guide helps create the UI/UX seen below:</p>
 <p align="center">
     <img src="../../images/adaptive.gif" alt="Adaptive"/>
@@ -599,7 +594,6 @@ Consider paging for an adaptive layout. The items fetched can be a function of:<
 <li>A UI that can change in size, requiring more items to fit the view port.</li>
 <li>A user wanting to change the sort order.</li>
 </ul>
-<p>Assume a list of numbers shown in a grid. The view port may be dynamically resized, and the sort order may be toggled.</p>
 <p>A pivoting pipeline for the above looks like:</p>
 <pre><code class="language-kotlin">
 // Query for items describing the page and sort order

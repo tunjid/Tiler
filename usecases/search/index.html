@@ -77,7 +77,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#search" class="md-skip">
+        <a href="#guide" class="md-skip">
           Skip to content
         </a>
       
@@ -353,8 +353,6 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
-        
-      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           Search
@@ -370,8 +368,6 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
-  
-    
   
   
     <label class="md-nav__title" for="__toc">
@@ -552,8 +548,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -586,7 +580,8 @@
   
 
 
-<h1 id="search">Search</h1>
+  <h1>Search</h1>
+
 <p>The following guide helps create the UI/UX seen below:</p>
 <p align="center">
     <img src="../../images/search.gif" alt="Search" width="200"/>
@@ -615,21 +610,12 @@ interface TracksRepository {
     suspend fun tracksFor(query: TracksQuery): List&lt;Track&gt;
 }
 </code></pre>
-<pre><code class="language-kotlin">private val pivotRequest = PivotRequest&lt;TracksQuery, TrackItem&gt;(
-    onCount = 5,
-    offCount = 4,
-    comparator = compareBy(TrackQuery::offset),
-    nextQuery = {
-        copy(offset = offset + limit)
-    },
-    previousQuery = {
-        if (offset == 0) null
-        else copy(offset = offset - limit)
-    },
-)
-
-
-fun toTiledList(
+<p>Tracks can be fetched by:</p>
+<ul>
+<li>Debouncing the query to account for user typing</li>
+<li>Debouncing the output when the output <code>TiledList</code> is empty or doesn't have all the requested pages available to allow for item add/remove/move animations.</li>
+</ul>
+<pre><code class="language-kotlin">fun tiledTracks(
     startQuery: TracksQuery,
     queries: Flow&lt;TracksQuery&gt;,
     repository: TracksRepository,
@@ -640,7 +626,20 @@ fun toTiledList(
         // Debounce for key input
         else 300
     }
-        .toPivotedTiledInputs(pivotRequest)
+        .toPivotedTiledInputs(
+            PivotRequest&lt;TracksQuery, TrackItem&gt;(
+                onCount = 5,
+                offCount = 4,
+                comparator = compareBy(TrackQuery::offset),
+                nextQuery = {
+                    copy(offset = offset + limit)
+                },
+                previousQuery = {
+                    if (offset == 0) null
+                    else copy(offset = offset - limit)
+                },
+            )
+        )
         .toTiledList(
             listTiler(
                 order = Tile.Order.PivotSorted(
@@ -656,9 +655,9 @@ fun toTiledList(
             )
         )
         .debounce { tiledItems -&gt;
-            // If empty, the search query might have just changed.
+            // If empty, or has a few pages of data the search query might have just changed.
             // Allow items to be fetched for item position animations
-            if (tiledItems.isEmpty()) 350L
+            if (tiledItems.isEmpty() || tiledItems.tileCount &lt; 3) 350L
             else 0L
         }
 </code></pre>
