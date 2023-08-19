@@ -23,9 +23,9 @@ It offers constant time access to items at indices, and the ability to introspec
 
 The following are examples of paged UI/UX paradigms that were built using tiling:
 
-| [Basic pagination](https://github.com/tunjid/Tiler) | [Pagination with sticky headers](https://github.com/tunjid/Tiler) | [Pagination with search](https://github.com/tunjid/Musify) | [Pagination with placeholders](https://github.com/tunjid/me) |
-|:---------------------------------------------------:|-------------------------------------------------------------------|:----------------------------------------------------------:|:------------------------------------------------------------:|
-|    ![Basic pagination](./docs/images/basic.gif)     | ![Pagination with sticky headers](./docs/images/sticky.gif)       |    ![Pagination with search](./docs/images/search.gif)     |  ![Pagination with placeholders](./images/placeholders.gif)  |
+| [Basic pagination](https://github.com/tunjid/Tiler) | [Pagination with sticky headers](https://github.com/tunjid/Tiler) | [Pagination with search](https://github.com/tunjid/Musify) |  [Pagination with placeholders](https://github.com/tunjid/me)   |
+|:---------------------------------------------------:|-------------------------------------------------------------------|:----------------------------------------------------------:|:---------------------------------------------------------------:|
+|    ![Basic pagination](./docs/images/basic.gif)     | ![Pagination with sticky headers](./docs/images/sticky.gif)       |    ![Pagination with search](./docs/images/search.gif)     | ![Pagination with placeholders](./docs/images/placeholders.gif) |
 
 
 For large screened devices:
