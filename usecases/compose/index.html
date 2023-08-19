@@ -641,13 +641,13 @@
 <h2 id="unique-keys">Unique keys</h2>
 <p>Tiling collects from each <code>Flow</code> for all queries that are on concurrently. For pagination from
 a database where items can be inserted, items may be duplicated in the produced <code>TIledList</code>.</p>
-<p>For example consider a DB table consisting of chats:</p>
+<p>For example consider a DB table consisting of tasks sorted by ascending date:</p>
 <table>
 <thead>
 <tr>
 <th>id</th>
-<th>Author</th>
-<th>Message</th>
+<th>date</th>
+<th>task</th>
 </tr>
 </thead>
 <tbody>
@@ -658,18 +658,13 @@ a database where items can be inserted, items may be duplicated in the produced 
 </tr>
 <tr>
 <td>0998</td>
-<td>Jess</td>
-<td>Hi Mel!</td>
+<td>01/01/23</td>
+<td>Go for a jog</td>
 </tr>
 <tr>
 <td>0999</td>
-<td>Mel</td>
-<td>Hello Jess!</td>
-</tr>
-<tr>
-<td>1000</td>
-<td>Jess</td>
-<td>Were you able to get the birthday cake?</td>
+<td>01/04/23</td>
+<td>Print shipping labels</td>
 </tr>
 <tr>
 <td>...</td>
@@ -678,14 +673,14 @@ a database where items can be inserted, items may be duplicated in the produced 
 </tr>
 </tbody>
 </table>
-<p>Assuming 20 items per query, messages 0950 - 1000 will be contained in a query for page 50.</p>
-<p>After Mel responds, the messages table becomes:</p>
+<p>Assuming 20 items per query, tasks 0980 - 0999 will be contained in a query for page 50.</p>
+<p>Assume a new task for "Check invoices" with id 1000 is entered for date 01/03/23:</p>
 <table>
 <thead>
 <tr>
 <th>id</th>
-<th>Author</th>
-<th>Message</th>
+<th>date</th>
+<th>task</th>
 </tr>
 </thead>
 <tbody>
@@ -696,23 +691,18 @@ a database where items can be inserted, items may be duplicated in the produced 
 </tr>
 <tr>
 <td>0998</td>
-<td>Jess</td>
-<td>Hi Mel</td>
-</tr>
-<tr>
-<td>0999</td>
-<td>Mel</td>
-<td>Hello Jess</td>
+<td>01/01/23</td>
+<td>Go for a jog</td>
 </tr>
 <tr>
 <td>1000</td>
-<td>Jess</td>
-<td>Were you able to get the birthday cake?</td>
+<td>01/03/23</td>
+<td>Check invoices</td>
 </tr>
 <tr>
-<td>1001</td>
-<td>Mel</td>
-<td>I did! Bringing it over!</td>
+<td>0999</td>
+<td>01/04/23</td>
+<td>Print shipping labels</td>
 </tr>
 <tr>
 <td>...</td>
@@ -721,20 +711,25 @@ a database where items can be inserted, items may be duplicated in the produced 
 </tr>
 </tbody>
 </table>
-<p>There are now 51 pages of messages. When page 51 emits:</p>
+<p>There are now 51 pages of tasks. When page 51 emits:</p>
 <ul>
-<li>It will have the exact same items as page 50 except message 0951.</li>
-<li>Page 50 will still have messages 0950 - 1000.</li>
-<li>At some point in the future, page 50 will update to contain messages 0901 - 0951.</li>
+<li>It will contain the last task alone; task 099 "Print shipping labels".</li>
+<li>Page 50 will still have its last emitted tasks 0980 - 0999, including "Print shipping labels".</li>
+<li>At some point in the future, page 50 will update to contain the new task 1000 "Check invoices" and exclude task 0999 - "Print shipping labels".</li>
 </ul>
-<p>Until page 50 updates, there will be 49 duplicate items in the list. To address this, the
+<p>Until page 50 updates, task 0999 "Print shipping labels" will be duplicated in the list. To address this, the
 produced <code>TiledList</code> will need to be filtered for duplicates since keys must be unique in Compose
 lazy layouts and indices cannot be used for keys without losing animations.</p>
 <p>This is easily done using <code>TiledList.distinct()</code> or <code>TiledList.distinctBy()</code>. The cost of this fixed
 since a <code>TiledList</code> is a sublist of the entire collection. Using a pivoted tiling
 pipeline where 5 queries are kept on, but 3 queries are presented to the UI at any one
-time (using <code>Tile.Limiter</code>), the fixed cost for de-duplicating items for every message
-received is O(60).</p>
+time (using <code>Tile.Limiter</code>), the fixed cost for de-duplicating items for every change in the
+data set is O(60).</p>
+<p>Note: Page 51 is not guaranteed to have emitted first. Any query can emit at anytime
+when tiling. Tiling presents snapshots of the paging pipeline at a single point in time. It is not
+opinionated about the data contained. It only guarantees ordering of the queries according to the
+<code>Tile.Order</code> specified in the tiling configuration. This makes it flexible enough for post
+processing of data like filtering, debouncing, mapping and so on.</p>
 <h2 id="sticky-headers">Sticky headers</h2>
 <p>For a <code>LazyList</code> in Compose, sticky headers can be implemented using the following:</p>
 <div class="language-kotlin highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// This ideally would be done in the ViewModel</span>
