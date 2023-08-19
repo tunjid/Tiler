@@ -662,48 +662,48 @@ It offers constant time access to items at indices, and the ability to introspec
 </tbody>
 </table>
 <p>Tiling is achieved with a Tiler; a pure function that has the ability to adapt any generic method of the form:</p>
-<pre><code class="language-kotlin">fun &lt;T&gt; items(query: Query): Flow&lt;List&lt;T&gt;&gt;
-</code></pre>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">fun</span><span class="w"> </span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">items</span><span class="p">(</span><span class="n">query</span><span class="p">:</span><span class="w"> </span><span class="n">Query</span><span class="p">):</span><span class="w"> </span><span class="n">Flow</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span>
+</span></code></pre></div>
 <p>into a paginated API.</p>
 <p>It does this using a <code>Tiler</code>:</p>
-<pre><code class="language-kotlin">fun interface ListTiler&lt;Query, Item&gt; {
-    fun produce(inputs: Flow&lt;Tile.Input&lt;Query, Item&gt;&gt;): Flow&lt;TiledList&lt;Query, Item&gt;&gt;
-}
-</code></pre>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">fun</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nc">ListTiler</span><span class="o">&lt;</span><span class="n">Query</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">produce</span><span class="p">(</span><span class="n">inputs</span><span class="p">:</span><span class="w"> </span><span class="n">Flow</span><span class="o">&lt;</span><span class="n">Tile</span><span class="p">.</span><span class="na">Input</span><span class="o">&lt;</span><span class="n">Query</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="o">&gt;&gt;</span><span class="p">):</span><span class="w"> </span><span class="n">Flow</span><span class="o">&lt;</span><span class="n">TiledList</span><span class="o">&lt;</span><span class="n">Query</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="o">&gt;&gt;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="p">}</span>
+</span></code></pre></div>
 <ul>
 <li>The <a href="./implementation/primitives#inputrequest">inputs</a> modify the queries for data</li>
 <li>The output is the data returned over time in a <code>List</code> implementation: A <code>TiledList</code>.</li>
 </ul>
 <p>Typical use of Tiling is the <code>toTiledList</code> extension on a <code>Flow&lt;Query&gt;</code>:</p>
-<pre><code class="language-kotlin">val pageRequestFlow = MutableSharedFlow&lt;Tile.Input&lt;Int, Item&gt;&gt;()
-
-val items: Flow&lt;TiledList&lt;Int, Item&gt;&gt; = pageRequestFlow.toTiledList(
-    listTiler(
-        order = Tile.Order.Sorted(
-            comparator = compareBy(Int::compareTo)
-        ),
-        limiter = Tile.Limiter(
-            maxQueries = 3
-        ),
-        fetcher = { page -&gt;
-            repository.itemsFor(page)
-        }
-    )
-)
-</code></pre>
-<p>Requests for pages are sent on each emission of <code>pageRequestFlow</code>:</p>
-<pre><code class="language-kotlin">// Request page 1
-pageRequestFlow.emit(Tile.Request.On(1))
-
-// Request page 5
-pageRequestFlow.emit(Tile.Request.On(5))
-
-// Stop updates from page 1
-pageRequestFlow.emit(Tile.Request.Off(1))
-
-// Delete cached results from page 1
-pageRequestFlow.emit(Tile.Request.Evict(1)) 
-</code></pre>
+<p><div class="language-kotlin highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">pageRequestFlow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MutableSharedFlow</span><span class="o">&lt;</span><span class="n">Tile</span><span class="p">.</span><span class="na">Input</span><span class="o">&lt;</span><span class="kt">Int</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="o">&gt;&gt;</span><span class="p">()</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kd">val</span><span class="w"> </span><span class="nv">items</span><span class="p">:</span><span class="w"> </span><span class="n">Flow</span><span class="o">&lt;</span><span class="n">TiledList</span><span class="o">&lt;</span><span class="kt">Int</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pageRequestFlow</span><span class="p">.</span><span class="na">toTiledList</span><span class="p">(</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="n">listTiler</span><span class="p">(</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">        </span><span class="n">order</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Tile</span><span class="p">.</span><span class="na">Order</span><span class="p">.</span><span class="na">Sorted</span><span class="p">(</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">            </span><span class="n">comparator</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">compareBy</span><span class="p">(</span><span class="kt">Int</span><span class="o">::</span><span class="n">compareTo</span><span class="p">)</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">        </span><span class="p">),</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">        </span><span class="n">limiter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Tile</span><span class="p">.</span><span class="na">Limiter</span><span class="p">(</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">            </span><span class="n">maxQueries</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">3</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">        </span><span class="p">),</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">        </span><span class="n">fetcher</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">page</span><span class="w"> </span><span class="o">-&gt;</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">            </span><span class="n">repository</span><span class="p">.</span><span class="na">itemsFor</span><span class="p">(</span><span class="n">page</span><span class="p">)</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="p">)</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="p">)</span>
+</span></code></pre></div>
+Requests for pages are sent on each emission of <code>pageRequestFlow</code>:</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">// Request page 1</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">pageRequestFlow</span><span class="p">.</span><span class="na">emit</span><span class="p">(</span><span class="n">Tile</span><span class="p">.</span><span class="na">Request</span><span class="p">.</span><span class="na">On</span><span class="p">(</span><span class="m">1</span><span class="p">))</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1">// Request page 5</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">pageRequestFlow</span><span class="p">.</span><span class="na">emit</span><span class="p">(</span><span class="n">Tile</span><span class="p">.</span><span class="na">Request</span><span class="p">.</span><span class="na">On</span><span class="p">(</span><span class="m">5</span><span class="p">))</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1">// Stop updates from page 1</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">pageRequestFlow</span><span class="p">.</span><span class="na">emit</span><span class="p">(</span><span class="n">Tile</span><span class="p">.</span><span class="na">Request</span><span class="p">.</span><span class="na">Off</span><span class="p">(</span><span class="m">1</span><span class="p">))</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1">// Delete cached results from page 1</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="n">pageRequestFlow</span><span class="p">.</span><span class="na">emit</span><span class="p">(</span><span class="n">Tile</span><span class="p">.</span><span class="na">Request</span><span class="p">.</span><span class="na">Evict</span><span class="p">(</span><span class="m">1</span><span class="p">))</span><span class="w"> </span>
+</span></code></pre></div>
 <p>For most practical purposes, the <code>TiledList</code> produced should be anchored or
 <a href="./implementation/pivoted-tiling">"pivoted"</a> around a particular page; typically the user's
 scroll position. For how to implement this with the library, see the
@@ -712,20 +712,20 @@ scroll position. For how to implement this with the library, see the
 <p><code>Tiler</code> is available on mavenCentral with the latest version indicated by the badge at the top of this readme file.</p>
 <p><code>implementation com.tunjid.tiler:tiler:version</code></p>
 <h2 id="license">License</h2>
-<pre><code>Copyright 2021 Google LLC
+<div class="language-text highlight"><pre><span></span><code>Copyright 2021 Google LLC
 
-Licensed under the Apache License, Version 2.0 (the "License");
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
     https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-</code></pre>
+</code></pre></div>
 
 
 
@@ -763,7 +763,7 @@ limitations under the License.
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": ".", "features": [], "search": "assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": ".", "features": ["content.code.copy"], "search": "assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
       <script src="assets/javascripts/bundle.220ee61c.min.js"></script>

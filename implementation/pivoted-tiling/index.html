@@ -587,29 +587,29 @@
 pagination approach with tiling is through the pivoting algorithm.</p>
 <p>Consider a large, possibly infinite set of paginated data where a user is currently viewing page p, and n
 is the buffer zone - the number of pages lazy loaded in case the user wants to visit it.</p>
-<pre><code>[..., p - n, ..., p - 1, p, p + 1, ..., p + n, ...]
-</code></pre>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>[..., p - n, ..., p - 1, p, p + 1, ..., p + n, ...]
+</span></code></pre></div>
 <p>As the user moves from page to page, items can be refreshed around the user's current page
 while allowing them to observe immediate changes to the data they're looking at.</p>
 <p>This is expanded in the diagram below:</p>
-<pre><code>[out of bounds]                        -&gt; Evict from memory
-                                _
-[p - n - 1 - n]                  |
-...                              | -&gt; Keep pages in memory, but don't observe
-[p - n - 1]          _          _|                        
-[p - n]               |
-...                   |
-[p - 1]               |
-[p]                   |  -&gt; Observe pages     
-[p + 1]               |
-...                   |
-[p + n]              _|         _
-[p + n + 1]                      |
-...                              | -&gt; Keep pages in memory, but don't observe
-[p + n + 1 + n]                 _|
-
-[out of bounds]                        -&gt; Evict from memory
-</code></pre>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>[out of bounds]                        -&gt; Evict from memory
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>                                _
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>[p - n - 1 - n]                  |
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>...                              | -&gt; Keep pages in memory, but don&#39;t observe
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>[p - n - 1]          _          _|                        
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>[p - n]               |
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>...                   |
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>[p - 1]               |
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>[p]                   |  -&gt; Observe pages     
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>[p + 1]               |
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>...                   |
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>[p + n]              _|         _
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>[p + n + 1]                      |
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>...                              | -&gt; Keep pages in memory, but don&#39;t observe
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>[p + n + 1 + n]                 _|
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>[out of bounds]                        -&gt; Evict from memory
+</span></code></pre></div>
 <p><code>n</code> is an arbitrary number that may be defined by how many items are visible on the screen at once. It could be fixed,
 or variable depending on conditions like the available screen real estate.</p>
 <p>For an example where <code>n</code> is a function of grid size in a grid list, check out <a href="https://github.com/tunjid/me/blob/main/common/feature-archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveLoading.kt">ArchiveLoading.kt</a> in the <a href="https://github.com/tunjid/me">me</a> project.</p>
@@ -653,7 +653,7 @@ pivoting around the user's current position with the grid size as a dynamic inpu
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy"], "search": "../../assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.220ee61c.min.js"></script>
