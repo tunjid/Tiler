@@ -1,10 +1,10 @@
 A `TiledList` is a `List` that:
 
-* Allows for looking up the query that fetched each item.
 * Is a sublist of the items in the backing data source.
+* Allows for looking up the query that fetched each item.
 
-The former is done by associating a range of indices in the `List` with a `Tile`.
-Effectively a `TiledList` "chunks" its items by query.
+The latter is done by associating a range of indices in the `List` with a `Tile`.
+Effectively, a `TiledList` "chunks" its items by query.
 For example, the `TiledList` below is a `List` with 10 items, and two tiles. Each `Tile` covers 5 indices:
 
 ```

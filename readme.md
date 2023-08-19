@@ -23,16 +23,16 @@ It offers constant time access to items at indices, and the ability to introspec
 
 The following are examples of paged UI/UX paradigms that were built using tiling:
 
-| [Basic](https://github.com/tunjid/Tiler) | [Search](https://github.com/tunjid/Musify) |  [Placeholders](https://github.com/tunjid/me)  |
-|:----------------------------------------:|:------------------------------------------:|:----------------------------------------------:|
-|     ![Basic](/docs/images/basic.gif)     |     ![Search](/docs/images/search.gif)     | ![Placeholders](/docs/images/placeholders.gif) |
+| [Basic pagination](https://github.com/tunjid/Tiler) | [Pagination with sticky headers](https://github.com/tunjid/Tiler) | [Pagination with search](https://github.com/tunjid/Musify) | [Pagination with placeholders](https://github.com/tunjid/me) |
+|:---------------------------------------------------:|-------------------------------------------------------------------|:----------------------------------------------------------:|:------------------------------------------------------------:|
+|       ![Basic pagination](./images/basic.gif)       | ![Pagination with sticky headers](./images/sticky.gif)            |       ![Pagination with search](./images/search.gif)       |  ![Pagination with placeholders](./images/placeholders.gif)  |
 
 
 For large screened devices:
 
-| [Adaptive](https://github.com/tunjid/Tiler) | [Adaptive search with placeholders]((https://github.com/tunjid/me)) |
-|:-------------------------------------------:|:-------------------------------------------------------------------:|
-|   ![Adaptive](/docs/images/adaptive.gif)    |                ![Complex](/docs/images/complex.gif)                 |
+| [Pagination with adaptive layouts](https://github.com/tunjid/Tiler) | [Pagination with adaptive layouts, search and placeholders]((https://github.com/tunjid/me)) |
+|:-------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------:|
+|     ![Pagination with adaptive layouts](./images/adaptive.gif)      |     ![Pagination with adaptive layouts, search and placeholders](./images/complex.gif)      |
 
 Please see the [documentation](https://tunjid.github.io/Tiler/) for more details.
 

@@ -42,4 +42,5 @@ For an example where `n` is a function of grid size in a grid list, check out [A
 
 The above algorithm is called "pivoting" as items displayed are pivoted around the user's current scrolling position.
 
-Since tiling is dynamic at it's core, a pipeline can be built to allow for this dynamic behavior by pivoting around the user's current position with the grid size as a dynamic input parameter as shown below:
+Since tiling is dynamic at it's core, a pipeline can be built to allow for this dynamic behavior by
+pivoting around the user's current position with the grid size as a dynamic input parameter.

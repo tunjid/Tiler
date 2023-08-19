@@ -9,7 +9,8 @@ As tiling loads from multiple flows simultaneously, performance is a function of
 In the case of a former, the `Flow` should only emit if the backing dataset has actually changed. This prevents unnecessary emissions downstream.
 
 In the case of the latter, use `PivotRequest(on = x)` and `Input.Limiter` to match the
-output `TiledList` to the view port of the user's device to create an efficient paging pipeline.
+output `TiledList` to the size of the view port of the user's device to create an efficient
+paging pipeline.
 
 For example if tiling is done for the UI, with a viewport that can display 20 items at once:
 
@@ -22,5 +23,7 @@ trivially as regardless of the size of the actual paginated set, only 60 items w
 at any one time.
 
 ## MutableTiledList
-The performance of each operation for the default `MutableTiledList` implementation is comparable to an `ArrayList` + O(log(T))
-where T is the number of `Tile` instances (pages) in the `TiledList`. This makes them perfect for use in recycling and scrolling containers.
+The performance of each method for the default `MutableTiledList` implementation is
+comparable to the cost of the same method in an `ArrayList` + O(log(T))
+where T is the number of `Tile` instances (queries/pages) in the `TiledList`.
+This makes them perfect for use in recycling and scrolling containers.

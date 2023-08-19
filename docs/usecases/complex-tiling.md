@@ -23,8 +23,8 @@ independent by and large. That said, the most difficult issue faced with combine
 key preservation.
 
 # Key preservation
-In UIs, keys provide unique tokens to represent items in lists. This is necessary for scroll
-state preservation and animations. In a tiled paging pipeline where items change due to:
+In UIs, keys provide unique tokens to represent individual items in lists. This is necessary for
+scroll state preservation and animations. In a tiled paging pipeline where items change due to:
 
 * Placeholders being replaced
 * Items being sorted or reordered differently
@@ -46,7 +46,7 @@ In a range of items in a query/page that has 20 items:
 
 * Keep a reference to the current list presented in the UI
 * When the new `TiledList` is emitted, compare the old list to the new list
-* If the old list has items that not placeholders that are present in the new list, replace the ids in the new list with the ids from the old list.
+* If the old list has items that are not placeholders that are present in the new list, replace the ids in the new list with the ids from the old list.
 * Make sure ids are not duplicated.
 
 The steps above will allow you to achieve smooth item animations in complex pagination pipelines.

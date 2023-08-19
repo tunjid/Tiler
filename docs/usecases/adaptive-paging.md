@@ -1,5 +1,3 @@
-# Adaptive paging
-
 The following guide helps create the UI/UX seen below:
 
 <p align="center">
@@ -13,8 +11,6 @@ Consider paging for an adaptive layout. The items fetched can be a function of:
 
 * A UI that can change in size, requiring more items to fit the view port.
 * A user wanting to change the sort order.
-
-Assume a list of numbers shown in a grid. The view port may be dynamically resized, and the sort order may be toggled.
 
 A pivoting pipeline for the above looks like:
 

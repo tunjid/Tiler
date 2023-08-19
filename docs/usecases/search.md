@@ -1,5 +1,3 @@
-# Search
-
 The following guide helps create the UI/UX seen below:
 
 <p align="center">
@@ -35,23 +33,13 @@ interface TracksRepository {
 }
 ```
 
+Tracks can be fetched by:
+
+* Debouncing the query to account for user typing
+* Debouncing the output when the output `TiledList` is empty or doesn't have all the requested pages available to allow for item add/remove/move animations.
 
 ```kotlin
-private val pivotRequest = PivotRequest<TracksQuery, TrackItem>(
-    onCount = 5,
-    offCount = 4,
-    comparator = compareBy(TrackQuery::offset),
-    nextQuery = {
-        copy(offset = offset + limit)
-    },
-    previousQuery = {
-        if (offset == 0) null
-        else copy(offset = offset - limit)
-    },
-)
-
-
-fun toTiledList(
+fun tiledTracks(
     startQuery: TracksQuery,
     queries: Flow<TracksQuery>,
     repository: TracksRepository,
@@ -62,7 +50,20 @@ fun toTiledList(
         // Debounce for key input
         else 300
     }
-        .toPivotedTiledInputs(pivotRequest)
+        .toPivotedTiledInputs(
+            PivotRequest<TracksQuery, TrackItem>(
+                onCount = 5,
+                offCount = 4,
+                comparator = compareBy(TrackQuery::offset),
+                nextQuery = {
+                    copy(offset = offset + limit)
+                },
+                previousQuery = {
+                    if (offset == 0) null
+                    else copy(offset = offset - limit)
+                },
+            )
+        )
         .toTiledList(
             listTiler(
                 order = Tile.Order.PivotSorted(
@@ -78,9 +79,9 @@ fun toTiledList(
             )
         )
         .debounce { tiledItems ->
-            // If empty, the search query might have just changed.
+            // If empty, or has a few pages of data the search query might have just changed.
             // Allow items to be fetched for item position animations
-            if (tiledItems.isEmpty()) 350L
+            if (tiledItems.isEmpty() || tiledItems.tileCount < 3) 350L
             else 0L
         }
 ```
