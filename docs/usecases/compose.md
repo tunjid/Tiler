@@ -36,44 +36,48 @@ As the user scrolls, `setVisiblePage` is called to keep pivoting about the curre
 Tiling collects from each `Flow` for all queries that are on concurrently. For pagination from
 a database where items can be inserted, items may be duplicated in the produced `TIledList`.
 
-For example consider a DB table consisting of chats:
+For example consider a DB table consisting of tasks sorted by ascending date:
 
-| id   | Author | Message                                 |
-|------|--------|-----------------------------------------|
-| ...  |        |                                         |
-| 0998 | Jess   | Hi Mel!                                 |
-| 0999 | Mel    | Hello Jess!                             |
-| 1000 | Jess   | Were you able to get the birthday cake? |
-| ...  |        |                                         |
+| id   | date     | task                  |
+|------|----------|-----------------------|
+| ...  |          |                       |
+| 0998 | 01/01/23 | Go for a jog          |
+| 0999 | 01/04/23 | Print shipping labels |
+| ...  |          |                       |
 
-Assuming 20 items per query, messages 0950 - 1000 will be contained in a query for page 50.
+Assuming 20 items per query, tasks 0980 - 0999 will be contained in a query for page 50.
 
-After Mel responds, the messages table becomes:
+Assume a new task for "Check invoices" with id 1000 is entered for date 01/03/23:
 
-| id   | Author | Message                                 |
-|------|--------|-----------------------------------------|
-| ...  |        |                                         |
-| 0998 | Jess   | Hi Mel                                  |
-| 0999 | Mel    | Hello Jess                              |
-| 1000 | Jess   | Were you able to get the birthday cake? |
-| 1001 | Mel    | I did! Bringing it over!                |
-| ...  |        |                                         |
+| id   | date     | task                  |
+|------|----------|-----------------------|
+| ...  |          |                       |
+| 0998 | 01/01/23 | Go for a jog          |
+| 1000 | 01/03/23 | Check invoices        |
+| 0999 | 01/04/23 | Print shipping labels |
+| ...  |          |                       |
 
-There are now 51 pages of messages. When page 51 emits:
+There are now 51 pages of tasks. When page 51 emits:
 
-* It will have the exact same items as page 50 except message 0951.
-* Page 50 will still have messages 0950 - 1000.
-* At some point in the future, page 50 will update to contain messages 0901 - 0951.
+* It will contain the last task alone; task 099 "Print shipping labels".
+* Page 50 will still have its last emitted tasks 0980 - 0999, including "Print shipping labels".
+* At some point in the future, page 50 will update to contain the new task 1000 "Check invoices" and exclude task 0999 - "Print shipping labels".
 
-Until page 50 updates, there will be 49 duplicate items in the list. To address this, the
+Until page 50 updates, task 0999 "Print shipping labels" will be duplicated in the list. To address this, the
 produced `TiledList` will need to be filtered for duplicates since keys must be unique in Compose
 lazy layouts and indices cannot be used for keys without losing animations.
 
 This is easily done using `TiledList.distinct()` or `TiledList.distinctBy()`. The cost of this fixed
 since a `TiledList` is a sublist of the entire collection. Using a pivoted tiling
 pipeline where 5 queries are kept on, but 3 queries are presented to the UI at any one
-time (using `Tile.Limiter`), the fixed cost for de-duplicating items for every message
-received is O(60).
+time (using `Tile.Limiter`), the fixed cost for de-duplicating items for every change in the
+data set is O(60).
+
+Note: Page 51 is not guaranteed to have emitted first. Any query can emit at anytime
+when tiling. Tiling presents snapshots of the paging pipeline at a single point in time. It is not
+opinionated about the data contained. It only guarantees ordering of the queries according to the
+`Tile.Order` specified in the tiling configuration. This makes it flexible enough for post
+processing of data like filtering, debouncing, mapping and so on.
 
 ## Sticky headers
 
