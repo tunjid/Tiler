@@ -715,9 +715,11 @@ a database where items can be inserted, items may be duplicated in the produced 
 <ul>
 <li>It will contain the last task alone; task 099 "Print shipping labels".</li>
 <li>Page 50 will still have its last emitted tasks 0980 - 0999, including "Print shipping labels".</li>
-<li>At some point in the future, page 50 will update to contain the new task 1000 "Check invoices" and exclude task 0999 - "Print shipping labels".</li>
+<li>At some point in the future, page 50 will update to contain the new task 1000 "Check invoices" and
+  exclude task 0999 - "Print shipping labels".</li>
 </ul>
-<p>Until page 50 updates, task 0999 "Print shipping labels" will be duplicated in the list. To address this, the
+<p>Until page 50 updates, task 0999 "Print shipping labels" will be duplicated in the list. To address
+this, the
 produced <code>TiledList</code> will need to be filtered for duplicates since keys must be unique in Compose
 lazy layouts and indices cannot be used for keys without losing animations.</p>
 <p>This is easily done using <code>TiledList.distinct()</code> or <code>TiledList.distinctBy()</code>. The cost of this fixed

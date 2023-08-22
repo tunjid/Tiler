@@ -651,36 +651,48 @@
   <h1>Primitives</h1>
 
 <h2 id="api-surface-and-tiling-primitives">API surface and Tiling primitives</h2>
-<p>Given a <code>Flow</code> of <code>Input</code>, tiling transforms them into a <code>Flow&lt;TiledList&lt;Query, Item&gt;&gt;</code> with a <code>ListTiler</code>.</p>
+<p>Given a <code>Flow</code> of <code>Input</code>, tiling transforms them into a <code>Flow&lt;TiledList&lt;Query, Item&gt;&gt;</code> with
+a <code>ListTiler</code>.</p>
 <p>The resulting <code>TiledList</code> should be kept at a size that covers approximately 3 times the viewport.
-This is typically at or under 100 items for non grid UIs. You can then transform this list however way you want.</p>
+This is typically at or under 100 items for non grid UIs. You can then transform this list however
+way you want.</p>
 <h2 id="managing-requested-data">Managing requested data</h2>
-<p>Much like a classic <code>Map</code> that supports update and remove methods, a Tiler offers analogous operations in the form
+<p>Much like a classic <code>Map</code> that supports update and remove methods, a Tiler offers analogous
+operations in the form
 of <code>Inputs</code>.</p>
 <h3 id="inputrequest"><code>Input.Request</code></h3>
 <ul>
 <li>
-<p><code>Tile.Request.On</code>: Analogous to <code>put</code> for a <code>Map</code>, this starts collecting from the backing <code>Flow</code> for the specified <code>query</code>. It is
-  idempotent; multiple requests have no side effects for loading, i.e the same <code>Flow</code> will not be collect twice.</p>
+<p><code>Tile.Request.On</code>: Analogous to <code>put</code> for a <code>Map</code>, this starts collecting from the backing <code>Flow</code>
+  for the specified <code>query</code>. It is
+  idempotent; multiple requests have no side effects for loading, i.e the same <code>Flow</code> will not be
+  collect twice.</p>
 </li>
 <li>
-<p><code>Tile.Request.Off</code>: Stops collecting from the backing <code>Flow</code> for the specified <code>query</code>. The items previously fetched by this query
-  are still kept in memory and will be in the <code>List</code> of items returned. Requesting this is idempotent; multiple requests
+<p><code>Tile.Request.Off</code>: Stops collecting from the backing <code>Flow</code> for the specified <code>query</code>. The items
+  previously fetched by this query
+  are still kept in memory and will be in the <code>List</code> of items returned. Requesting this is
+  idempotent; multiple requests
   have no side effects.</p>
 </li>
 <li>
-<p><code>Tile.Request.Evict</code>: Analogous to <code>remove</code> for a <code>Map</code>, this stops collecting from the backing <code>Flow</code> for the specified <code>query</code> and
-  also evicts the items previously fetched by the <code>query</code> from memory. Requesting this is idempotent; multiple requests
+<p><code>Tile.Request.Evict</code>: Analogous to <code>remove</code> for a <code>Map</code>, this stops collecting from the
+  backing <code>Flow</code> for the specified <code>query</code> and
+  also evicts the items previously fetched by the <code>query</code> from memory. Requesting this is
+  idempotent; multiple requests
   have no side effects.</p>
 </li>
 <li>
-<p><code>Pivot</code>: Only valid when using the <code>Tile.Order.PivotSorted</code>, this allows for returning a <code>TiledList</code> from results
+<p><code>Pivot</code>: Only valid when using the <code>Tile.Order.PivotSorted</code>, this allows for returning
+  a <code>TiledList</code> from results
   around a certain <code>Query</code>.</p>
 </li>
 </ul>
 <h3 id="tileinputlimiter"><code>Tile.Input.Limiter</code></h3>
-<p>Can be used to select a subset of items tiled instead of the entire paginated set. For example, assuming 1000 items have been
-fetched, there's no need to send a 1000 items to the UI for diffing/display when the UI can only show about 30 at once.
+<p>Can be used to select a subset of items tiled instead of the entire paginated set. For example,
+assuming 1000 items have been
+fetched, there's no need to send a 1000 items to the UI for diffing/display when the UI can only
+show about 30 at once.
 The <code>Limiter</code> allows for selecting an arbitrary amount of items as the situation demands.</p>
 <h3 id="tileinputorder"><code>Tile.Input.Order</code></h3>
 <p>Defines the heuristic for selecting tiled items into the output <code>TiledList</code>.</p>
@@ -691,8 +703,10 @@ The <code>Limiter</code> allows for selecting an arbitrary amount of items as th
 <li>
 <p>PivotSorted: Sort items with the specified <code>comparator</code> but pivoted around a specific <code>Query</code>.
   This allows for showing items that have more priority over others in the current context
-  like example in a list being scrolled. In other words assume tiles have been fetched for queries 1 - 10 but a
-  user can see pages 5 and 6. The UI need only to be aware of pages 4, 5, 6, and 7. This allows for a rolling window of
+  like example in a list being scrolled. In other words assume tiles have been fetched for queries
+  1 - 10 but a
+  user can see pages 5 and 6. The UI need only to be aware of pages 4, 5, 6, and 7. This allows for
+  a rolling window of
   queries based on a user's scroll position.</p>
 </li>
 </ul>

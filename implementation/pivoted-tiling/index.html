@@ -583,9 +583,11 @@
   <h1>Pivoting</h1>
 
 <h2 id="how-to-page-with-tiling">How to page with Tiling</h2>
-<p>While the tiling API lets you assemble a paging pipeline from scratch using its primitives, the easiest scalable
+<p>While the tiling API lets you assemble a paging pipeline from scratch using its primitives, the
+easiest scalable
 pagination approach with tiling is through the pivoting algorithm.</p>
-<p>Consider a large, possibly infinite set of paginated data where a user is currently viewing page p, and n
+<p>Consider a large, possibly infinite set of paginated data where a user is currently viewing page p,
+and n
 is the buffer zone - the number of pages lazy loaded in case the user wants to visit it.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>[..., p - n, ..., p - 1, p, p + 1, ..., p + n, ...]
 </span></code></pre></div>
@@ -610,10 +612,14 @@ while allowing them to observe immediate changes to the data they're looking at.
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
 </span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>[out of bounds]                        -&gt; Evict from memory
 </span></code></pre></div>
-<p><code>n</code> is an arbitrary number that may be defined by how many items are visible on the screen at once. It could be fixed,
+<p><code>n</code> is an arbitrary number that may be defined by how many items are visible on the screen at once.
+It could be fixed,
 or variable depending on conditions like the available screen real estate.</p>
-<p>For an example where <code>n</code> is a function of grid size in a grid list, check out <a href="https://github.com/tunjid/me/blob/main/common/feature-archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveLoading.kt">ArchiveLoading.kt</a> in the <a href="https://github.com/tunjid/me">me</a> project.</p>
-<p>The above algorithm is called "pivoting" as items displayed are pivoted around the user's current scrolling position.</p>
+<p>For an example where <code>n</code> is a function of grid size in a grid list, check
+out <a href="https://github.com/tunjid/me/blob/main/common/feature-archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveLoading.kt">ArchiveLoading.kt</a>
+in the <a href="https://github.com/tunjid/me">me</a> project.</p>
+<p>The above algorithm is called "pivoting" as items displayed are pivoted around the user's current
+scrolling position.</p>
 <p>Since tiling is dynamic at it's core, a pipeline can be built to allow for this dynamic behavior by
 pivoting around the user's current position with the grid size as a dynamic input parameter.</p>
 

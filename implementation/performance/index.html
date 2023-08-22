@@ -603,9 +603,11 @@
 <p>As tiling loads from multiple flows simultaneously, performance is a function of 2 things:</p>
 <ul>
 <li>How often the backing <code>Flow</code> for each <code>Input.Request</code> emits</li>
-<li>The time and space complexity of the transformations applied to the output <code>TiledList&lt;Query, Item&gt;</code>.</li>
+<li>The time and space complexity of the transformations applied to the
+  output <code>TiledList&lt;Query, Item&gt;</code>.</li>
 </ul>
-<p>In the case of a former, the <code>Flow</code> should only emit if the backing dataset has actually changed. This prevents unnecessary emissions downstream.</p>
+<p>In the case of a former, the <code>Flow</code> should only emit if the backing dataset has actually changed.
+This prevents unnecessary emissions downstream.</p>
 <p>In the case of the latter, use <code>PivotRequest(on = x)</code> and <code>Input.Limiter</code> to match the
 output <code>TiledList</code> to the size of the view port of the user's device to create an efficient
 paging pipeline.</p>
@@ -613,7 +615,8 @@ paging pipeline.</p>
 <ul>
 <li>20 items can be fetched per page</li>
 <li>100 items (20 * 5 pages) can be observed at concurrently</li>
-<li><code>Input.Limiter.List(maxQueries = 3)</code> can be set so only changes to the visible 60 items will be sent to the UI at once.</li>
+<li><code>Input.Limiter.List(maxQueries = 3)</code> can be set so only changes to the visible 60 items will be
+  sent to the UI at once.</li>
 </ul>
 <p>The items can be transformed with algorithms of <code>O(N)</code> to <code>O(N^2)</code> time and space complexity
 trivially as regardless of the size of the actual paginated set, only 60 items will be transformed

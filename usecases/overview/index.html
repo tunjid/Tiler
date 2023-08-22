@@ -533,23 +533,33 @@
 
   <h1>Overview</h1>
 
-<p>As tiling is a pure function that operates on a reactive stream, its configuration can be changed on the fly.
+<p>As tiling is a pure function that operates on a reactive stream, its configuration can be changed on
+the fly.
 This lends it well to the following situations:</p>
 <ul>
 <li>
-<p>Offline-first apps: Tiling delivers targeted updates to only queries that have changed. This works well for
-  apps which write to the database as the source of truth, and need the UI to update immediately. For example
+<p>Offline-first apps: Tiling delivers targeted updates to only queries that have changed. This works
+  well for
+  apps which write to the database as the source of truth, and need the UI to update immediately.
+  For example
   a viral tweet whose like count updates several times a second.</p>
 </li>
 <li>
-<p>Adaptive pagination: The amount of items paginated through can be adjusted dynamically to account for app window
-  resizing by turning <a href="https://github.com/tunjid/Tiler#inputrequest">on</a> more pages and increasing the
-  <a href="https://github.com/tunjid/Tiler#inputlimiter">limit</a> of data sent to the UI from the paginated data available.
-  An example is in the <a href="https://github.com/tunjid/me/blob/main/common/feature-archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveLoading.kt">Me</a> app.</p>
+<p>Adaptive pagination: The amount of items paginated through can be adjusted dynamically to account
+  for app window
+  resizing by turning <a href="https://github.com/tunjid/Tiler#inputrequest">on</a> more pages and increasing
+  the
+  <a href="https://github.com/tunjid/Tiler#inputlimiter">limit</a> of data sent to the UI from the paginated
+  data available.
+  An example is in
+  the <a href="https://github.com/tunjid/me/blob/main/common/feature-archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveLoading.kt">Me</a>
+  app.</p>
 </li>
 <li>
-<p>Dynamic sort order: The sort order of paginated items can be changed cheaply on a whim by changing the
-  <a href="https://github.com/tunjid/Tiler#inputorder">order</a> as this only operates on the data output from the tiler, and not
+<p>Dynamic sort order: The sort order of paginated items can be changed cheaply on a whim by changing
+  the
+  <a href="https://github.com/tunjid/Tiler#inputorder">order</a> as this only operates on the data output from
+  the tiler, and not
   the entire paginated data set. An example is in the sample in this
   <a href="https://github.com/tunjid/Tiler/blob/develop/common/src/commonMain/kotlin/com/tunjid/demo/common/ui/numbers/advanced/NumberFetching.kt">repository</a>.</p>
 </li>

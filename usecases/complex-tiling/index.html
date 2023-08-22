@@ -639,7 +639,8 @@
     <img src="../../images/complex.gif" alt="Complex"/>
 </p>
 
-<p>See the <code>ArchiveList</code> state production pipeline in the <a href="https://github.com/tunjid/me/blob/main/common/ui/archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveListStateHolder.kt">me</a>
+<p>See the <code>ArchiveList</code> state production pipeline in
+the <a href="https://github.com/tunjid/me/blob/main/common/ui/archive-list/src/commonMain/kotlin/com/tunjid/me/feature/archivelist/ArchiveListStateHolder.kt">me</a>
 github project for an example of a a complex tiled pagination pipeline with key preservation across
 multiple queries. In it, the current item the user is viewing can remain anchored even as the
 search filter changes.</p>
@@ -677,7 +678,8 @@ a way to identify them in the new list.</p>
 <ul>
 <li>Keep a reference to the current list presented in the UI</li>
 <li>When the new <code>TiledList</code> is emitted, compare the old list to the new list</li>
-<li>If the old list has items that are not placeholders that are present in the new list, replace the ids in the new list with the ids from the old list.</li>
+<li>If the old list has items that are not placeholders that are present in the new list, replace the
+  ids in the new list with the ids from the old list.</li>
 <li>Make sure ids are not duplicated.</li>
 </ul>
 <p>The steps above will allow you to achieve smooth item animations in complex pagination pipelines.</p>
