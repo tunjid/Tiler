@@ -7,7 +7,8 @@ The following guide helps create the UI/UX seen below:
 </p>
 
 The code for the above can be seen in the Musify Spotify clone, on the Podcast
-episode detail [screen](https://github.com/tunjid/Musify/blob/main/app/src/main/java/com/example/musify/ui/screens/searchscreen/StateProduction.kt).
+episode
+detail [screen](https://github.com/tunjid/Musify/blob/main/app/src/main/java/com/example/musify/ui/screens/searchscreen/StateProduction.kt).
 
 ## Guide
 
@@ -41,12 +42,12 @@ The above can be represented in the UI with a sealed class hierarchy for present
 sealed class PodcastEpisodeItem {
     data class Placeholder(
         val key: String,
-    ): PodcastEpisodeItem()
+    ) : PodcastEpisodeItem()
 
     data class Loaded(
         val key: String,
         val track: Track,
-    ): PodcastEpisodeItem()
+    ) : PodcastEpisodeItem()
 }
 ```
 

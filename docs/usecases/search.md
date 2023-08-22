@@ -74,7 +74,7 @@ fun tiledTracks(
                     maxQueries = 3
                 ),
                 fetcher = { query ->
-                    repository.tracksFor(query)
+                    flow { emit(repository.tracksFor(query)) }
                 }
             )
         )

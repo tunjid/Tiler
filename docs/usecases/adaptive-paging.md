@@ -131,6 +131,10 @@ private fun numberTiler(
       pageQuery.colorShiftingTiles(itemsPerPage, isDark)
     }
   )
+
+fun PageQuery.colorShiftingTiles(itemsPerPage: Int, isDark: Boolean): Flow<List<NumberTile>> {
+    ...
+}
 ```
 
 In the above, only flows for 4 * numOfColumns queries are collected at any one time. 4 * numOfColumns more queries are kept in memory for quick

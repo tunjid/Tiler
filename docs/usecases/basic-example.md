@@ -9,7 +9,8 @@ The following guide should help create the UI/UX seen below:
 ## Guide
 
 Imagine a social media feed app backed by a `FeedRepository`.
-Each page in the repository returns 30 items. A pivoted tiling pipeline for it can be assembled as follows:
+Each page in the repository returns 30 items. A pivoted tiling pipeline for it can be assembled as
+follows:
 
 ```kotlin
 class FeedState(
@@ -18,7 +19,7 @@ class FeedState(
     private val requests = MutableStateFlow(0)
 
     private val comparator = Comparator(Int::compareTo)
-  
+
     // A TiledList is a regular List that has information about what
     // query fetched an item at each index
     val feed: StateFlow<TiledList<Int, FeedItem>> = requests
@@ -38,21 +39,22 @@ class FeedState(
             )
         )
         .toTiledList(
-          listTiler(
-            // Start by pivoting around 0
-            order = Tile.Order.PivotSorted(
-              query = 0,
-              comparator = comparator
-            ),
-            // Limit to only 3 pages of data in UI at any one time, so 90 items
-            limiter = Tile.Limiter(
-              maxQueries = 3,
-              itemSizeHint = null,
-            ),
-            fetcher = { page ->
-              repository.getPage(page)
-            }
-          )
+            listTiler(
+                // Start by pivoting around 0
+                order = Tile.Order.PivotSorted(
+                    query = 0,
+                    comparator = comparator
+                ),
+                // Limit to only 3 pages of data in UI at any one time, so 90 items
+                limiter = Tile.Limiter(
+                    maxQueries = 3,
+                    itemSizeHint = null,
+                ),
+                fetcher = { page ->
+                    // The fetcher returns a flow, this allows for self updating pages  
+                    flow { emit(repository.getPage(page)) }
+                }
+            )
         )
         .stateIn(/*...*/)
 

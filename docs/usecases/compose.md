@@ -9,7 +9,7 @@ fun Feed(
 ) {
     val feed by state.feed.collectAsState()
     val lazyState = rememberLazyListState()
-  
+
     LazyColumn(
         state = lazyState,
         content = {
@@ -61,9 +61,11 @@ There are now 51 pages of tasks. When page 51 emits:
 
 * It will contain the last task alone; task 099 "Print shipping labels".
 * Page 50 will still have its last emitted tasks 0980 - 0999, including "Print shipping labels".
-* At some point in the future, page 50 will update to contain the new task 1000 "Check invoices" and exclude task 0999 - "Print shipping labels".
+* At some point in the future, page 50 will update to contain the new task 1000 "Check invoices" and
+  exclude task 0999 - "Print shipping labels".
 
-Until page 50 updates, task 0999 "Print shipping labels" will be duplicated in the list. To address this, the
+Until page 50 updates, task 0999 "Print shipping labels" will be duplicated in the list. To address
+this, the
 produced `TiledList` will need to be filtered for duplicates since keys must be unique in Compose
 lazy layouts and indices cannot be used for keys without losing animations.
 
