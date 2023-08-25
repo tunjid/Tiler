@@ -45,6 +45,7 @@ nav:
       - Search: usecases/search.md
       - Adaptive Paging: usecases/adaptive-paging.md
       - Adaptive Paged Search with Placeholders: usecases/complex-tiling.md
+      - Cursor based Tiling: usecases/cursor-based-pagination.md
       - Transformations: usecases/transformations.md
       - Jetpack Compose: usecases/compose.md
   - How tiling works:
@@ -52,10 +53,12 @@ nav:
       - Pivoting: implementation/pivoted-tiling.md
       - Performance: implementation/performance.md
 markdown_extensions:
+  - admonition
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.details
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
