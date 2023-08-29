@@ -16,6 +16,20 @@
 
 package com.tunjid.tiler
 
+/**
+ * Returns all [Query] instances in [this] [TiledList] as a [List]
+ */
+inline fun <Query> TiledList<Query, *>.queries(): List<Query> =
+    (0 until tileCount).map(::queryAtTile)
+
+/**
+ * Returns all [Tile] instances in [this] [TiledList] as a [List].
+ * Note: Each [Tile] returned will be boxed. If autoboxing is not desired, iterate
+ * between 0 and [TiledList.tileCount] instead.
+ */
+inline fun TiledList<*, *>.tiles(): List<Tile> =
+    (0 until tileCount).map(::tileAt)
+
 inline fun <Query, T, R> TiledList<Query, T>.transform(
     transformation: MutableTiledList<Query, R>.(index: Int) -> Unit
 ): TiledList<Query, R> {
@@ -24,6 +38,9 @@ inline fun <Query, T, R> TiledList<Query, T>.transform(
     return output
 }
 
+/**
+ * Equivalent to [List.filterIndexed] for [TiledList]
+ */
 inline fun <Query, Item> TiledList<Query, Item>.filterIndexed(
     predicate: (Int, Item) -> Boolean
 ): TiledList<Query, Item> =
@@ -35,6 +52,9 @@ inline fun <Query, Item> TiledList<Query, Item>.filterIndexed(
         )
     }
 
+/**
+ * Equivalent to [List.filter] for [TiledList]
+ */
 inline fun <Query, Item> TiledList<Query, Item>.filter(
     predicate: (Item) -> Boolean
 ): TiledList<Query, Item> =
@@ -42,6 +62,9 @@ inline fun <Query, Item> TiledList<Query, Item>.filter(
         predicate(item)
     }
 
+/**
+ * Equivalent to [List.filterIsInstance] for [TiledList]
+ */
 @Suppress("UNCHECKED_CAST")
 inline fun <Query, reified Item> TiledList<Query, *>.filterIsInstance(
 ): TiledList<Query, Item> =
@@ -49,6 +72,9 @@ inline fun <Query, reified Item> TiledList<Query, *>.filterIsInstance(
         item is Item
     } as TiledList<Query, Item>
 
+/**
+ * Equivalent to [List.mapIndexed] for [TiledList]
+ */
 inline fun <Query, T, R> TiledList<Query, T>.mapIndexed(
     mapper: (Int, T) -> R
 ): TiledList<Query, R> =
@@ -60,6 +86,9 @@ inline fun <Query, T, R> TiledList<Query, T>.mapIndexed(
         )
     }
 
+/**
+ * Equivalent to [List.map] for [TiledList]
+ */
 inline fun <Query, T, R> TiledList<Query, T>.map(
     mapper: (T) -> R
 ): TiledList<Query, R> =
@@ -67,6 +96,9 @@ inline fun <Query, T, R> TiledList<Query, T>.map(
         mapper(item)
     }
 
+/**
+ * Equivalent to [List.distinctBy] for [TiledList]
+ */
 inline fun <Query, T, K> TiledList<Query, T>.distinctBy(
     selector: (T) -> K
 ): TiledList<Query, T> {
@@ -84,9 +116,15 @@ inline fun <Query, T, K> TiledList<Query, T>.distinctBy(
     }
 }
 
+/**
+ * Equivalent to [List.distinct] for [TiledList]
+ */
 inline fun <Query, T> TiledList<Query, T>.distinct(): TiledList<Query, T> =
     distinctBy { it }
 
+/**
+ * Equivalent to [List.groupBy] for [TiledList]
+ */
 inline fun <Query, T, K> TiledList<Query, T>.groupBy(
     keySelector: (T) -> K
 ): Map<K, TiledList<Query, T>> {

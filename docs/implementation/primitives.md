@@ -1,6 +1,6 @@
 ## API surface and Tiling primitives
 
-Given a `Flow` of `Input`, tiling transforms them into a `Flow<TiledList<Query, Item>>` with
+Given a `Flow` of `Tile.Input`, tiling transforms them into a `Flow<TiledList<Query, Item>>` with
 a `ListTiler`.
 
 The resulting `TiledList` should be kept at a size that covers approximately 3 times the viewport.
@@ -9,9 +9,8 @@ way you want.
 
 ## Managing requested data
 
-Much like a classic `Map` that supports update and remove methods, a Tiler offers analogous
-operations in the form
-of `Inputs`.
+A tiled pagination pipeline is managed by the `Tile.Input` it receives. These inputs drive the
+dynamism of the pipeline. The following is a breakdown of them all.
 
 ### `Input.Request`
 
@@ -22,7 +21,7 @@ of `Inputs`.
 
 * `Tile.Request.Off`: Stops collecting from the backing `Flow` for the specified `query`. The items
   previously fetched by this query
-  are still kept in memory and will be in the `List` of items returned. Requesting this is
+  are still kept in memory and will be in the `TiledList` of items returned. Requesting this is
   idempotent; multiple requests
   have no side effects.
 
@@ -32,9 +31,17 @@ of `Inputs`.
   idempotent; multiple requests
   have no side effects.
 
-* `Pivot`: Only valid when using the `Tile.Order.PivotSorted`, this allows for returning
-  a `TiledList` from results
-  around a certain `Query`.
+### `Tile.Batch`
+
+Used for dispatching multiple `Tile.Input` instances. The `ListTiler` may emit `TiledList` instances
+during the application of a `Tile.Batch` input; it is not transactional. Rather, it is an
+encapsulation of an aggregate of `Tile.Input` that represents a single logical operation. Users of
+the library may also define arbitrary `Tile.Batch` instances and use them in their tiled pipelines.
+
+### `Pivot`
+
+An implementation of `Tile.Batch`, this allows for returning a `TiledList` from results
+around a particular `Query`. It's use must be accompanied by a `Tile.Order.PivotSorted`.
 
 ### `Tile.Input.Limiter`
 
