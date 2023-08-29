@@ -6,6 +6,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://tunjid.github.io/Tiler/implementation/pagination-types/</loc>
+         <lastmod>2023-08-29</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://tunjid.github.io/Tiler/implementation/performance/</loc>
          <lastmod>2023-08-29</lastmod>
          <changefreq>daily</changefreq>
@@ -47,11 +52,6 @@
     </url>
     <url>
          <loc>https://tunjid.github.io/Tiler/usecases/overview/</loc>
-         <lastmod>2023-08-29</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://tunjid.github.io/Tiler/usecases/pagination-types/</loc>
          <lastmod>2023-08-29</lastmod>
          <changefreq>daily</changefreq>
     </url>
