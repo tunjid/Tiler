@@ -387,8 +387,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usecases/cursor-based-pagination/" class="md-nav__link">
-        Cursor based Tiling
+      <a href="../../usecases/pagination-types/" class="md-nav__link">
+        Pagination types and Tiling
       </a>
     </li>
   
@@ -518,6 +518,20 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#tilebatch" class="md-nav__link">
+    Tile.Batch
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pivot" class="md-nav__link">
+    Pivot
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#tileinputlimiter" class="md-nav__link">
     Tile.Input.Limiter
   </a>
@@ -626,6 +640,20 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#tilebatch" class="md-nav__link">
+    Tile.Batch
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pivot" class="md-nav__link">
+    Pivot
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#tileinputlimiter" class="md-nav__link">
     Tile.Input.Limiter
   </a>
@@ -665,15 +693,14 @@
   <h1>Primitives</h1>
 
 <h2 id="api-surface-and-tiling-primitives">API surface and Tiling primitives</h2>
-<p>Given a <code>Flow</code> of <code>Input</code>, tiling transforms them into a <code>Flow&lt;TiledList&lt;Query, Item&gt;&gt;</code> with
+<p>Given a <code>Flow</code> of <code>Tile.Input</code>, tiling transforms them into a <code>Flow&lt;TiledList&lt;Query, Item&gt;&gt;</code> with
 a <code>ListTiler</code>.</p>
 <p>The resulting <code>TiledList</code> should be kept at a size that covers approximately 3 times the viewport.
 This is typically at or under 100 items for non grid UIs. You can then transform this list however
 way you want.</p>
 <h2 id="managing-requested-data">Managing requested data</h2>
-<p>Much like a classic <code>Map</code> that supports update and remove methods, a Tiler offers analogous
-operations in the form
-of <code>Inputs</code>.</p>
+<p>A tiled pagination pipeline is managed by the <code>Tile.Input</code> it receives. These inputs drive the
+dynamism of the pipeline. The following is a breakdown of them all.</p>
 <h3 id="inputrequest"><code>Input.Request</code></h3>
 <ul>
 <li>
@@ -685,7 +712,7 @@ of <code>Inputs</code>.</p>
 <li>
 <p><code>Tile.Request.Off</code>: Stops collecting from the backing <code>Flow</code> for the specified <code>query</code>. The items
   previously fetched by this query
-  are still kept in memory and will be in the <code>List</code> of items returned. Requesting this is
+  are still kept in memory and will be in the <code>TiledList</code> of items returned. Requesting this is
   idempotent; multiple requests
   have no side effects.</p>
 </li>
@@ -696,12 +723,15 @@ of <code>Inputs</code>.</p>
   idempotent; multiple requests
   have no side effects.</p>
 </li>
-<li>
-<p><code>Pivot</code>: Only valid when using the <code>Tile.Order.PivotSorted</code>, this allows for returning
-  a <code>TiledList</code> from results
-  around a certain <code>Query</code>.</p>
-</li>
 </ul>
+<h3 id="tilebatch"><code>Tile.Batch</code></h3>
+<p>Used for dispatching multiple <code>Tile.Input</code> instances. The <code>ListTiler</code> may emit <code>TiledList</code> instances
+during the application of a <code>Tile.Batch</code> input; it is not transactional. Rather, it is an
+encapsulation of an aggregate of <code>Tile.Input</code> that represents a single logical operation. Users of
+the library may also define arbitrary <code>Tile.Batch</code> instances and use them in their tiled pipelines.</p>
+<h3 id="pivot"><code>Pivot</code></h3>
+<p>An implementation of <code>Tile.Batch</code>, this allows for returning a <code>TiledList</code> from results
+around a particular <code>Query</code>. It's use must be accompanied by a <code>Tile.Order.PivotSorted</code>.</p>
 <h3 id="tileinputlimiter"><code>Tile.Input.Limiter</code></h3>
 <p>Can be used to select a subset of items tiled instead of the entire paginated set. For example,
 assuming 1000 items have been
