@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun Root() {
     val numPages = 2
-    val pagerState = rememberPagerState()
+    val pagerState = rememberPagerState { 2 }
     val scope = rememberCoroutineScope()
     Column {
         TabRow(selectedTabIndex = pagerState.currentPage) {
@@ -56,7 +56,6 @@ fun Root() {
             }
         }
         HorizontalPager(
-            pageCount = numPages,
             state = pagerState,
         ) { page ->
             when (page) {

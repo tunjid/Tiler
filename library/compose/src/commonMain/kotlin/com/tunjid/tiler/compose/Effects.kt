@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridItemInfo
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridItemInfo
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,7 +60,6 @@ fun <Query> LazyGridState.PivotedTilingEffect(
 )
 
 @Composable
-@ExperimentalFoundationApi
 fun <Query> LazyStaggeredGridState.PivotedTilingEffect(
     items: TiledList<Query, *>,
     indexSelector: IntRange.() -> Int = kotlin.ranges.IntRange::first,
@@ -71,6 +71,22 @@ fun <Query> LazyStaggeredGridState.PivotedTilingEffect(
     itemsList = { layoutInfo.visibleItemsInfo },
     indexForItem = LazyStaggeredGridItemInfo::index
 )
+
+@Composable
+@ExperimentalFoundationApi
+fun <Query> PagerState.PivotedTilingEffect(
+    items: TiledList<Query, *>,
+    onQueryChanged: (Query?) -> Unit
+) {
+    val updatedItems by rememberUpdatedState(items)
+    LaunchedEffect(this) {
+        snapshotFlow {
+            updatedItems.queryAtOrNull(currentPage)
+        }
+            .distinctUntilChanged()
+            .collect(onQueryChanged)
+    }
+}
 
 @Composable
 private inline fun <Query, LazyState : Any, LazyStateItem> LazyState.PivotedTilingEffect(
