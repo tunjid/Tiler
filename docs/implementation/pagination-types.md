@@ -170,7 +170,7 @@ class ProductState(
     a cursor for new incoming queries. Alternatively, a new tiling pipeline may be assembled.
 
 In the cases where queries change fundamentally where key sets or cursors are invalidated, you will
-have to create a new `ListTiler`. However since tiling ultimately produces a `List<Item>`, distinct
-tiling pipeline can be seamlessly flatmapped into each other. To maintain a good user experience,
+have to create a new `ListTiler`. Since tiling ultimately produces a `List<Item>`, distinct
+tiling pipelines can be seamlessly flatmapped into each other. To maintain a good user experience,
 the user's current visible range should be found in the new pipeline so the new pipeline can be
 started around the user's current position.

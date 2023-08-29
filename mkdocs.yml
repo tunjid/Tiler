@@ -45,12 +45,12 @@ nav:
       - Search: usecases/search.md
       - Adaptive Paging: usecases/adaptive-paging.md
       - Adaptive Paged Search with Placeholders: usecases/complex-tiling.md
-      - Pagination types and Tiling: usecases/pagination-types.md
       - Transformations: usecases/transformations.md
       - Jetpack Compose: usecases/compose.md
   - How tiling works:
       - Primitives: implementation/primitives.md
       - Pivoting: implementation/pivoted-tiling.md
+      - Pagination types and Tiling: implementation/pagination-types.md
       - Performance: implementation/performance.md
 markdown_extensions:
   - admonition
