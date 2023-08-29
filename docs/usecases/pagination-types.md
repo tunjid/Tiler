@@ -1,8 +1,58 @@
+The following guide details how tiling may be used for
+
+* Offset pagination
+* Key set/cursor pagination
+
+## Offset pagination
+
+To use offset pagination with Tiling, embed the offset and limit required in each query specified.
+For example, a `PageQuery` with 20 items per page mey be specified as:
+
+```kotlin
+data class PageQuery(
+    val offset: Int,
+    val limit: Int = 20,
+)
+```
+
+### Example
+
+Each `Flow` used in the `ListTiler` function should emit if the range it covers changes. Consider
+the example below:
+
+```kotlin
+listTiler(
+    order = Tile.Order.PivotSorted(
+        query = startQuery,
+        comparator = compareBy(PageQuery::offset)
+    ),
+    limiter = Tile.Limiter(
+        maxQueries = 3
+    ),
+    fetcher = { query ->
+        repository.itemsForPage(query)
+    }
+)
+```
+
+In the above, `repository.itemsForPage` may delegate to a SQL backed data source with the following
+query:
+
+```roomsql
+SELECT *
+FROM items
+LIMIT :limit
+OFFSET :offset;
+```
+
+## Key set and cursor based pagination
+
 Some pagination pipelines need the result of an adjacent page to fetch consecutive pages. This
-is common with network APIs that return a cursor.
+is common with SQL databases with ordered or indexed `WHERE` clauses or network APIs that
+return a cursor.
 
 Tiling however is concurrent. It attempts to fetch items for all it's active queries simultaneously.
-Therefore, to use tiling with cursor based APIs, use the `neighboredQueryFetcher` method.
+Therefore, to use tiling with key set or cursor based APIs, use the `neighboredQueryFetcher` method.
 It maintains a LIFO map of queries to tokens/cursors which lets active queries without an
 adjacent token/cursor `suspend` until one is available.
 
@@ -48,8 +98,8 @@ fun productQueryFetcher(
         )
         flowOf(
             NeighboredFetchResult(
-                // Set the cursor for the next page. This will cause the fetcher for the
-                // next page to be invoked since a cursor is now available
+                // Set the cursor for the next page and any other page with data available.
+                // This will cause the fetcher for the pages to be invoked if they are in scope.
                 mapOf(ProductQuery(page = 1) to productsResponse.nextPage),
                 items = productsResponse.products
             )
@@ -61,7 +111,7 @@ fun productQueryFetcher(
 !!! note
 
     Tiling with cursors requires that the first query be seeded in the `seedQueryTokenMap` argument.
-    Without this, all queries will suspend indefinitely as there is not starting query to initialize
+    Without this, all queries will suspend indefinitely as there is no starting query to initialize
     tiling.
 
 The above can then be used in any other tiled paging pipeline:
@@ -114,7 +164,13 @@ class ProductState(
 
 !!! note
 
-    The caveats of cursor based paging still apply while tiling; page jumping is not supported.
-    Furthermore, requesting a page that has no cursor will suspend indefinitely unless a cursor
+    The caveats of key set or cursor based paging still apply while tiling; page jumping is not
+    supported. Requesting a page that has no cursor will suspend indefinitely unless a cursor
     is provided. This means for dynamic paging pipelines like search, at least one query must emit
     a cursor for new incoming queries. Alternatively, a new tiling pipeline may be assembled.
+
+In the cases where queries change fundamentally where key sets or cursors are invalidated, you will
+have to create a new `ListTiler`. However since tiling ultimately produces a `List<Item>`, distinct
+tiling pipeline can be seamlessly flatmapped into each other. To maintain a good user experience,
+the user's current visible range should be found in the new pipeline so the new pipeline can be
+started around the user's current position.

@@ -45,7 +45,7 @@ nav:
       - Search: usecases/search.md
       - Adaptive Paging: usecases/adaptive-paging.md
       - Adaptive Paged Search with Placeholders: usecases/complex-tiling.md
-      - Cursor based Tiling: usecases/cursor-based-pagination.md
+      - Pagination types and Tiling: usecases/pagination-types.md
       - Transformations: usecases/transformations.md
       - Jetpack Compose: usecases/compose.md
   - How tiling works:
