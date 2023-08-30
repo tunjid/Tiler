@@ -6,19 +6,18 @@ The following guide helps create the UI/UX seen below:
     <img src="../../images/placeholders.gif" alt="Placeholders" width="200"/>
 </p>
 
-## Guide
-
 The code for the above can be seen in the Musify Spotify clone, on the Podcast
-episode detail [screen](https://github.com/tunjid/Musify/blob/main/app/src/main/java/com/example/musify/ui/screens/searchscreen/StateProduction.kt).
+episode
+detail [screen](https://github.com/tunjid/Musify/blob/main/app/src/main/java/com/example/musify/ui/screens/searchscreen/StateProduction.kt).
+
+## Guide
 
 When loading data from asynchronous sources, it is sometimes required to show static data first.
 Since tiling exposes a `List`, inserting placeholders typically involves emitting the placeholder
 items first.
 
-## Example
-
-Consider the following repository that fetches a list of tracks from the network with paginated
-offsets:
+Consider the following repository that fetches a list of podcast episodes from the network with
+paginated offsets:
 
 ```kotlin
 
@@ -27,52 +26,54 @@ private const val LIMIT = 20
 /**
  * A query for tracks at a certain offset
  */
-data class TracksQuery(
+data class PodcastEpisodeQuery(
     val offset: Int,
     val limit: Int = LIMIT,
 )
 
-interface TracksRepository {
-    suspend fun tracksFor(query: TracksQuery): List<Track>
+interface PodcastEpisodeRepository {
+    suspend fun episodesFor(query: PodcastEpisodeQuery): List<Track>
 }
 ```
 
 The above can be represented in the UI with a sealed class hierarchy for presentation:
 
 ```kotlin
-sealed class TrackItem {
+sealed class PodcastEpisodeItem {
     data class Placeholder(
         val key: String,
-    ): TrackItem()
+    ) : PodcastEpisodeItem()
 
     data class Loaded(
         val key: String,
         val track: Track,
-    ): TrackItem()
+    ) : PodcastEpisodeItem()
 }
 ```
 
+The tiling pipeline can then be used to emit placeholders immediately, then the actual items can
+then be fetched asynchronously.
+
 ```kotlin
-
-private val pivotRequest = PivotRequest<TracksQuery, TrackItem>(
-    onCount = 5,
-    offCount = 4,
-    comparator = compareBy(TrackQuery::offset),
-    nextQuery = {
-        copy(offset = offset + limit)
-    },
-    previousQuery = {
-        if (offset == 0) null
-        else copy(offset = offset - limit)
-    },
-)
-
-fun toTiledList(
-    startQuery: TracksQuery,
-    queries: Flow<TracksQuery>,
-    repository: TracksRepository,
-): Flow<TiledList<TracksQuery, TrackItem>> = queries
-    .toPivotedTileInputs(pivotRequest)
+fun tiledPodcastEpisodes(
+    startQuery: PodcastEpisodeQuery,
+    queries: Flow<PodcastEpisodeQuery>,
+    repository: PodcastEpisodeRepository,
+): Flow<TiledList<PodcastEpisodeQuery, PodcastEpisodeItem>> = queries
+    .toPivotedTileInputs(
+        PivotRequest<PodcastEpisodeQuery, PodcastEpisodeItem>(
+            onCount = 5,
+            offCount = 4,
+            comparator = compareBy(TrackQuery::offset),
+            nextQuery = {
+                copy(offset = offset + limit)
+            },
+            previousQuery = {
+                if (offset == 0) null
+                else copy(offset = offset - limit)
+            },
+        )
+    )
     .toTiledList(
         listTiler(
             order = Tile.Order.PivotSorted(
@@ -86,12 +87,13 @@ fun toTiledList(
                 flow {
                     val keys = (query.offset until (query.offset + query.limit))
                     // emit all placeholders first
-                    emit(keys.map(TrackItem::Placeholder))
+                    emit(keys.map(PodcastEpisodeItem::Placeholder))
                     // Fetch tracks asynchronously
-                    val tracks = repository.tracksFor(query)
+                    val episodes = repository.episodesFor(query)
+                    // if the repository returns a `Flow`, `emitAll` can be used instead
                     emit(
-                        tracks.mapIndexed { index, track ->
-                            TrackItem.Loaded(
+                        episodes.mapIndexed { index, track ->
+                            PodcastEpisodeItem.Loaded(
                                 // Make sure the loaded items and placeholders share the same keys
                                 key = keys[index],
                                 track = track,
@@ -108,7 +110,7 @@ fun toTiledList(
                         shouldRetry
                     }
                     // If the network is unavailable, nothing may be emitted
-                    .catch { emit(emptyTiledList<TracksQuery, TrackItem>()) }
+                    .catch { emit(emptyTiledList<PodcastEpisodeQuery, PodcastEpisodeItem>()) }
             }
         )
     )

@@ -11,6 +11,8 @@ theme:
   logo: assets/logo.png
   icon:
     repo: fontawesome/brands/github
+  features:
+    - content.code.copy
   language: en
   include_search_page: false
   search_index_only: true
@@ -48,4 +50,15 @@ nav:
   - How tiling works:
       - Primitives: implementation/primitives.md
       - Pivoting: implementation/pivoted-tiling.md
+      - Pagination types and Tiling: implementation/pagination-types.md
       - Performance: implementation/performance.md
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences

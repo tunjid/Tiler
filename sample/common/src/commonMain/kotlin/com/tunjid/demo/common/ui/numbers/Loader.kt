@@ -22,6 +22,7 @@ import com.tunjid.tiler.Tile
 import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.distinct
 import com.tunjid.tiler.emptyTiledList
+import com.tunjid.tiler.groupBy
 import com.tunjid.tiler.listTiler
 import com.tunjid.tiler.toPivotedTileInputs
 import com.tunjid.tiler.toTiledList
@@ -40,7 +41,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlin.math.max
 
-private const val ITEMS_PER_PAGE = 100
+private const val ITEMS_PER_PAGE = 50
 
 private const val MIN_ITEMS_PER_PAGE = 50
 
@@ -61,6 +62,8 @@ data class State(
     val pivotSummary: String,
     val items: TiledList<PageQuery, NumberTile> = emptyTiledList()
 )
+
+val State.groupedItems get() = items.groupBy { it.number / ITEMS_PER_PAGE}
 
 class Loader(
     isDark: Boolean,
