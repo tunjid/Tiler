@@ -37,7 +37,7 @@ kotlin {
     }
 
     sourceSets {
-        val commonMain by getting {
+        commonMain {
             dependencies {
                 implementation(project(":library:tiler"))
                 implementation(libs.kotlinx.coroutines.core)
@@ -47,7 +47,7 @@ kotlin {
                 implementation(libs.jetbrains.compose.foundation.layout)
             }
         }
-        val commonTest by getting {
+        commonTest {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.kotlinx.coroutines.test)
