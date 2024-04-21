@@ -1,5 +1,6 @@
 package com.example.benchmarks.data
 
+import android.annotation.SuppressLint
 import androidx.paging.CombinedLoadStates
 import androidx.paging.DifferCallback
 import androidx.paging.LoadState
@@ -12,11 +13,8 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.launch
-import kotlin.math.max
 
 private val pagingConfig = PagingConfig(
     pageSize = ITEMS_PER_PAGE,
@@ -30,8 +28,9 @@ class PagingBenchmark(
     private val pagesToInvalidate: IntRange
 ) : Benchmarked {
 
-    private var lastInvalidatedPage: Int = Int.MIN_VALUE
+    private var lastInvalidatedPage: Int = pagesToInvalidate.first + 1
 
+    @SuppressLint("RestrictedApi")
     override suspend fun benchmark() = coroutineScope {
         val differ = pagingDataDiffer()
         val collectJob = launch {
@@ -50,7 +49,6 @@ class PagingBenchmark(
             // When items are delivered, read them
             .onPagesUpdatedFlow
             .transformWhile {
-                differ.loadStateFlow
                 if (!differ.loadStateFlow.value.isIdle()) return@transformWhile true
                 val latestItems = differ.snapshot().items
 
@@ -64,29 +62,42 @@ class PagingBenchmark(
                     return@transformWhile true
                 }
 
-                emit(latestItems)
+                // Currently at the page scrolled to. If there's nothing to invalidate, complete
+                if (pagesToInvalidate.isEmpty()) return@transformWhile false
 
-                val isFinished = pagesToInvalidate.isEmpty() ||
-                        lastItem.lastInvalidatedPage >= pagesToInvalidate.last
+                // Find an item from the page that was invalidated
+                val invalidatedItem = latestItems.lastInvalidatedItem()
+
+                val isFinished = invalidatedItem != null
+                        && invalidatedItem.lastInvalidatedPage >= pagesToInvalidate.last
+
+                emit(latestItems)
 
                 !isFinished
             }
             .collect {
-                // Account for start
-                lastInvalidatedPage = max(
-                    a = lastInvalidatedPage,
-                    b = pagesToInvalidate.first - 1
-                )
-                if (lastInvalidatedPage < pagesToInvalidate.last) {
-                    ++lastInvalidatedPage
+                // Invalidate
+                val invalidatedItem = it.lastInvalidatedItem()
+                val canIncrementAndInvalidate = invalidatedItem == null
+                        || invalidatedItem.lastInvalidatedPage == lastInvalidatedPage
+
+                if (canIncrementAndInvalidate && ++lastInvalidatedPage <= pagesToInvalidate.last) {
                     differ.refresh()
                 }
             }
 
         collectJob.cancel()
     }
+
+    private fun List<Item>.lastInvalidatedItem(): Item? {
+        for (item in this) {
+            if (item.lastInvalidatedPage == lastInvalidatedPage) return item
+        }
+        return null
+    }
 }
 
+@SuppressLint("RestrictedApi")
 private fun pagingDataDiffer() = object : PagingDataDiffer<Item>(
     differCallback = object : DifferCallback {
         override fun onChanged(position: Int, count: Int) = Unit
@@ -151,11 +162,3 @@ private fun LoadStates.isIdle(): Boolean {
             prepend is LoadState.NotLoading
 }
 
-abstract class M<T> {
-    abstract val initial: T
-
-    private var seed: T = initial
-
-    val flow = flowOf(seed)
-        .onEach { seed = it }
-}
