@@ -22,6 +22,7 @@ plugins {
     signing
     id("org.jetbrains.dokka")
     id("org.jetbrains.compose")
+    alias(libs.plugins.compose.compiler)
 }
 
 kotlin {

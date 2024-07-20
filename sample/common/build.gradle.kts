@@ -18,6 +18,7 @@ plugins {
     id("android-library-convention")
     id("kotlin-library-convention")
     id("org.jetbrains.compose")
+    alias(libs.plugins.compose.compiler)
 }
 
 kotlin {

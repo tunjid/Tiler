@@ -29,5 +29,6 @@ dependencies {
     implementation(libs.jetbrains.compose.gradlePlugin)
     implementation(libs.kotlin.gradlePlugin)
     implementation(libs.android.gradlePlugin)
+    implementation(libs.compose.compiler.plugin)
     implementation(libs.dokka.gradlePlugin)
 }
