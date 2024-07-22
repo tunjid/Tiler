@@ -18,9 +18,20 @@ plugins {
     id("android-library-convention")
     id("kotlin-library-convention")
     id("org.jetbrains.compose")
+    alias(libs.plugins.compose.compiler)
 }
 
 kotlin {
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64(),
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "common"
+            isStatic = true
+        }
+    }
     sourceSets {
         named("commonMain") {
             dependencies {
@@ -44,6 +55,15 @@ kotlin {
             dependencies {
                 implementation(libs.androidx.compose.foundation.layout)
             }
+        }
+        val iosX64Main by getting
+        val iosArm64Main by getting
+        val iosSimulatorArm64Main by getting
+        val iosMain by creating {
+            dependsOn(named("commonMain").get())
+            iosX64Main.dependsOn(this)
+            iosArm64Main.dependsOn(this)
+            iosSimulatorArm64Main.dependsOn(this)
         }
         val jsMain by getting {
             dependencies {

@@ -39,7 +39,7 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
  * Sets common values for Android Applications and Libraries
  */
 fun org.gradle.api.Project.androidConfiguration(
-    extension: CommonExtension<*, *, *, *>
+    extension: CommonExtension<*, *, *, *, *, *>
 ) = extension.apply {
     namespace = "com.tunjid.tiler.${project.name}"
     compileSdk = 34
@@ -50,13 +50,6 @@ fun org.gradle.api.Project.androidConfiguration(
 
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        val composeCompilerVersion = versionCatalog
-            .findVersion("androidxComposeCompiler")
-            .get()
-            .requiredVersion
-        kotlinCompilerExtensionVersion = composeCompilerVersion
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

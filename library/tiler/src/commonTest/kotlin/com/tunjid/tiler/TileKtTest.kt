@@ -248,7 +248,7 @@ class TileKtTest {
             )
 
             // Reverse sort by page
-            requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo).reversed()))
+            requests.emit(Tile.Order.Sorted(comparator = Comparator<Int>(Int::compareTo).reversed()))
             assertEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
                 actual = awaitItem()
@@ -279,7 +279,7 @@ class TileKtTest {
             )
 
             // Sort ascending
-            requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
+            requests.emit(Tile.Order.Sorted(comparator = Comparator<Int>(Int::compareTo)))
             assertEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
                 actual = awaitItem()
@@ -296,7 +296,7 @@ class TileKtTest {
             requests.emit(
                 Tile.Order.PivotSorted(
                     query = 4,
-                    comparator = Comparator(Int::compareTo)
+                    comparator = Comparator<Int>(Int::compareTo)
                 )
             )
             assertEquals(
@@ -305,7 +305,7 @@ class TileKtTest {
             )
 
             // Sort ascending in absolute terms
-            requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo)))
+            requests.emit(Tile.Order.Sorted(comparator = Comparator<Int>(Int::compareTo)))
             assertEquals(
                 1.tiledTestRange() + 3.tiledTestRange() + 4.tiledTestRange(),
                 awaitItem()
@@ -414,7 +414,7 @@ class TileKtTest {
 
     @Test
     fun pivoting_pipeline_should_only_emit_when_data_is_available_from_pivot_query() = runTest {
-        val comparator = Comparator(Int::compareTo)
+        val comparator = Comparator<Int>(Int::compareTo)
         val tiler = listTiler(
             order = Tile.Order.PivotSorted(
                 query = 0,
@@ -481,7 +481,7 @@ class TileKtTest {
             )
 
             // Reverse sort by page
-            requests.emit(Tile.Order.Sorted(comparator = Comparator(Int::compareTo).reversed()))
+            requests.emit(Tile.Order.Sorted(comparator = Comparator<Int>(Int::compareTo).reversed()))
             assertEquals(
                 expected = 3.tiledTestRange() + 2.tiledTestRange(),
                 actual = awaitItem()
@@ -491,7 +491,7 @@ class TileKtTest {
             requests.emit(
                 Tile.Order.PivotSorted(
                     query = 2,
-                    comparator = Comparator(Int::compareTo)
+                    comparator = Comparator<Int>(Int::compareTo)
                 )
             )
             assertEquals(
@@ -503,7 +503,7 @@ class TileKtTest {
             requests.emit(
                 Tile.Order.PivotSorted(
                     query = 2,
-                    comparator = Comparator(Int::compareTo).reversed()
+                    comparator = Comparator<Int>(Int::compareTo).reversed()
                 )
             )
             assertEquals(

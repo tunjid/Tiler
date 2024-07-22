@@ -38,7 +38,7 @@ include(
     ":sample:common",
     ":sample:android",
     ":sample:desktop",
-    ":sample:browser",
+//    ":sample:browser",
     ":benchmarks:benchmarkable",
     ":benchmarks:microbenchmark",
 )
