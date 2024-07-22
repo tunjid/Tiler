@@ -213,7 +213,7 @@ class ListMapTilingSamenessTest {
         val range = (0..15)
         (1..10).forEach { itemsPerPage ->
             (3..10).forEach { numPages ->
-                val comparator = Comparator(Int::compareTo)
+                val comparator = Comparator<Int>(Int::compareTo)
                 val pivotRequest: PivotRequest<Int, Int> = PivotRequest(
                     onCount = numPages,
                     offCount = 0,

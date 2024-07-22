@@ -26,6 +26,7 @@ plugins {
 }
 
 kotlin {
+    applyDefaultHierarchyTemplate()
     js(IR) {
         nodejs()
         browser()
@@ -34,6 +35,16 @@ kotlin {
         withJava()
         testRuns["test"].executionTask.configure {
             useJUnit()
+        }
+    }
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64(),
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "tiler-compose"
+            isStatic = true
         }
     }
 

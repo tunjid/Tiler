@@ -37,7 +37,7 @@ import kotlin.test.assertEquals
 
 class PivotingKtTest {
 
-    private val comparator: Comparator<Int> = Comparator(Int::compareTo)
+    private val comparator: Comparator<Int> = Comparator<Int>(Int::compareTo)
 
     private val pivotRequest: PivotRequest<Int, Int> = PivotRequest(
         onCount = 3,
