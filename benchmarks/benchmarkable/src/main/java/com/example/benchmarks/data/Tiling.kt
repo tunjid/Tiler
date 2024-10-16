@@ -2,7 +2,9 @@ package com.example.benchmarks.data
 
 import com.tunjid.tiler.PivotRequest
 import com.tunjid.tiler.Tile
+import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.listTiler
+import com.tunjid.tiler.queries
 import com.tunjid.tiler.toPivotedTileInputs
 import com.tunjid.tiler.toTiledList
 import kotlinx.coroutines.flow.Flow
@@ -28,7 +30,7 @@ class TilingBenchmark(
     private val pagesToInvalidate: IntRange
 ) : Benchmarked {
 
-    private var lastInvalidatedPage: Int = pagesToInvalidate.first - 1
+    private var lastInvalidatedPage: Int = pagesToInvalidate.first + 1
 
     override suspend fun benchmark() {
         val offsetFlow = MutableSharedFlow<Int>()
@@ -52,45 +54,48 @@ class TilingBenchmark(
                     return@transformWhile true
                 }
 
+                // Currently at the page scrolled to. If there's nothing to invalidate, complete
                 if (pagesToInvalidate.isEmpty()) return@transformWhile false
 
                 // ** Invalidation code ** //
 
-                // Outside the range, nothing to invalidate so terminate
+                // Outside the visible range, nothing to invalidate so terminate
                 if (pagesToInvalidate.first > lastPage) return@transformWhile false
                 if (pagesToInvalidate.last < firstPage) return@transformWhile false
 
-                // Final page invalidated, terminate
-                val invalidatedPage = latestItems.itemAtPage(lastPage)
+                println(latestItems.queries())
+                // Find an item from the page that was invalidated
+                val invalidatedItem = latestItems.lastInvalidatedItem()
 
-                val isFinished = invalidatedPage != null
-                        && invalidatedPage.lastInvalidatedPage >= pagesToInvalidate.last
+                val isFinished = invalidatedItem != null
+                        && invalidatedItem.lastInvalidatedPage >= pagesToInvalidate.last
 
                 emit(latestItems)
                 !isFinished
             }
             .collect {
                 // Invalidate
-                if (++lastInvalidatedPage <= pagesToInvalidate.last) {
+                val invalidatedItem = it.lastInvalidatedItem()
+                val canIncrementAndInvalidate = invalidatedItem == null
+                        || invalidatedItem.lastInvalidatedPage == lastInvalidatedPage
+
+                if (canIncrementAndInvalidate && ++lastInvalidatedPage <= pagesToInvalidate.last) {
                     invalidationSignal.emit(lastInvalidatedPage)
                 }
             }
     }
-}
 
-private fun List<Item>.itemAtPage(page: Int): Item? {
-    val startPage = pageFor(first())
-    val endPage = pageFor(last())
-    if (page !in startPage..endPage) return null
-    val diff = page - startPage
-    val index = diff * ITEMS_PER_PAGE
-    return get(index)
+    private fun TiledList<Int, Item>.lastInvalidatedItem(): Item? {
+        for (item in this) {
+            if (item.lastInvalidatedPage == lastInvalidatedPage) return item
+        }
+        return null
+    }
 }
 
 private fun Flow<Int>.listTiler() = listTiler(
     limiter = Tile.Limiter(
         maxQueries = NUM_PAGES_IN_MEMORY,
-        itemSizeHint = ITEMS_PER_PAGE,
     ),
     order = Tile.Order.PivotSorted(
         query = 0,

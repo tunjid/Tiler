@@ -1,25 +1,24 @@
 [versions]
-androidGradlePlugin = "8.0.2"
-androidxActivity = "1.8.2"
-androidxAppCompat = "1.6.1"
-androidxBenchmark = "1.2.3"
-androidxCore = "1.12.0"
-androidxCompose = "1.6.1"
-androidxComposeCompiler = "1.5.8"
-androidxPaging = "3.2.1"
-androidxTestCore = "1.5.0"
-androidxTestExt = "1.1.5"
-androidxTestRunner = "1.5.2"
-androidxTestRules = "1.5.0"
-dokka = "1.8.10"
-jetbrainsCompose = "1.6.0-rc01"
+androidGradlePlugin = "8.6.1"
+androidxActivity = "1.9.2"
+androidxAppCompat = "1.7.0"
+androidxBenchmark = "1.2.4"
+androidxCore = "1.13.1"
+androidxCompose = "1.7.0"
+androidxPaging = "3.3.2"
+androidxTestCore = "1.6.1"
+androidxTestExt = "1.2.1"
+androidxTestRunner = "1.6.2"
+androidxTestRules = "1.6.1"
+dokka = "1.8.20"
+jetbrainsCompose = "1.7.0-rc01"
 junit4 = "4.13.2"
-kotlin = "1.9.22"
-kotlinxCoroutines = "1.7.3"
-googleMaterial = "1.11.0"
-tunjidMutator = "0.0.9"
-tunjidTreeNav = "0.0.6"
-turbine = "0.12.1"
+kotlin = "2.0.21"
+kotlinxCoroutines = "1.9.0"
+googleMaterial = "1.12.0"
+tunjidMutator = "1.1.0"
+tunjidTreeNav = "0.0.8"
+turbine = "1.1.0"
 
 [libraries]
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradlePlugin" }
@@ -45,6 +44,7 @@ androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref
 androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "androidxTestRules" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
 cashapp-turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+compose-compiler-plugin = { group = "org.jetbrains.kotlin", name = "compose-compiler-gradle-plugin", version.ref = "kotlin" }
 google-material = { group = "com.google.android.material", name = "material", version.ref = "googleMaterial" }
 jetbrains-compose-animation = { group = "org.jetbrains.compose.animation", name = "animation", version.ref = "jetbrainsCompose" }
 jetbrains-compose-foundation = { group = "org.jetbrains.compose.foundation", name = "foundation", version.ref = "jetbrainsCompose" }
@@ -74,6 +74,7 @@ tunjid-treenav-common = { group = "com.tunjid.treenav", name = "treenav", versio
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 androidx-benchmark = { id = "androidx.benchmark", version.ref = "androidxBenchmark" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

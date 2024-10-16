@@ -24,6 +24,7 @@ plugins {
 }
 
 kotlin {
+    applyDefaultHierarchyTemplate()
     js(IR) {
         nodejs()
         browser()
@@ -34,8 +35,16 @@ kotlin {
             useJUnit()
         }
     }
-    applyDefaultHierarchyTemplate()
-    iosSimulatorArm64()
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64(),
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "tiler"
+            isStatic = true
+        }
+    }
     linuxX64()
     macosX64()
     macosArm64()
