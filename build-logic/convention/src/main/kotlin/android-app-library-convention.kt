@@ -42,7 +42,7 @@ fun org.gradle.api.Project.androidConfiguration(
     extension: CommonExtension<*, *, *, *, *, *>
 ) = extension.apply {
     namespace = "com.tunjid.tiler.${project.name}"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 23
@@ -56,16 +56,6 @@ fun org.gradle.api.Project.androidConfiguration(
         targetCompatibility = JavaVersion.VERSION_11
     }
     configureKotlinJvm()
-}
-
-fun org.gradle.api.Project.coerceComposeVersion(configuration: Configuration) {
-    val independentGroups = setOf("compiler", "material3")
-    configuration.resolutionStrategy.eachDependency {
-        if (requested.group.startsWith("androidx.compose") && independentGroups.none(requested.group::contains)) {
-            useVersion(versionCatalog.findVersion("androidxCompose").get().requiredVersion)
-            because("I need the changes in lazyGrid")
-        }
-    }
 }
 
 val org.gradle.api.Project.versionCatalog

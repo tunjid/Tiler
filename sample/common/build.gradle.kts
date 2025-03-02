@@ -53,7 +53,6 @@ kotlin {
         }
         named("androidMain") {
             dependencies {
-                implementation(libs.androidx.compose.foundation.layout)
             }
         }
         val iosX64Main by getting
@@ -65,13 +64,6 @@ kotlin {
             iosArm64Main.dependsOn(this)
             iosSimulatorArm64Main.dependsOn(this)
         }
-        val jsMain by getting {
-            dependencies {
-            }
-        }
     }
 }
 
-compose.experimental {
-    web.application {}
-}
