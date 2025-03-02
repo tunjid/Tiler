@@ -57,7 +57,7 @@ fun StickyHeaderTiledList(
                         key = NumberTile::key,
                         itemContent = { numberTile ->
                             NumberTile(
-                                Modifier.animateItemPlacement(),
+                                Modifier.animateItem(),
                                 numberTile
                             )
                         }

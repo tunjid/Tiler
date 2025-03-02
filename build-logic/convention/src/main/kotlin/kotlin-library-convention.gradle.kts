@@ -38,13 +38,13 @@ plugins {
 }
 
 kotlin {
-    android()
+    androidTarget()
     jvm("desktop")
-    js(IR) {
-        browser()
-        nodejs()
-        binaries.executable()
-    }
+//    js(IR) {
+//        browser()
+//        nodejs()
+//        binaries.executable()
+//    }
     sourceSets {
         all {
             languageSettings.apply {
@@ -65,9 +65,6 @@ kotlin {
         }
     }
     configureKotlinJvm()
-    configurations.all {
-        coerceComposeVersion(this)
-    }
 }
 
 // a temporary workaround for a bug in jsRun invocation - see https://youtrack.jetbrains.com/issue/KT-48273
