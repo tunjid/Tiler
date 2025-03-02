@@ -30,7 +30,7 @@ import kotlin.math.max
  * Defines the result of a fetch that provides [Token] instances to be fed back to other fetches
  * that neighbor this one.
  */
-data class NeighboredFetchResult<Query, Item, Token>(
+data class NeighboredFetchResult<Query: Any, Item, Token>(
     /**
      * A [Map] of [Query] to [Token] for queries adjacent to the query that fetched this
      * [NeighboredFetchResult]. They will be used to provide tokens for the adjacent queries.
@@ -54,7 +54,7 @@ data class NeighboredFetchResult<Query, Item, Token>(
  * this at a minimum.
  * @param fetcher fetches a [NeighboredFetchResult] for a given [Query] and [Token]
  */
-fun <Query, Item, Token> neighboredQueryFetcher(
+fun <Query: Any, Item, Token> neighboredQueryFetcher(
     maxTokens: Int,
     seedQueryTokenMap: Map<Query, Token>,
     fetcher: suspend (Query, Token) -> Flow<NeighboredFetchResult<Query, Item, Token>>,
@@ -64,7 +64,7 @@ fun <Query, Item, Token> neighboredQueryFetcher(
     fetcher = fetcher,
 )
 
-internal class NeighbouredQueryFetcher<Query, Item, Token>(
+internal class NeighbouredQueryFetcher<Query: Any, Item, Token>(
     private val maxTokens: Int,
     seedQueryTokenMap: Map<Query, Token>,
     val fetcher: suspend (Query, Token) -> Flow<NeighboredFetchResult<Query, Item, Token>>,
