@@ -73,7 +73,7 @@ fun AdaptiveTiledGrid(
                     },
                     itemContent = { numberTile ->
                         NumberTile(
-                            Modifier.animateItemPlacement(),
+                            Modifier.animateItem(),
                             numberTile
                         )
                     }

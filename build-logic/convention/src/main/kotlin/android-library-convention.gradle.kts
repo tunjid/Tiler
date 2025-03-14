@@ -30,7 +30,4 @@ android {
             }
         }
     }
-    configurations.all {
-        coerceComposeVersion(this)
-    }
 }

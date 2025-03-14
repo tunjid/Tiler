@@ -36,5 +36,4 @@ plugins {
 
 kotlin {
     configureKotlinJvm()
-    jvmToolchain(17)
 }
