@@ -62,26 +62,13 @@ private fun org.gradle.api.Project.configureKotlin() {
             jvmTarget.set(JvmTarget.JVM_11)
             freeCompilerArgs.set(
                 freeCompilerArgs.get() + listOf(
-                    "-Xuse-experimental=androidx.compose.animation.ExperimentalAnimationApi",
-                    "-Xuse-experimental=androidx.compose.material.ExperimentalMaterialApi",
-                    "-Xuse-experimental=kotlinx.serialization.ExperimentalSerializationApi",
-                    "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
-                    "-Xuse-experimental=kotlinx.coroutines.FlowPreview"
+                    "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
+                    "-opt-in=androidx.compose.material.ExperimentalMaterialApi",
+                    "-opt-in=kotlinx.serialization.ExperimentalSerializationApi",
+                    "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+                    "-opt-in=kotlinx.coroutines.FlowPreview"
                 )
             )
         }
     }
-//    val kotlinOptions = "kotlinOptions"
-//    if (extensions.findByName(kotlinOptions) != null) {
-//        extensions.configure(kotlinOptions, Action<KotlinJvmOptions> {
-//            jvmTarget = JavaVersion.VERSION_11.toString()
-//            freeCompilerArgs = freeCompilerArgs + listOf(
-//                "-Xuse-experimental=androidx.compose.animation.ExperimentalAnimationApi",
-//                "-Xuse-experimental=androidx.compose.material.ExperimentalMaterialApi",
-//                "-Xuse-experimental=kotlinx.serialization.ExperimentalSerializationApi",
-//                "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
-//                "-Xuse-experimental=kotlinx.coroutines.FlowPreview"
-//            )
-//        })
-//    }
 }
