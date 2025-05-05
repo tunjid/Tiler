@@ -17,7 +17,9 @@
 plugins {
     kotlin("multiplatform")
     id("publishing-library-convention")
+    id("android-library-convention")
     id("kotlin-jvm-convention")
+    id("kotlin-library-convention")
     id("maven-publish")
     signing
     id("org.jetbrains.dokka")
@@ -26,28 +28,10 @@ plugins {
 }
 
 kotlin {
-    applyDefaultHierarchyTemplate()
     js(IR) {
         nodejs()
         browser()
     }
-    jvm {
-        withJava()
-        testRuns["test"].executionTask.configure {
-            useJUnit()
-        }
-    }
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64(),
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "tiler-compose"
-            isStatic = true
-        }
-    }
-
     sourceSets {
         commonMain {
             dependencies {
@@ -66,12 +50,6 @@ kotlin {
                 implementation(libs.cashapp.turbine)
             }
         }
-        val jvmMain by getting
-        val jvmTest by getting
-
-        val jsMain by getting
-        val jsTest by getting
-
         all {
             languageSettings.apply {
                 optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
