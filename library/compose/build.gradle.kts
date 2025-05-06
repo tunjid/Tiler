@@ -27,6 +27,12 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+android {
+    buildFeatures {
+        compose = true
+    }
+}
+
 kotlin {
     js(IR) {
         nodejs()
