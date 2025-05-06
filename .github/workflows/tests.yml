@@ -20,6 +20,6 @@ jobs:
           java-version: '17'
           distribution: 'adopt'
       - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@e6e38bacfdf1a337459f332974bb2327a31aaf4b
+        uses: gradle/actions/wrapper-validation@v3
       - name: JVM tests
         run: ./gradlew jvmTest

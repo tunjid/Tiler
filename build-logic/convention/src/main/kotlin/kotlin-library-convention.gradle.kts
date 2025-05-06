@@ -38,13 +38,25 @@ plugins {
 }
 
 kotlin {
-    androidTarget()
-    jvm("desktop")
-//    js(IR) {
-//        browser()
-//        nodejs()
-//        binaries.executable()
-//    }
+    applyDefaultHierarchyTemplate()
+    androidTarget {
+        publishLibraryVariants("release")
+    }
+    jvm {
+        testRuns["test"].executionTask.configure {
+            useJUnit()
+        }
+    }
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64(),
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = project.name
+            isStatic = true
+        }
+    }
     sourceSets {
         all {
             languageSettings.apply {
@@ -58,28 +70,5 @@ kotlin {
             }
         }
     }
-
-    targets.withType(KotlinNativeTarget::class.java) {
-        binaries.all {
-            binaryOptions["memoryModel"] = "experimental"
-        }
-    }
     configureKotlinJvm()
-}
-
-// a temporary workaround for a bug in jsRun invocation - see https://youtrack.jetbrains.com/issue/KT-48273
-afterEvaluate {
-    rootProject.extensions.configure<NodeJsRootExtension> {
-        versions.webpackDevServer.version = "4.0.0"
-        versions.webpackCli.version = "4.10.0"
-        nodeVersion = "16.0.0"
-    }
-}
-
-
-// TODO: remove when https://youtrack.jetbrains.com/issue/KT-50778 fixed
-project.tasks.withType(org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile::class.java).configureEach {
-    kotlinOptions.freeCompilerArgs += listOf(
-        "-Xir-dce-runtime-diagnostic=log"
-    )
 }
