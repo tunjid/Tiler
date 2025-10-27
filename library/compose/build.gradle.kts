@@ -44,9 +44,9 @@ kotlin {
                 implementation(project(":library:tiler"))
                 implementation(libs.kotlinx.coroutines.core)
 
-                implementation(libs.jetbrains.compose.runtime)
-                implementation(libs.jetbrains.compose.foundation)
-                implementation(libs.jetbrains.compose.foundation.layout)
+                implementation(libs.compose.multiplatform.runtime)
+                implementation(libs.compose.multiplatform.foundation)
+                implementation(libs.compose.multiplatform.foundation.layout)
             }
         }
         commonTest {

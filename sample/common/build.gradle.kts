@@ -28,12 +28,12 @@ kotlin {
                 implementation(project(":library:tiler"))
                 implementation(project(":library:compose"))
 
-                implementation(libs.jetbrains.compose.runtime)
-                implementation(libs.jetbrains.compose.animation)
-                implementation(libs.jetbrains.compose.material)
-                implementation(libs.jetbrains.compose.foundation.layout)
-                implementation(libs.jetbrains.compose.material.icons.core)
-                implementation(libs.jetbrains.compose.material.icons.extended)
+                implementation(libs.compose.multiplatform.runtime)
+                implementation(libs.compose.multiplatform.animation)
+                implementation(libs.compose.multiplatform.material)
+                implementation(libs.compose.multiplatform.foundation.layout)
+                implementation(libs.compose.multiplatform.material.icons.core)
+                implementation(libs.compose.multiplatform.material.icons.extended)
 
                 implementation(libs.kotlinx.coroutines.core)
 

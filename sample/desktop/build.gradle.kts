@@ -35,7 +35,7 @@ kotlin {
 
                 implementation(compose.desktop.currentOs)
 
-                implementation(libs.jetbrains.compose.material)
+                implementation(libs.compose.multiplatform.material)
                 implementation(libs.kotlinx.coroutines.core)
 
                 implementation(libs.tunjid.mutator.core.jvm)
