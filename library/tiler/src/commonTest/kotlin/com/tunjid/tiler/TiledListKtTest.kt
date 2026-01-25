@@ -22,7 +22,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
-
 class TiledListKtTest {
 
     @Test
@@ -33,11 +32,11 @@ class TiledListKtTest {
         }
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
-            actual = tiledList
+            actual = tiledList,
         )
         assertEquals(
-            expected = listOf(1,3),
-            actual = tiledList.queries()
+            expected = listOf(1, 3),
+            actual = tiledList.queries(),
         )
     }
 
@@ -45,7 +44,7 @@ class TiledListKtTest {
     fun empty_tiled_list_works() {
         assertEquals(
             expected = tiledListOf<Int, Int>(),
-            actual = emptyTiledList()
+            actual = emptyTiledList(),
         )
     }
 
@@ -61,7 +60,7 @@ class TiledListKtTest {
                 0 to 0,
                 0 to 3,
                 0 to 2,
-            )
+            ),
         )
     }
 
@@ -78,11 +77,11 @@ class TiledListKtTest {
                 1,
                 2,
             ),
-            actual = tiledList
+            actual = tiledList,
         )
         assertEquals(
             expected = listOf(0),
-            actual = tiledList.queries()
+            actual = tiledList.queries(),
         )
     }
 }

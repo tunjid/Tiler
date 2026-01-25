@@ -85,7 +85,6 @@ mavenPublishing {
     }
 }
 
-
 signing {
     val localProperties = rootProject.ext.get("localProps") as? java.util.Properties
         ?: return@signing

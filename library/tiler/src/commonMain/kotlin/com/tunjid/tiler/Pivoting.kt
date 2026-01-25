@@ -65,7 +65,7 @@ internal class Pivot<Query, Item> internal constructor(
         maxSize = pivotRequest.onCount,
         context = this,
         increment = pivotRequest.nextQuery,
-        decrement = pivotRequest.previousQuery
+        decrement = pivotRequest.previousQuery,
     )
 
     /** Pages whose emissions are in memory, but are not being collected from. */
@@ -74,7 +74,7 @@ internal class Pivot<Query, Item> internal constructor(
             maxSize = pivotRequest.offCount,
             context = this,
             increment = pivotRequest.nextQuery,
-            decrement = pivotRequest.previousQuery
+            decrement = pivotRequest.previousQuery,
         )
 
     /** Pages to remove from memory. */
@@ -95,7 +95,7 @@ internal class Pivot<Query, Item> internal constructor(
 
     override val order = Tile.Order.PivotSorted<Query, Item>(
         query = query,
-        comparator = comparator
+        comparator = comparator,
     )
 
     override fun equals(other: Any?): Boolean {
@@ -123,7 +123,7 @@ internal class Pivot<Query, Item> internal constructor(
  * Creates a [Flow] of [Tile.Input] where the requests are pivoted around the most recent emission of [Query]
  */
 fun <Query, Item> Flow<Query>.toPivotedTileInputs(
-    pivotRequest: PivotRequest<Query, Item>
+    pivotRequest: PivotRequest<Query, Item>,
 ): Flow<Tile.Input<Query, Item>> =
     toPivotedTileInputs(flowOf(pivotRequest))
 
@@ -131,7 +131,7 @@ fun <Query, Item> Flow<Query>.toPivotedTileInputs(
  * Creates a [Flow] of [Pivot] where the requests are pivoted around the most recent emission of [Query] and [pivotRequests]
  */
 fun <Query, Item> Flow<Query>.toPivotedTileInputs(
-    pivotRequests: Flow<PivotRequest<Query, Item>>
+    pivotRequests: Flow<PivotRequest<Query, Item>>,
 ): Flow<Tile.Input<Query, Item>> =
     pivotWith(pivotRequests)
 
@@ -139,7 +139,7 @@ fun <Query, Item> Flow<Query>.toPivotedTileInputs(
  * Creates a [Flow] of [Pivot] where the requests are pivoted around the most recent emission of [Query]
  */
 internal fun <Query, Item> Flow<Query>.pivotWith(
-    pivotRequest: PivotRequest<Query, Item>
+    pivotRequest: PivotRequest<Query, Item>,
 ): Flow<Pivot<Query, Item>> =
     pivotWith(flowOf(pivotRequest))
 
@@ -147,15 +147,15 @@ internal fun <Query, Item> Flow<Query>.pivotWith(
  * Creates a [Flow] of [Pivot] where the requests are pivoted around the most recent emission of [Query] and [pivotRequests]
  */
 internal fun <Query, Item> Flow<Query>.pivotWith(
-    pivotRequests: Flow<PivotRequest<Query, Item>>
+    pivotRequests: Flow<PivotRequest<Query, Item>>,
 ): Flow<Pivot<Query, Item>> =
     combine(
         this.distinctUntilChanged(),
         pivotRequests.distinctUntilChanged(),
-        ::Pair
+        ::Pair,
     )
         .scan<Pair<Query, PivotRequest<Query, Item>>, Pivot<Query, Item>?>(
-            initial = null
+            initial = null,
         ) { previousResult, (currentQuery, pivotRequest) ->
             Pivot(
                 query = currentQuery,

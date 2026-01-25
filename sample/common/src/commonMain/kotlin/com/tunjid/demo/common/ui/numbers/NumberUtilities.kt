@@ -35,12 +35,12 @@ fun PageQuery.colorShiftingTiles(itemsPerPage: Int, isDark: Boolean) =
                     fraction = percentage,
                     startValue = MutedColors.colorAt(
                         isDark = isDark,
-                        index = index + count
+                        index = index + count,
                     ),
                     endValue = MutedColors.colorAt(
                         isDark = isDark,
-                        index = index + count + 1
-                    )
+                        index = index + count + 1,
+                    ),
                 ),
             )
         }
@@ -48,7 +48,7 @@ fun PageQuery.colorShiftingTiles(itemsPerPage: Int, isDark: Boolean) =
         .map { if (isAscending) it else it.asReversed() }
 
 private fun percentageAndIndex(
-    changeDelayMillis: Long = 200L
+    changeDelayMillis: Long = 200L,
 ): Flow<Pair<Float, Int>> = flow {
     var percentage = 0f
     var index = 0
@@ -64,4 +64,3 @@ private fun percentageAndIndex(
         delay(changeDelayMillis)
     }
 }
-

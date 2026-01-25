@@ -26,8 +26,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import com.tunjid.demo.common.ui.numbers.Loader
 import com.tunjid.demo.common.ui.numbers.AdaptiveTiledGrid
+import com.tunjid.demo.common.ui.numbers.Loader
 import com.tunjid.demo.common.ui.numbers.StickyHeaderTiledList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -45,13 +45,14 @@ fun Root() {
                     1 -> "Sticky Headers"
                     else -> throw IllegalArgumentException()
                 }
-                Tab(text = { Text(title) },
+                Tab(
+                    text = { Text(title) },
                     selected = pagerState.currentPage == page,
                     onClick = {
                         scope.launch {
                             pagerState.animateScrollToPage(page)
                         }
-                    }
+                    },
                 )
             }
         }
@@ -60,11 +61,11 @@ fun Root() {
         ) { page ->
             when (page) {
                 0 -> AdaptiveTiledGrid(
-                    loader = rememberLoader()
+                    loader = rememberLoader(),
                 )
 
                 1 -> StickyHeaderTiledList(
-                    loader = rememberLoader()
+                    loader = rememberLoader(),
                 )
             }
         }
@@ -74,10 +75,10 @@ fun Root() {
 @Composable
 fun rememberLoader(
     isDark: Boolean = isSystemInDarkTheme(),
-    scope: CoroutineScope = rememberCoroutineScope()
+    scope: CoroutineScope = rememberCoroutineScope(),
 ) = remember {
     Loader(
         isDark = isDark,
-        scope = scope
+        scope = scope,
     )
 }

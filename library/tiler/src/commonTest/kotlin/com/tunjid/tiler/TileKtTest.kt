@@ -17,6 +17,10 @@
 package com.tunjid.tiler
 
 import app.cash.turbine.test
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asFlow
@@ -29,10 +33,6 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.withIndex
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
 class TileKtTest {
 
@@ -43,7 +43,7 @@ class TileKtTest {
     fun setUp() {
         tileFlowMap = mutableMapOf()
         listTiler = listTiler(
-            order = Tile.Order.Sorted(Int::compareTo)
+            order = Tile.Order.Sorted(Int::compareTo),
         ) { page ->
             tileFlowMap.getOrPut(page) { MutableStateFlow(page.testRange().toList()) }
         }
@@ -63,7 +63,7 @@ class TileKtTest {
 
         assertEquals(
             expected = 1.tiledTestRange(),
-            actual = emissions[0]
+            actual = emissions[0],
         )
     }
 
@@ -82,15 +82,15 @@ class TileKtTest {
 
         assertEquals(
             expected = 1.tiledTestRange(),
-            actual = emissions[0]
+            actual = emissions[0],
         )
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
-            actual = emissions[1]
+            actual = emissions[1],
         )
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
-            actual = emissions[2]
+            actual = emissions[2],
         )
     }
 
@@ -115,7 +115,7 @@ class TileKtTest {
 
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
-            actual = emissions.last()
+            actual = emissions.last(),
         )
 
         val queries = requests
@@ -145,7 +145,7 @@ class TileKtTest {
             .onEach { (index, _) ->
                 assertEquals(
                     if (index > 2) 0 else 1,
-                    tileFlowMap.getValue(requests[index].query).subscriptionCount.value
+                    tileFlowMap.getValue(requests[index].query).subscriptionCount.value,
                 )
             }
             .map { it.value }
@@ -154,7 +154,7 @@ class TileKtTest {
 
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
-            actual = emissions.last()
+            actual = emissions.last(),
         )
     }
 
@@ -175,16 +175,18 @@ class TileKtTest {
 
         assertEquals(
             expected = 1.tiledTestRange(),
-            actual = emissions.last()
+            actual = emissions.last(),
         )
 
-        assertNull(withTimeoutOrNull(200) {
-            requests
-                .asFlow()
-                .toTiledList(listTiler)
-                .take(2)
-                .toList()
-        })
+        assertNull(
+            withTimeoutOrNull(200) {
+                requests
+                    .asFlow()
+                    .toTiledList(listTiler)
+                    .take(2)
+                    .toList()
+            },
+        )
     }
 
     @Test
@@ -204,19 +206,19 @@ class TileKtTest {
 
         assertEquals(
             expected = 1.tiledTestRange(),
-            actual = emissions[0]
+            actual = emissions[0],
         )
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
-            actual = emissions[1]
+            actual = emissions[1],
         )
         assertEquals(
             expected = 3.tiledTestRange(),
-            actual = emissions[2]
+            actual = emissions[2],
         )
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
-            actual = emissions[3]
+            actual = emissions[3],
         )
     }
 
@@ -230,85 +232,85 @@ class TileKtTest {
             requests.emit(Tile.Request.On(query = 1))
             assertEquals(
                 expected = 1.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Request page 3
             requests.emit(Tile.Request.On(query = 3))
             assertEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Request page 8
             requests.emit(Tile.Request.On(query = 8))
             assertEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Reverse sort by page
             requests.emit(Tile.Order.Sorted(comparator = Comparator<Int>(Int::compareTo).reversed()))
             assertEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Limit results to 2 pages
             requests.emit(
                 Tile.Limiter(
                     maxQueries = 2,
-                    itemSizeHint = 10
-                )
+                    itemSizeHint = 10,
+                ),
             )
             assertEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Limit results to 3 pages
             requests.emit(
                 Tile.Limiter(
                     maxQueries = 3,
-                    itemSizeHint = 10
-                )
+                    itemSizeHint = 10,
+                ),
             )
             assertEquals(
                 expected = 8.tiledTestRange() + 3.tiledTestRange() + 1.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Sort ascending
             requests.emit(Tile.Order.Sorted(comparator = Comparator<Int>(Int::compareTo)))
             assertEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Request 4
             requests.emit(Tile.Request.On(query = 4))
             assertEquals(
                 expected = 1.tiledTestRange() + 3.tiledTestRange() + 4.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Sort ascending pivoted around most recently requested
             requests.emit(
                 Tile.Order.PivotSorted(
                     query = 4,
-                    comparator = Comparator<Int>(Int::compareTo)
-                )
+                    comparator = Comparator<Int>(Int::compareTo),
+                ),
             )
             assertEquals(
                 3.tiledTestRange() + 4.tiledTestRange() + 8.tiledTestRange(),
-                awaitItem()
+                awaitItem(),
             )
 
             // Sort ascending in absolute terms
             requests.emit(Tile.Order.Sorted(comparator = Comparator<Int>(Int::compareTo)))
             assertEquals(
                 1.tiledTestRange() + 3.tiledTestRange() + 4.tiledTestRange(),
-                awaitItem()
+                awaitItem(),
             )
 
             cancelAndIgnoreRemainingEvents()
@@ -323,27 +325,27 @@ class TileKtTest {
             // Copious duplicate limits
             Tile.Limiter(
                 maxQueries = 1,
-                itemSizeHint = 10
+                itemSizeHint = 10,
             ),
             Tile.Limiter(
                 maxQueries = 1,
-                itemSizeHint = 10
+                itemSizeHint = 10,
             ),
             Tile.Limiter(
                 maxQueries = 1,
-                itemSizeHint = 10
+                itemSizeHint = 10,
             ),
             Tile.Limiter(
                 maxQueries = 1,
-                itemSizeHint = 10
+                itemSizeHint = 10,
             ),
             Tile.Limiter(
                 maxQueries = 1,
-                itemSizeHint = 10
+                itemSizeHint = 10,
             ),
             Tile.Limiter(
                 maxQueries = Int.MAX_VALUE,
-                itemSizeHint = 10
+                itemSizeHint = 10,
             ),
         )
 
@@ -361,7 +363,7 @@ class TileKtTest {
                 0.tiledTestRange(),
                 0.tiledTestRange() + 1.tiledTestRange(),
             ),
-            actual = emissions
+            actual = emissions,
         )
     }
 
@@ -383,16 +385,16 @@ class TileKtTest {
 
             assertEquals(
                 expected = listOf(
-                    2.tiledTestRange()
+                    2.tiledTestRange(),
                 ),
-                actual = emissions
+                actual = emissions,
             )
         }
 
     @Test
     fun pivoting_should_not_emit_till_data_is_available() = runTest {
         val tiler = listTiler<Int, Int>(
-            order = Tile.Order.Sorted(Int::compareTo)
+            order = Tile.Order.Sorted(Int::compareTo),
         ) { emptyFlow() }
         val inputs = flowOf(0).pivotWith(
             PivotRequest<Int, Int>(
@@ -400,15 +402,15 @@ class TileKtTest {
                 offCount = 2,
                 comparator = Int::compareTo,
                 nextQuery = { this + 1 },
-                previousQuery = { (this - 1).takeIf { it >= 0 } }
-            )
+                previousQuery = { (this - 1).takeIf { it >= 0 } },
+            ),
         )
 
         val emissions = tiler(inputs).toListWithTimeout(200)
 
         assertEquals(
             expected = emptyList(),
-            actual = emissions
+            actual = emissions,
         )
     }
 
@@ -418,8 +420,8 @@ class TileKtTest {
         val tiler = listTiler(
             order = Tile.Order.PivotSorted(
                 query = 0,
-                comparator = comparator
-            )
+                comparator = comparator,
+            ),
         ) { page -> flowOf(page.testRange().toList()) }
         val inputs = flowOf(0).pivotWith(
             PivotRequest<Int, Int>(
@@ -427,17 +429,17 @@ class TileKtTest {
                 offCount = 2,
                 comparator = comparator,
                 nextQuery = { this + 1 },
-                previousQuery = { (this - 1).takeIf { it >= 0 } }
-            )
+                previousQuery = { (this - 1).takeIf { it >= 0 } },
+            ),
         )
 
         val emissions = tiler(inputs).toListWithTimeout(200)
 
         assertEquals(
             expected = listOf(
-                0.tiledTestRange() + 1.tiledTestRange() + 2.tiledTestRange()
+                0.tiledTestRange() + 1.tiledTestRange() + 2.tiledTestRange(),
             ),
-            actual = emissions
+            actual = emissions,
         )
     }
 
@@ -451,64 +453,64 @@ class TileKtTest {
             requests.emit(Tile.Request.On(query = 1))
             assertEquals(
                 expected = 1.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Request page 2
             requests.emit(Tile.Request.On(query = 2))
             assertEquals(
                 expected = 1.tiledTestRange() + 2.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Request page 3
             requests.emit(Tile.Request.On(query = 3))
             assertEquals(
                 expected = 1.tiledTestRange() + 2.tiledTestRange() + 3.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Limit to 2 queries
             requests.emit(
                 Tile.Limiter(
                     maxQueries = 2,
-                    itemSizeHint = 10
-                )
+                    itemSizeHint = 10,
+                ),
             )
             assertEquals(
                 expected = 1.tiledTestRange() + 2.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Reverse sort by page
             requests.emit(Tile.Order.Sorted(comparator = Comparator<Int>(Int::compareTo).reversed()))
             assertEquals(
                 expected = 3.tiledTestRange() + 2.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Pivot sort around 2
             requests.emit(
                 Tile.Order.PivotSorted(
                     query = 2,
-                    comparator = Comparator<Int>(Int::compareTo)
-                )
+                    comparator = Comparator<Int>(Int::compareTo),
+                ),
             )
             assertEquals(
                 expected = 1.tiledTestRange() + 2.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             // Pivot sort around 2 reversed
             requests.emit(
                 Tile.Order.PivotSorted(
                     query = 2,
-                    comparator = Comparator<Int>(Int::compareTo).reversed()
-                )
+                    comparator = Comparator<Int>(Int::compareTo).reversed(),
+                ),
             )
             assertEquals(
                 expected = 3.tiledTestRange() + 2.tiledTestRange(),
-                actual = awaitItem()
+                actual = awaitItem(),
             )
 
             cancelAndIgnoreRemainingEvents()

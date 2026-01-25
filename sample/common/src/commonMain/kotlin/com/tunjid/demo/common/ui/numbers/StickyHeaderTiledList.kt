@@ -33,7 +33,7 @@ import com.tunjid.tiler.compose.PivotedTilingEffect
 
 @Composable
 fun StickyHeaderTiledList(
-    loader: Loader
+    loader: Loader,
 ) {
     val state by loader.state.collectAsState()
     val groupedTiledItems = state.groupedItems
@@ -58,19 +58,19 @@ fun StickyHeaderTiledList(
                         itemContent = { numberTile ->
                             NumberTile(
                                 Modifier.animateItem(),
-                                numberTile
+                                numberTile,
                             )
-                        }
+                        },
                     )
                 }
-            }
+            },
         )
     }
 
     lazyState.PivotedTilingEffect(
         items = state.items,
         indexSelector = { start + (endInclusive - start) / 2 },
-        onQueryChanged = { if (it != null) loader.setCurrentPage(it.page) }
+        onQueryChanged = { if (it != null) loader.setCurrentPage(it.page) },
     )
 }
 
@@ -79,17 +79,16 @@ private fun PageHeader(page: Int) {
     Card(
         shape = RoundedCornerShape(
             topEnd = 16.dp,
-            bottomEnd = 16.dp
-        )
+            bottomEnd = 16.dp,
+        ),
     ) {
         Text(
             modifier = Modifier
                 .padding(
                     vertical = 8.dp,
-                    horizontal = 16.dp
+                    horizontal = 16.dp,
                 ),
-            text = "Page $page"
+            text = "Page $page",
         )
     }
-
 }

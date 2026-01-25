@@ -33,7 +33,7 @@ class AllocationBenchmark {
         runBlocking {
             PagingBenchmark(
                 pageToScrollTo = PAGE_TO_SCROLL_TO,
-                pagesToInvalidate = emptyPages
+                pagesToInvalidate = emptyPages,
             ).benchmark()
         }
     }
@@ -43,7 +43,7 @@ class AllocationBenchmark {
         runBlocking {
             TilingBenchmark(
                 pageToScrollTo = PAGE_TO_SCROLL_TO,
-                pagesToInvalidate = emptyPages
+                pagesToInvalidate = emptyPages,
             ).benchmark()
         }
     }
@@ -53,7 +53,7 @@ class AllocationBenchmark {
         runBlocking {
             PagingBenchmark(
                 pageToScrollTo = PAGE_TO_SCROLL_TO,
-                pagesToInvalidate = offScreenPages
+                pagesToInvalidate = offScreenPages,
             ).benchmark()
         }
     }
@@ -63,7 +63,7 @@ class AllocationBenchmark {
         runBlocking {
             TilingBenchmark(
                 pageToScrollTo = PAGE_TO_SCROLL_TO,
-                pagesToInvalidate = offScreenPages
+                pagesToInvalidate = offScreenPages,
             ).benchmark()
         }
     }
@@ -73,7 +73,7 @@ class AllocationBenchmark {
         runBlocking {
             PagingBenchmark(
                 pageToScrollTo = PAGE_TO_SCROLL_TO,
-                pagesToInvalidate = onScreenPages
+                pagesToInvalidate = onScreenPages,
             ).benchmark()
         }
     }
@@ -83,7 +83,7 @@ class AllocationBenchmark {
         runBlocking {
             TilingBenchmark(
                 pageToScrollTo = PAGE_TO_SCROLL_TO,
-                pagesToInvalidate = onScreenPages
+                pagesToInvalidate = onScreenPages,
             ).benchmark()
         }
     }

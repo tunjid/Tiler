@@ -31,7 +31,7 @@ inline fun TiledList<*, *>.tiles(): List<Tile> =
     (0 until tileCount).map(::tileAt)
 
 inline fun <Query, T, R> TiledList<Query, T>.transform(
-    transformation: MutableTiledList<Query, R>.(index: Int) -> Unit
+    transformation: MutableTiledList<Query, R>.(index: Int) -> Unit,
 ): TiledList<Query, R> {
     val output = mutableTiledListOf<Query, R>()
     for (i in 0..lastIndex) transformation(output, i)
@@ -42,13 +42,13 @@ inline fun <Query, T, R> TiledList<Query, T>.transform(
  * Equivalent to [List.filterIndexed] for [TiledList]
  */
 inline fun <Query, Item> TiledList<Query, Item>.filterIndexed(
-    predicate: (Int, Item) -> Boolean
+    predicate: (Int, Item) -> Boolean,
 ): TiledList<Query, Item> =
     transform { index ->
         val item = this@filterIndexed[index]
         if (predicate(index, item)) add(
             query = this@filterIndexed.queryAt(index),
-            item = item
+            item = item,
         )
     }
 
@@ -56,7 +56,7 @@ inline fun <Query, Item> TiledList<Query, Item>.filterIndexed(
  * Equivalent to [List.filter] for [TiledList]
  */
 inline fun <Query, Item> TiledList<Query, Item>.filter(
-    predicate: (Item) -> Boolean
+    predicate: (Item) -> Boolean,
 ): TiledList<Query, Item> =
     filterIndexed { _, item ->
         predicate(item)
@@ -66,8 +66,7 @@ inline fun <Query, Item> TiledList<Query, Item>.filter(
  * Equivalent to [List.filterIsInstance] for [TiledList]
  */
 @Suppress("UNCHECKED_CAST")
-inline fun <Query, reified Item> TiledList<Query, *>.filterIsInstance(
-): TiledList<Query, Item> =
+inline fun <Query, reified Item> TiledList<Query, *>.filterIsInstance(): TiledList<Query, Item> =
     filter { item ->
         item is Item
     } as TiledList<Query, Item>
@@ -76,13 +75,13 @@ inline fun <Query, reified Item> TiledList<Query, *>.filterIsInstance(
  * Equivalent to [List.mapIndexed] for [TiledList]
  */
 inline fun <Query, T, R> TiledList<Query, T>.mapIndexed(
-    mapper: (Int, T) -> R
+    mapper: (Int, T) -> R,
 ): TiledList<Query, R> =
     transform { index ->
         val item = this@mapIndexed[index]
         add(
             query = this@mapIndexed.queryAt(index = index),
-            item = mapper(index, item)
+            item = mapper(index, item),
         )
     }
 
@@ -90,7 +89,7 @@ inline fun <Query, T, R> TiledList<Query, T>.mapIndexed(
  * Equivalent to [List.map] for [TiledList]
  */
 inline fun <Query, T, R> TiledList<Query, T>.map(
-    mapper: (T) -> R
+    mapper: (T) -> R,
 ): TiledList<Query, R> =
     mapIndexed { _, item ->
         mapper(item)
@@ -100,7 +99,7 @@ inline fun <Query, T, R> TiledList<Query, T>.map(
  * Equivalent to [List.distinctBy] for [TiledList]
  */
 inline fun <Query, T, K> TiledList<Query, T>.distinctBy(
-    selector: (T) -> K
+    selector: (T) -> K,
 ): TiledList<Query, T> {
     val set = mutableSetOf<K>()
     return transform { index ->
@@ -110,7 +109,7 @@ inline fun <Query, T, K> TiledList<Query, T>.distinctBy(
             set.add(key)
             add(
                 query = this@distinctBy.queryAt(index = index),
-                item = item
+                item = item,
             )
         }
     }
@@ -126,17 +125,17 @@ inline fun <Query, T> TiledList<Query, T>.distinct(): TiledList<Query, T> =
  * Equivalent to [List.groupBy] for [TiledList]
  */
 inline fun <Query, T, K> TiledList<Query, T>.groupBy(
-    keySelector: (T) -> K
+    keySelector: (T) -> K,
 ): Map<K, TiledList<Query, T>> {
     val groupedItems = linkedMapOf<K, MutableTiledList<Query, T>>()
     forEachIndexed { index, item ->
         val mutableTiledList = groupedItems.getOrPut(
             key = keySelector(item),
-            defaultValue = ::mutableTiledListOf
+            defaultValue = ::mutableTiledListOf,
         )
         mutableTiledList.add(
             query = queryAt(index),
-            item = item
+            item = item,
         )
     }
     return groupedItems

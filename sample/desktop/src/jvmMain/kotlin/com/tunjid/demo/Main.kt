@@ -27,12 +27,12 @@ import com.tunjid.demo.common.ui.Root
 fun main() {
     application {
         val windowState = rememberWindowState(
-            size = DpSize(400.dp, 800.dp)
+            size = DpSize(400.dp, 800.dp),
         )
         Window(
             onCloseRequest = ::exitApplication,
             state = windowState,
-            title = "Tiling Demo"
+            title = "Tiling Demo",
         ) {
             AppTheme {
                 Root()
@@ -40,5 +40,3 @@ fun main() {
         }
     }
 }
-
-

@@ -38,7 +38,7 @@ val NumberTile.key get() = "tile-$number"
 @Composable
 fun NumberTile(
     modifier: Modifier = Modifier,
-    numberTile: NumberTile
+    numberTile: NumberTile,
 ) {
     Button(
         modifier = modifier
@@ -51,9 +51,9 @@ fun NumberTile(
         content = {
             Text(
                 text = numberTile.number.toString(),
-                color = Color(numberTile.color)
+                color = Color(numberTile.color),
             )
-        }
+        },
     )
 }
 
@@ -67,7 +67,7 @@ fun TilingSummary(summary: String) {
     ) {
         Text(
             modifier = modifier,
-            text = summary
+            text = summary,
         )
     }
 }

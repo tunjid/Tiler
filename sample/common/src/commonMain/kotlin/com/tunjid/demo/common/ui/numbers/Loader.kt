@@ -26,6 +26,7 @@ import com.tunjid.tiler.groupBy
 import com.tunjid.tiler.listTiler
 import com.tunjid.tiler.toPivotedTileInputs
 import com.tunjid.tiler.toTiledList
+import kotlin.math.max
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +40,6 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlin.math.max
 
 private const val ITEMS_PER_PAGE = 50
 
@@ -51,7 +51,7 @@ val descendingPageComparator = ascendingPageComparator.reversed()
 // Query for items describing the page and sort order
 data class PageQuery(
     val page: Int,
-    val isAscending: Boolean
+    val isAscending: Boolean,
 )
 
 data class State(
@@ -60,21 +60,21 @@ data class State(
     val currentPage: Int = 0,
     val firstVisibleIndex: Int = -1,
     val pivotSummary: String,
-    val items: TiledList<PageQuery, NumberTile> = emptyTiledList()
+    val items: TiledList<PageQuery, NumberTile> = emptyTiledList(),
 )
 
-val State.groupedItems get() = items.groupBy { it.number / ITEMS_PER_PAGE}
+val State.groupedItems get() = items.groupBy { it.number / ITEMS_PER_PAGE }
 
 class Loader(
     isDark: Boolean,
-    scope: CoroutineScope
+    scope: CoroutineScope,
 ) {
     // Current query that is visible in the view port
     private val currentQuery = MutableStateFlow(
         PageQuery(
             page = 0,
-            isAscending = true
-        )
+            isAscending = true,
+        ),
     )
 
     // Number of columns in the grid
@@ -84,12 +84,12 @@ class Loader(
     private val pivotRequests = combine(
         currentQuery.map { it.isAscending },
         numberOfColumns,
-        ::pivotRequest
+        ::pivotRequest,
     ).distinctUntilChanged()
 
     // Define inputs that match the current pivoted position
     private val pivotInputs = currentQuery.toPivotedTileInputs(
-        pivotRequests = pivotRequests
+        pivotRequests = pivotRequests,
     )
         .shareIn(scope, SharingStarted.WhileSubscribed())
 
@@ -101,7 +101,7 @@ class Loader(
                 comparator = when {
                     pageQuery.isAscending -> ascendingPageComparator
                     else -> descendingPageComparator
-                }
+                },
             )
         }
         .distinctUntilChanged()
@@ -111,9 +111,9 @@ class Loader(
         Tile.Limiter<PageQuery, NumberTile>(
             maxQueries = max(
                 a = noColumns * 2,
-                b = 3
+                b = 3,
             ),
-            itemSizeHint = ITEMS_PER_PAGE
+            itemSizeHint = ITEMS_PER_PAGE,
         )
     }
 
@@ -123,7 +123,7 @@ class Loader(
         limitInputs,
     )
         .toTiledList(
-            numberTiler(isDark = isDark)
+            numberTiler(isDark = isDark),
         )
         .filter { it.size >= MIN_ITEMS_PER_PAGE }
         .shareIn(scope, SharingStarted.WhileSubscribed())
@@ -137,13 +137,13 @@ class Loader(
             isAscending = pageQuery.isAscending,
             currentPage = pageQuery.page,
             pivotSummary = pivotSummary,
-            items = tiledList.distinct()
+            items = tiledList.distinct(),
         )
     }
         .stateIn(
             scope = scope,
             started = SharingStarted.WhileSubscribed(),
-            initialValue = State(pivotSummary = "")
+            initialValue = State(pivotSummary = ""),
         )
 
     fun setCurrentPage(page: Int) = currentQuery.update { query ->
@@ -180,7 +180,7 @@ class Loader(
         comparator = when {
             isAscending -> ascendingPageComparator
             else -> descendingPageComparator
-        }
+        },
     )
 }
 
@@ -201,15 +201,15 @@ private fun numberTiler(
     listTiler(
         limiter = Tile.Limiter(
             maxQueries = 3,
-            itemSizeHint = ITEMS_PER_PAGE
+            itemSizeHint = ITEMS_PER_PAGE,
         ),
         order = Tile.Order.PivotSorted(
             query = PageQuery(page = 0, isAscending = true),
-            comparator = ascendingPageComparator
+            comparator = ascendingPageComparator,
         ),
         fetcher = { pageQuery ->
             pageQuery.colorShiftingTiles(ITEMS_PER_PAGE, isDark)
-        }
+        },
     )
 
 private fun Flow<Tile.Input<PageQuery, NumberTile>>.pivotSummaries(): Flow<String> =
@@ -219,6 +219,6 @@ private fun Flow<Tile.Input<PageQuery, NumberTile>>.pivotSummaries(): Flow<Strin
             listOf(
                 "Active pages: ${input.on.map(PageQuery::page).sorted()}",
                 "Pages in memory: ${input.off.map(PageQuery::page).sorted()}",
-                "Evicted: ${input.evict.map(PageQuery::page).sorted()}"
+                "Evicted: ${input.evict.map(PageQuery::page).sorted()}",
             ).joinToString(separator = "\n")
         }

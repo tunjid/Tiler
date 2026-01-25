@@ -16,6 +16,8 @@
 
 package com.tunjid.tiler
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
@@ -25,8 +27,6 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 class ListMapTilingSamenessTest {
 
@@ -42,7 +42,7 @@ class ListMapTilingSamenessTest {
             .tileWith(
                 maxQueries = 3,
                 queryItemsSize = null,
-                orderFactory = { Tile.Order.Sorted(Int::compareTo) }
+                orderFactory = { Tile.Order.Sorted(Int::compareTo) },
             )
             .take(requests.size)
             .toList()
@@ -52,31 +52,30 @@ class ListMapTilingSamenessTest {
             .tileWith(
                 maxQueries = 3,
                 queryItemsSize = 10,
-                orderFactory = { Tile.Order.Sorted(Int::compareTo) }
+                orderFactory = { Tile.Order.Sorted(Int::compareTo) },
             )
             .take(requests.size)
             .toList()
 
-
         assertEquals(
             expected = 1.tiledTestRange(),
-            actual = emissions[0]
+            actual = emissions[0],
         )
 
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
-            actual = emissions[1]
+            actual = emissions[1],
         )
 
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 8.tiledTestRange(),
-            actual = emissions[2]
+            actual = emissions[2],
         )
 
         // Optimizations should not change the results
         assertEquals(
             expected = emissions,
-            actual = optimizedEmissions
+            actual = optimizedEmissions,
         )
     }
 
@@ -124,13 +123,13 @@ class ListMapTilingSamenessTest {
                 3.tiledTestRange() + 4.tiledTestRange() + 5.tiledTestRange(),
                 // Fifth emission, 2 should not show up in the list
             ),
-            actual = emissions
+            actual = emissions,
         )
 
         // Optimizations should not change the results
         assertEquals(
             expected = emissions,
-            actual = optimizedEmissions
+            actual = optimizedEmissions,
         )
     }
 
@@ -158,7 +157,7 @@ class ListMapTilingSamenessTest {
                 pageFactory = { page ->
                     if (page % 2 == 0) emptyList()
                     else page.tiledTestRange()
-                }
+                },
             )
             .take(requests.size - 1)
             .toList()
@@ -166,43 +165,43 @@ class ListMapTilingSamenessTest {
         // First emission
         assertEquals(
             expected = 1.tiledTestRange(),
-            actual = emissions[0]
+            actual = emissions[0],
         )
 
         // Second emission, 2 should not be present
         assertEquals(
             expected = 1.tiledTestRange(),
-            actual = emissions[1]
+            actual = emissions[1],
         )
 
         // Third emission
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
-            actual = emissions[2]
+            actual = emissions[2],
         )
 
         // Fourth emission, 4 should not be present
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange(),
-            actual = emissions[3]
+            actual = emissions[3],
         )
 
         // Fifth emission
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 5.tiledTestRange(),
-            actual = emissions[4]
+            actual = emissions[4],
         )
 
         // sixth, 6 should not be present
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 5.tiledTestRange(),
-            actual = emissions[5]
+            actual = emissions[5],
         )
 
         // seventh emission, 7 should not be present bc of max queries
         assertEquals(
             expected = 1.tiledTestRange() + 3.tiledTestRange() + 5.tiledTestRange(),
-            actual = emissions[6]
+            actual = emissions[6],
         )
 
         // No eighth emission, the output has not meaningfully changed.
@@ -231,12 +230,12 @@ class ListMapTilingSamenessTest {
                         orderFactory = {
                             Tile.Order.PivotSorted(
                                 query = 0,
-                                comparator = Int::compareTo
+                                comparator = Int::compareTo,
                             )
                         },
                         pageFactory = { page ->
                             page.testRange(itemsPerPage).toList()
-                        }
+                        },
                     )
                     .takeWhile { tiledList ->
                         if (tiledList.isEmpty()) throw IllegalArgumentException("Should not be empty here")
@@ -258,7 +257,7 @@ class ListMapTilingSamenessTest {
 
                 assertEquals(
                     expected = expected,
-                    actual = emissions
+                    actual = emissions,
                 )
             }
         }
@@ -269,14 +268,15 @@ private fun Flow<Tile.Input<Int, Int>>.tileWith(
     maxQueries: Int,
     queryItemsSize: Int?,
     pageFactory: (Int) -> List<Int> = { page -> page.testRange().toList() },
-    orderFactory: () -> Tile.Order<Int, Int>
+    orderFactory: () -> Tile.Order<Int, Int>,
 ): Flow<TiledList<Int, Int>> = listTiler(
     // Take 3 pages of items
     limiter = Tile.Limiter(
         maxQueries = maxQueries,
-        itemSizeHint = queryItemsSize
+        itemSizeHint = queryItemsSize,
     ),
     order = orderFactory(),
     fetcher = { page ->
         flowOf(pageFactory(page))
-    }).invoke(this)
+    },
+).invoke(this)

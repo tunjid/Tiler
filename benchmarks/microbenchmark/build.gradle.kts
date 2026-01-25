@@ -12,7 +12,7 @@ android {
     namespace = "com.example.microbenchmark"
 
     defaultConfig {
-         testInstrumentationRunnerArguments["androidx.benchmark.profiling.mode"] = "StackSampling"
+        testInstrumentationRunnerArguments["androidx.benchmark.profiling.mode"] = "StackSampling"
         testInstrumentationRunnerArguments["androidx.benchmark.suppressErrors"] = "EMULATOR,LOW-BATTERY"
     }
 
@@ -37,7 +37,6 @@ dependencies {
     androidTestImplementation(libs.androidx.benchmark.junit)
     androidTestImplementation(libs.androidx.benchmark.macro)
     androidTestImplementation(libs.androidx.test.junit)
-
 
     androidTestImplementation(libs.kotlinx.coroutines.core)
     androidTestImplementation(libs.kotlinx.coroutines.test)

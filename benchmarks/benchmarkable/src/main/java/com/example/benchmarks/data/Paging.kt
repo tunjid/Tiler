@@ -25,7 +25,7 @@ private val pagingConfig = PagingConfig(
 
 class PagingBenchmark(
     private val pageToScrollTo: Int,
-    private val pagesToInvalidate: IntRange
+    private val pagesToInvalidate: IntRange,
 ) : Benchmarked {
 
     private var lastInvalidatedPage: Int = pagesToInvalidate.first + 1
@@ -39,7 +39,7 @@ class PagingBenchmark(
                 config = pagingConfig,
                 pagingSourceFactory = {
                     itemPagingSource(lastInvalidatedPage)
-                }
+                },
             )
                 .flow
                 .collectLatest(differ::collectFrom)
@@ -68,8 +68,8 @@ class PagingBenchmark(
                 // Find an item from the page that was invalidated
                 val invalidatedItem = latestItems.lastInvalidatedItem()
 
-                val isFinished = invalidatedItem != null
-                        && invalidatedItem.lastInvalidatedPage >= pagesToInvalidate.last
+                val isFinished = invalidatedItem != null &&
+                    invalidatedItem.lastInvalidatedPage >= pagesToInvalidate.last
 
                 emit(latestItems)
 
@@ -78,8 +78,8 @@ class PagingBenchmark(
             .collect {
                 // Invalidate
                 val invalidatedItem = it.lastInvalidatedItem()
-                val canIncrementAndInvalidate = invalidatedItem == null
-                        || invalidatedItem.lastInvalidatedPage == lastInvalidatedPage
+                val canIncrementAndInvalidate = invalidatedItem == null ||
+                    invalidatedItem.lastInvalidatedPage == lastInvalidatedPage
 
                 if (canIncrementAndInvalidate && ++lastInvalidatedPage <= pagesToInvalidate.last) {
                     differ.refresh()
@@ -105,13 +105,13 @@ private fun pagingDataDiffer() = object : PagingDataDiffer<Item>(
         override fun onInserted(position: Int, count: Int) = Unit
 
         override fun onRemoved(position: Int, count: Int) = Unit
-    }
+    },
 ) {
     override suspend fun presentNewList(
         previousList: NullPaddedList<Item>,
         newList: NullPaddedList<Item>,
         lastAccessedIndex: Int,
-        onListPresentable: () -> Unit
+        onListPresentable: () -> Unit,
     ): Int {
         onListPresentable()
         return lastAccessedIndex
@@ -119,13 +119,13 @@ private fun pagingDataDiffer() = object : PagingDataDiffer<Item>(
 }
 
 private fun itemPagingSource(
-    lastInvalidatedPage: Int
+    lastInvalidatedPage: Int,
 ): PagingSource<Int, Item> = object : PagingSource<Int, Item>() {
 
     // Only 3 pages are loaded at once,
     // Start loading again from the first page in the 3 page range
     override fun getRefreshKey(
-        state: PagingState<Int, Item>
+        state: PagingState<Int, Item>,
     ): Int = state.pages
         .firstOrNull()
         ?.data
@@ -134,14 +134,14 @@ private fun itemPagingSource(
         ?: 0
 
     override suspend fun load(
-        params: LoadParams<Int>
+        params: LoadParams<Int>,
     ): LoadResult<Int, Item> {
         val page = params.key ?: 0
         val pageCount = params.loadSize / ITEMS_PER_PAGE
         val items = rangeFor(page, numberOfPages = pageCount).map { index ->
             Item(
                 index = index,
-                lastInvalidatedPage = lastInvalidatedPage
+                lastInvalidatedPage = lastInvalidatedPage,
             )
         }
         return LoadResult.Page(
@@ -159,6 +159,5 @@ private fun CombinedLoadStates?.isIdle(): Boolean {
 
 private fun LoadStates.isIdle(): Boolean {
     return refresh is LoadState.NotLoading && append is LoadState.NotLoading &&
-            prepend is LoadState.NotLoading
+        prepend is LoadState.NotLoading
 }
-

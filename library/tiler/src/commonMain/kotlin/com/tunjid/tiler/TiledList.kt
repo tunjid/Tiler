@@ -78,7 +78,7 @@ fun <Query, Item> emptyTiledList(): TiledList<Query, Item> =
  * Returns a read-only [TiledList] instance
  */
 fun <Query, Item> tiledListOf(
-    vararg pairs: Pair<Query, Item>
+    vararg pairs: Pair<Query, Item>,
 ): TiledList<Query, Item> =
     if (pairs.isEmpty()) emptyTiledList() else SparseTiledList(*pairs)
 
@@ -86,7 +86,7 @@ fun <Query, Item> tiledListOf(
  * Returns a [MutableTiledList] instance
  */
 fun <Query, Item> mutableTiledListOf(
-    vararg pairs: Pair<Query, Item>
+    vararg pairs: Pair<Query, Item>,
 ): MutableTiledList<Query, Item> =
     SparseTiledList(*pairs)
 
@@ -94,7 +94,7 @@ fun <Query, Item> mutableTiledListOf(
  * Builds a new read-only List by populating a MutableList using the given builderAction and returning a read-only list with the same elements.
  */
 fun <Query, Item> buildTiledList(
-    builderAction: MutableTiledList<Query, Item>.() -> Unit
+    builderAction: MutableTiledList<Query, Item>.() -> Unit,
 ): TiledList<Query, Item> = mutableTiledListOf<Query, Item>()
     .also(builderAction::invoke)
 
@@ -102,7 +102,7 @@ fun <Query, Item> TiledList<Query, Item>.queryAtOrNull(index: Int) =
     if (index in 0..lastIndex) queryAt(index) else null
 
 operator fun <Query, Item> TiledList<Query, Item>.plus(
-    other: TiledList<Query, Item>
+    other: TiledList<Query, Item>,
 ): TiledList<Query, Item> = buildTiledList {
     this@plus.forEachIndexed { index, item ->
         add(this@plus.queryAt(index), item)

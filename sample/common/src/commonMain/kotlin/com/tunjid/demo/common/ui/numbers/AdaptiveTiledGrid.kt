@@ -40,7 +40,7 @@ import com.tunjid.tiler.compose.PivotedTilingEffect
 
 @Composable
 fun AdaptiveTiledGrid(
-    loader: Loader
+    loader: Loader,
 ) {
     val state by loader.state.collectAsState()
     val isAscending = state.isAscending
@@ -55,9 +55,9 @@ fun AdaptiveTiledGrid(
         floatingActionButton = {
             Fab(
                 onClick = { loader.toggleOrder() },
-                isAscending = isAscending
+                isAscending = isAscending,
             )
-        }
+        },
     ) {
         LazyVerticalGrid(
             state = lazyState,
@@ -74,25 +74,25 @@ fun AdaptiveTiledGrid(
                     itemContent = { numberTile ->
                         NumberTile(
                             Modifier.animateItem(),
-                            numberTile
+                            numberTile,
                         )
-                    }
+                    },
                 )
-            }
+            },
         )
     }
 
     lazyState.PivotedTilingEffect(
         items = tiledItems,
         indexSelector = { start + (endInclusive - start) / 2 },
-        onQueryChanged = { if (it != null) loader.setCurrentPage(it.page) }
+        onQueryChanged = { if (it != null) loader.setCurrentPage(it.page) },
     )
 }
 
 @Composable
 private fun Fab(
     onClick: () -> Unit,
-    isAscending: Boolean
+    isAscending: Boolean,
 ) {
     FloatingActionButton(
         onClick = { onClick() },
@@ -100,22 +100,22 @@ private fun Fab(
             Row(
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
-                    .animateContentSize()
+                    .animateContentSize(),
             ) {
                 val text = if (isAscending) "Sort descending" else "Sort ascending"
                 Text(text)
                 when {
                     isAscending -> Icon(
                         imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = text
+                        contentDescription = text,
                     )
 
                     else -> Icon(
                         imageVector = Icons.Default.KeyboardArrowUp,
-                        contentDescription = text
+                        contentDescription = text,
                     )
                 }
             }
-        }
+        },
     )
 }
