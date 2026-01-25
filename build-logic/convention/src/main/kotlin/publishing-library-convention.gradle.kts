@@ -15,7 +15,7 @@
  */
 
 plugins {
-    `maven-publish`
+    id("com.vanniktech.maven.publish")
     signing
     id("org.jetbrains.dokka")
 }
@@ -51,50 +51,37 @@ val javadocJar: TaskProvider<Jar> by tasks.registering(Jar::class) {
     from(dokkaHtml.outputDirectory)
 }
 
-publishing {
-    publications {
-        withType<MavenPublication> {
-            artifact(javadocJar)
-            pom {
-                name.set(project.name)
-                description.set("An experimental kotlin multiplatform paging library for loading reactive data in chunks")
-                url.set("https://github.com/tunjid/tiler")
-                licenses {
-                    license {
-                        name.set("Apache License 2.0")
-                        url.set("https://github.com/tunjid/tiler/blob/main/LICENSE")
-                    }
-                }
-                developers {
-                    developer {
-                        id.set("tunjid")
-                        name.set("Adetunji Dahunsi")
-                        email.set("tjdah100@gmail.com")
-                    }
-                }
-                scm {
-                    connection.set("scm:git:github.com/tunjid/tiler.git")
-                    developerConnection.set("scm:git:ssh://github.com/tunjid/tiler.git")
-                    url.set("https://github.com/tunjid/tiler/tree/main")
-                }
+mavenPublishing {
+    pom {
+        name.set(project.name)
+        description.set("An experimental kotlin multiplatform paging library for loading reactive data in chunks")
+        url.set("https://github.com/tunjid/tiler")
+        licenses {
+            license {
+                name.set("Apache License 2.0")
+                url.set("https://github.com/tunjid/tiler/blob/main/LICENSE")
             }
+        }
+        developers {
+            developer {
+                id.set("tunjid")
+                name.set("Adetunji Dahunsi")
+                email.set("tjdah100@gmail.com")
+            }
+        }
+        scm {
+            connection.set("scm:git:github.com/tunjid/tiler.git")
+            developerConnection.set("scm:git:ssh://github.com/tunjid/tiler.git")
+            url.set("https://github.com/tunjid/tiler/tree/main")
         }
     }
-    repositories {
-        val localProperties = rootProject.ext.get("localProps") as? java.util.Properties
-            ?: return@repositories
 
-        val publishUrl = localProperties.getProperty("publishUrl")
-        if (publishUrl != null) {
-            maven {
-                name = localProperties.getProperty("repoName")
-                url = uri(localProperties.getProperty("publishUrl"))
-                credentials {
-                    username = localProperties.getProperty("username")
-                    password = localProperties.getProperty("password")
-                }
-            }
-        }
+    val username = project.providers.gradleProperty("mavenCentralUsername")
+    val password = project.providers.gradleProperty("mavenCentralPassword")
+
+    if (username.isPresent && password.isPresent) {
+        publishToMavenCentral()
+        signAllPublications()
     }
 }
 
