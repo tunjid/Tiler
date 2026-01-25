@@ -18,14 +18,34 @@ plugins {
     id("com.vanniktech.maven.publish")
     signing
     id("org.jetbrains.dokka")
+    id("pl.allegro.tech.build.axion-release")
+}
+
+scmVersion {
+    tag {
+        // Use an empty string for prefix
+        prefix.set("v")
+    }
+    repository {
+        pushTagsOnly.set(true)
+    }
+    providers.gradleProperty("library.releaseBranch")
+        .orNull
+        ?.let { releaseBranch ->
+            when {
+                releaseBranch.contains("bugfix/") -> versionIncrementer("incrementPatch")
+                releaseBranch.contains("feature/") -> versionIncrementer("incrementMinor")
+                releaseBranch.contains("release/") -> versionIncrementer("incrementMajor")
+                else -> throw IllegalArgumentException("Unknown release type")
+            }
+        }
 }
 
 allprojects {
-    val versionKey = project.name + "_version"
     val libProps = rootProject.ext.get("libProps") as? java.util.Properties
         ?: return@allprojects
     group = libProps["groupId"] as String
-    version = libProps[versionKey] as String
+    version = scmVersion.version
 
     task("printProjectVersion") {
         doLast {
@@ -86,11 +106,13 @@ mavenPublishing {
 }
 
 signing {
-    val localProperties = rootProject.ext.get("localProps") as? java.util.Properties
-        ?: return@signing
+    val signingKey = project.providers
+        .gradleProperty("signingInMemoryKey")
+        .orNull
 
-    val signingKey = localProperties.getProperty("signingKey")
-    val signingPassword = localProperties.getProperty("signingPassword")
+    val signingPassword = project.providers
+        .gradleProperty("signingInMemoryKeyPassword")
+        .orNull
 
     if (signingKey != null && signingPassword != null) {
         useInMemoryPgpKeys(signingKey, signingPassword)
