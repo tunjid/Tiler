@@ -17,7 +17,7 @@
 package com.tunjid.tiler.utilities
 
 internal class IntArrayList(
-    initialSize: Int = 10
+    initialSize: Int = 10,
 ) {
 
     private var data = IntArray(initialSize)
@@ -69,20 +69,20 @@ internal class IntArrayList(
 
     fun removeAt(index: Int) {
         if (index < 0 || index > lastIndex) throw IndexOutOfBoundsException(
-            "Attempted to remove at $index in IntArrayList of size $size"
+            "Attempted to remove at $index in IntArrayList of size $size",
         )
         data.copyInto(
             destination = data,
             destinationOffset = index,
             startIndex = index + 1,
-            endIndex = size
+            endIndex = size,
         )
         --size
     }
 
     operator fun get(index: Int): Int {
         if (index > lastIndex) throw IndexOutOfBoundsException(
-            "Attempted to read $index in IntArrayList of size $size"
+            "Attempted to read $index in IntArrayList of size $size",
         )
         return data[index]
     }

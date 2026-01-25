@@ -17,6 +17,7 @@
 package com.tunjid.tiler.utilities
 
 import com.tunjid.tiler.QueryFetcher
+import kotlin.math.max
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -24,13 +25,12 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.update
-import kotlin.math.max
 
 /**
  * Defines the result of a fetch that provides [Token] instances to be fed back to other fetches
  * that neighbor this one.
  */
-data class NeighboredFetchResult<Query: Any, Item, Token: Any>(
+data class NeighboredFetchResult<Query : Any, Item, Token : Any>(
     /**
      * A [Map] of [Query] to [Token] for queries adjacent to the query that fetched this
      * [NeighboredFetchResult]. They will be used to provide tokens for the adjacent queries.
@@ -54,7 +54,7 @@ data class NeighboredFetchResult<Query: Any, Item, Token: Any>(
  * this at a minimum.
  * @param fetcher fetches a [NeighboredFetchResult] for a given [Query] and [Token]
  */
-fun <Query: Any, Item, Token: Any> neighboredQueryFetcher(
+fun <Query : Any, Item, Token : Any> neighboredQueryFetcher(
     maxTokens: Int,
     seedQueryTokenMap: Map<Query, Token>,
     fetcher: suspend (Query, Token) -> Flow<NeighboredFetchResult<Query, Item, Token>>,
@@ -64,7 +64,7 @@ fun <Query: Any, Item, Token: Any> neighboredQueryFetcher(
     fetcher = fetcher,
 )
 
-internal class NeighbouredQueryFetcher<Query: Any, Item, Token: Any>(
+internal class NeighbouredQueryFetcher<Query : Any, Item, Token : Any>(
     private val maxTokens: Int,
     seedQueryTokenMap: Map<Query, Token>,
     val fetcher: suspend (Query, Token) -> Flow<NeighboredFetchResult<Query, Item, Token>>,
@@ -74,7 +74,7 @@ internal class NeighbouredQueryFetcher<Query: Any, Item, Token: Any>(
 
     init {
         if (seedQueryTokenMap.isEmpty()) throw IllegalArgumentException(
-            "seed queries and tokens are empty, no items will ever be fetched."
+            "seed queries and tokens are empty, no items will ever be fetched.",
         )
     }
 

@@ -29,35 +29,36 @@ internal class Tiler<Query, Item> private constructor(
     private var order: Tile.Order<Query, Item>,
     private var limiter: Tile.Limiter<Query, Item> = Tile.Limiter(
         maxQueries = Int.MIN_VALUE,
-        itemSizeHint = null
+        itemSizeHint = null,
     ),
-    private val queryItemsMap: MutableMap<Query, List<Item>>
+    private val queryItemsMap: MutableMap<Query, List<Item>>,
 ) {
     constructor(
         order: Tile.Order<Query, Item>,
         limiter: Tile.Limiter<Query, Item> = Tile.Limiter(
             maxQueries = Int.MIN_VALUE,
-            itemSizeHint = null
-        )
+            itemSizeHint = null,
+        ),
     ) : this(
         order = order,
         limiter = limiter,
-        queryItemsMap = mutableMapOf()
+        queryItemsMap = mutableMapOf(),
     )
 
     private val orderedQueries: MutableList<Query> = mutableListOf()
     private val outputIndices: IntArrayList = IntArrayList(
         if (limiter.maxQueries >= 0) limiter.maxQueries
-        else 10
+        else 10,
     )
     private var lastTiledItems: TiledList<Query, Item> = emptyTiledList()
+
     // This is lazy to prevent a recursive initialization loop
     private val last: Tiler<Query, Item> by lazy {
         Tiler(
             order = order,
             limiter = limiter,
             // Share the same map instance
-            queryItemsMap = queryItemsMap
+            queryItemsMap = queryItemsMap,
         )
     }
 
@@ -68,7 +69,7 @@ internal class Tiler<Query, Item> private constructor(
                 // Only sort queries when they output the first time to amortize the cost of sorting.
                 if (!queryItemsMap.contains(output.query)) orderedQueries.insertSorted(
                     query = output.query,
-                    comparator = order.comparator
+                    comparator = order.comparator,
                 )
                 queryItemsMap[output.query] = output.items
             }
@@ -76,7 +77,7 @@ internal class Tiler<Query, Item> private constructor(
             is Tile.Request.Evict -> {
                 val evictionIndex = orderedQueries.binarySearch(
                     element = output.query,
-                    comparator = order.comparator
+                    comparator = order.comparator,
                 )
                 if (evictionIndex >= 0) orderedQueries.removeAt(evictionIndex)
                 queryItemsMap.remove(output.query)
@@ -96,7 +97,7 @@ internal class Tiler<Query, Item> private constructor(
             chunkSizeHint = limiter.itemSizeHint,
             indices = outputIndices,
             queryLookup = orderedQueries::get,
-            itemsLookup = queryItemsMap::getValue
+            itemsLookup = queryItemsMap::getValue,
         ).also { lastTiledItems = it }
         else null
     }
@@ -123,13 +124,13 @@ internal class Tiler<Query, Item> private constructor(
                 var index = -1
                 val maxNumberOfChunks = min(limitedChunkSize(), orderedQueries.size)
                 while (
-                    count < maxNumberOfChunks
-                    && index <= orderedQueries.lastIndex
+                    count < maxNumberOfChunks &&
+                    index <= orderedQueries.lastIndex
                 ) {
-                    if (++index <= orderedQueries.lastIndex
+                    if (++index <= orderedQueries.lastIndex &&
                         // Skip empty chunks
-                        && queryItemsMap.getValue(orderedQueries[index]).isNotEmpty()
-                        && ++count <= maxNumberOfChunks
+                        queryItemsMap.getValue(orderedQueries[index]).isNotEmpty() &&
+                        ++count <= maxNumberOfChunks
                     ) outputIndices.add(
                         element = index,
                     )
@@ -158,21 +159,21 @@ internal class Tiler<Query, Item> private constructor(
 
                 var count = if (pivotIndexIsEmpty) 0 else 1
                 while (
-                    count < maxNumberOfChunks
-                    && (leftIndex >= 0 || rightIndex <= orderedQueries.lastIndex)
+                    count < maxNumberOfChunks &&
+                    (leftIndex >= 0 || rightIndex <= orderedQueries.lastIndex)
                 ) {
-                    if (--leftIndex >= 0
+                    if (--leftIndex >= 0 &&
                         // Skip empty chunks
-                        && queryItemsMap.getValue(orderedQueries[leftIndex]).isNotEmpty()
-                        && ++count <= maxNumberOfChunks
+                        queryItemsMap.getValue(orderedQueries[leftIndex]).isNotEmpty() &&
+                        ++count <= maxNumberOfChunks
                     ) outputIndices.add(
                         index = 0,
                         element = leftIndex,
                     )
-                    if (++rightIndex <= orderedQueries.lastIndex
+                    if (++rightIndex <= orderedQueries.lastIndex &&
                         // Skip empty chunks
-                        && queryItemsMap.getValue(orderedQueries[rightIndex]).isNotEmpty()
-                        && ++count <= maxNumberOfChunks
+                        queryItemsMap.getValue(orderedQueries[rightIndex]).isNotEmpty() &&
+                        ++count <= maxNumberOfChunks
                     ) outputIndices.add(
                         element = rightIndex,
                     )
@@ -188,7 +189,7 @@ internal class Tiler<Query, Item> private constructor(
             is Tile.Order.PivotSorted -> when {
                 // If the pivot item is present, check if the item emitted will be seen
                 queryItemsMap.contains(existingOrder.query) -> isInVisibleRange(output.query) ||
-                        last.isInVisibleRange(output.query)
+                    last.isInVisibleRange(output.query)
                 // If the last emission was empty and nothing will still be emitted, do not emit
                 else -> !(lastTiledItems.isEmpty() && existingOrder.query != output.query)
             }
@@ -212,11 +213,11 @@ internal class Tiler<Query, Item> private constructor(
         }
         // Emit only if the limiter has meaningfully changed
         is Tile.Limiter -> when (val order = order) {
-            is Tile.Order.Sorted -> queryItemsMap.isNotEmpty()
-                    && outputIndices != last.outputIndices
+            is Tile.Order.Sorted -> queryItemsMap.isNotEmpty() &&
+                outputIndices != last.outputIndices
 
-            is Tile.Order.PivotSorted -> queryItemsMap.contains(order.query)
-                    && outputIndices != last.outputIndices
+            is Tile.Order.PivotSorted -> queryItemsMap.contains(order.query) &&
+                outputIndices != last.outputIndices
         }
     }
 
@@ -252,7 +253,7 @@ internal class Tiler<Query, Item> private constructor(
  */
 fun <Query> MutableList<Query>.insertSorted(
     query: Query,
-    comparator: Comparator<Query>
+    comparator: Comparator<Query>,
 ) {
     // Not in the list, add it
     if (isEmpty()) {
@@ -265,11 +266,11 @@ fun <Query> MutableList<Query>.insertSorted(
     when (val invertedIndex = abs(index + 1)) {
         in 0..lastIndex -> add(
             index = invertedIndex,
-            element = query
+            element = query,
         )
 
         else -> add(
-            element = query
+            element = query,
         )
     }
 }

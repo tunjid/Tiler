@@ -27,7 +27,7 @@ import kotlin.math.max
  * to indices without allocating an object.
  */
 internal class SparseQueryArray<Query> @JvmOverloads constructor(
-    initialCapacity: Int = 10
+    initialCapacity: Int = 10,
 ) {
     private var garbage = false
     private var keys: LongArray
@@ -55,10 +55,10 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
     fun queryAt(index: Int): Query {
         val i: Int = keys.indexBinarySearch(
             index = index,
-            size = size
+            size = size,
         )
         if (i < 0 || values[i] === DELETED) throw IllegalArgumentException(
-            "Index $index is not present in SparseQueryArray of size $size and contents $this"
+            "Index $index is not present in SparseQueryArray of size $size and contents $this",
         )
         @Suppress("UNCHECKED_CAST")
         return values[i] as Query
@@ -71,11 +71,11 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
 
     fun appendQuery(
         query: Query,
-        count: Int
+        count: Int,
     ) = when (size) {
         0 -> set(
             range = Tile(start = 0, end = count),
-            value = query
+            value = query,
         )
 
         else -> {
@@ -84,15 +84,15 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             updateExistingQueryOr(
                 index = lastIndex,
                 query = query,
-                count = count
+                count = count,
             ) {
                 // Append at the end
                 append(
                     tile = Tile(
                         start = lastIndex + 1,
-                        end = lastIndex + count + 1
+                        end = lastIndex + count + 1,
                     ),
-                    value = query
+                    value = query,
                 )
             }
         }
@@ -101,28 +101,28 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
     fun insertQuery(
         index: Int,
         query: Query,
-        count: Int
+        count: Int,
     ) = updateExistingQueryOr(
         index = index,
         query = query,
-        count = count
+        count = count,
     ) { i ->
         if (i < 0) throw IllegalArgumentException(
-            "Index $index is not present in SparseQueryArray of size $size and contents $this"
+            "Index $index is not present in SparseQueryArray of size $size and contents $this",
         )
 
         val newRange = Tile(
             start = index,
-            end = index + count
+            end = index + count,
         )
         // Shift items to accommodate new entry
         shiftRangesBy(
             startIndex = i,
-            gap = newRange.end - newRange.start
+            gap = newRange.end - newRange.start,
         )
         set(
             range = newRange,
-            value = query
+            value = query,
         )
     }
 
@@ -131,10 +131,10 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
     ) {
         val i = keys.indexBinarySearch(
             index = index,
-            size = size
+            size = size,
         )
         if (i < 0) throw IllegalArgumentException(
-            "Index $index is not present in SparseQueryArray of size $size and contents $this"
+            "Index $index is not present in SparseQueryArray of size $size and contents $this",
         )
         val existingRange = Tile(keys[i])
         val start = existingRange.start
@@ -147,7 +147,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         }
         shiftRangesBy(
             startIndex = i,
-            gap = -1
+            gap = -1,
         )
     }
 
@@ -155,14 +155,14 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         index: Int,
         query: Query,
         count: Int,
-        block: (Int) -> Unit
+        block: (Int) -> Unit,
     ) {
         val i = keys.indexBinarySearch(
             index = index,
-            size = size
+            size = size,
         )
         if (i < 0) throw IllegalArgumentException(
-            "Index $index is not present in SparseQueryArray of size $size and contents $this"
+            "Index $index is not present in SparseQueryArray of size $size and contents $this",
         )
         val existing = values[i]
         if (query != existing) return block(i)
@@ -170,14 +170,14 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
         val existingRange = Tile(keys[i])
         val newRange = Tile(
             start = existingRange.start,
-            end = existingRange.end + count
+            end = existingRange.end + count,
         )
         keys[i] = newRange.packedValue
 
         if (existingRange.end != newRange.end) {
             shiftRangesBy(
                 startIndex = i + 1,
-                gap = newRange.end - existingRange.end
+                gap = newRange.end - existingRange.end,
             )
         }
     }
@@ -188,11 +188,11 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             keys[i] = Tile(
                 start = max(
                     a = 0,
-                    b = existing.start + gap
+                    b = existing.start + gap,
                 ),
                 end = max(
                     a = 0,
-                    b = existing.end + gap
+                    b = existing.end + gap,
                 ),
             ).packedValue
         }
@@ -205,11 +205,11 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
     private fun set(range: Tile, value: Query) {
         var i: Int = keys.indexBinarySearch(
             index = range.start,
-            size = size
+            size = size,
         )
         if (i >= 0) return values.set(
             index = i,
-            value = value
+            value = value,
         )
 
         i = i.inv()
@@ -224,18 +224,18 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             // Search again because indices may have changed.
             i = keys.indexBinarySearch(
                 index = range.start,
-                size = size
+                size = size,
             ).inv()
         }
         keys = keys.insert(
             currentSize = size,
             index = i,
-            element = range.packedValue
+            element = range.packedValue,
         )
         values = values.insert(
             currentSize = size,
             index = i,
-            element = value
+            element = value,
         )
         size++
     }
@@ -290,7 +290,7 @@ internal class SparseQueryArray<Query> @JvmOverloads constructor(
             .zip(values)
             .joinToString(
                 prefix = "\n",
-                transform = { (key, value) -> "$key - $value" }
+                transform = { (key, value) -> "$key - $value" },
             )
 
     companion object {
@@ -322,7 +322,6 @@ private fun LongArray.indexBinarySearch(
     return low.inv()
 }
 
-
 /**
  * Given the current size of an array, returns an ideal size to which the array should grow.
  * This is typically double the given size, but should not be relied upon to do so in the
@@ -332,32 +331,29 @@ private fun growSize(currentSize: Int): Int {
     return if (currentSize <= 4) 8 else currentSize * 2
 }
 
-
 private inline fun LongArray.append(
     currentSize: Int,
-    element: Long
+    element: Long,
 ): LongArray = append(
     containerSize = LongArray::size,
     containerFactory = ::LongArray,
     containerSet = LongArray::set,
     containerCopy = LongArray::copyInto,
     currentSize = currentSize,
-    element = element
+    element = element,
 )
-
 
 private inline fun Array<Any?>.append(
     currentSize: Int,
-    element: Any?
+    element: Any?,
 ): Array<Any?> = append(
     containerSize = Array<Any?>::size,
     containerFactory = ::arrayOfNulls,
     containerSet = Array<Any?>::set,
     containerCopy = Array<Any?>::copyInto,
     currentSize = currentSize,
-    element = element
+    element = element,
 )
-
 
 private inline fun <Container, Element> Container.append(
     containerSize: Container.() -> Int,
@@ -365,7 +361,7 @@ private inline fun <Container, Element> Container.append(
     containerSet: Container.(Int, Element) -> Unit,
     containerCopy: (Container, Container) -> Unit,
     currentSize: Int,
-    element: Element
+    element: Element,
 ): Container {
     var container = this
     if (currentSize + 1 > containerSize(this)) {
@@ -380,7 +376,7 @@ private inline fun <Container, Element> Container.append(
 private inline fun LongArray.insert(
     currentSize: Int,
     index: Int,
-    element: Long
+    element: Long,
 ): LongArray = insert(
     containerSize = LongArray::size,
     containerFactory = ::LongArray,
@@ -391,19 +387,18 @@ private inline fun LongArray.insert(
             destination = array,
             destinationOffset = destinationOffset,
             startIndex = startIndex,
-            endIndex = endIndex
+            endIndex = endIndex,
         )
     },
     currentSize = currentSize,
     index = index,
-    element = element
+    element = element,
 )
-
 
 private inline fun Array<Any?>.insert(
     currentSize: Int,
     index: Int,
-    element: Any?
+    element: Any?,
 ): Array<Any?> = insert(
     containerSize = Array<Any?>::size,
     containerFactory = ::arrayOfNulls,
@@ -414,12 +409,12 @@ private inline fun Array<Any?>.insert(
             destination = array,
             destinationOffset = destinationOffset,
             startIndex = startIndex,
-            endIndex = endIndex
+            endIndex = endIndex,
         )
     },
     currentSize = currentSize,
     index = index,
-    element = element
+    element = element,
 )
 
 private inline fun <Container, Element> Container.insert(
@@ -430,7 +425,7 @@ private inline fun <Container, Element> Container.insert(
     containerShift: (Container, destinationOffset: Int, startIndex: Int, endIndex: Int) -> Unit,
     currentSize: Int,
     index: Int,
-    element: Element
+    element: Element,
 ): Container {
     val container = this
     if (currentSize + 1 <= containerSize(this)) {

@@ -8,7 +8,6 @@ import com.example.benchmarks.data.emptyPages
 import com.example.benchmarks.data.offScreenPages
 import com.example.benchmarks.data.onScreenPages
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -49,6 +48,5 @@ class BenchmarkRunTest {
                 ),
             ).forEach { it.benchmark() }
         }
-
     }
 }

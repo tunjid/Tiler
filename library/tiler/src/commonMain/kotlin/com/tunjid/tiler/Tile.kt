@@ -16,8 +16,8 @@
 
 package com.tunjid.tiler
 
-import kotlinx.coroutines.flow.Flow
 import kotlin.jvm.JvmInline
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Produces [TiledList] from a [Flow] of a user's [Query].
@@ -43,11 +43,11 @@ fun interface QueryFetcher<Query, Item> {
 }
 
 operator fun <Query, Item> ListTiler<Query, Item>.invoke(
-    inputs: Flow<Tile.Input<Query, Item>>
+    inputs: Flow<Tile.Input<Query, Item>>,
 ) = produce(inputs)
 
 suspend operator fun <Query, Item> QueryFetcher<Query, Item>.invoke(
-    query: Query
+    query: Query,
 ) = fetch(query)
 
 /**
@@ -60,14 +60,14 @@ val Tile.size get() = end - start
  */
 @JvmInline
 value class Tile internal constructor(
-    internal val packedValue: Long
+    internal val packedValue: Long,
 ) {
 
     internal constructor(
         start: Int,
         end: Int,
     ) : this(
-        start.toLong().shl(32) or (end.toLong() and 0xFFFFFFFF)
+        start.toLong().shl(32) or (end.toLong() and 0xFFFFFFFF),
     )
 
     /**
@@ -103,7 +103,7 @@ value class Tile internal constructor(
          * Requesting this is idempotent; multiple requests have no side effects.
          */
         data class On<Query, Item>(
-            override val query: Query
+            override val query: Query,
         ) : Request<Query, Item>
 
         /**
@@ -113,7 +113,7 @@ value class Tile internal constructor(
          * Requesting this is idempotent; multiple requests have no side effects.
          */
         data class Off<Query, Item>(
-            override val query: Query
+            override val query: Query,
         ) : Request<Query, Item>
 
         /**
@@ -122,14 +122,17 @@ value class Tile internal constructor(
          * Requesting this is idempotent; multiple requests have no side effects.
          */
         data class Evict<Query, Item>(
-            override val query: Query
-        ) : Request<Query, Item>, Output<Query, Item>
+            override val query: Query,
+        ) : Request<Query, Item>,
+            Output<Query, Item>
     }
 
     /**
      * Describes the order of output items from the tiling functions
      */
-    sealed class Order<Query, Item> : Input<Query, Item>, Output<Query, Item> {
+    sealed class Order<Query, Item> :
+        Input<Query, Item>,
+        Output<Query, Item> {
 
         abstract val comparator: Comparator<Query>
 
@@ -138,7 +141,8 @@ value class Tile internal constructor(
          */
         data class Sorted<Query, Item>(
             override val comparator: Comparator<Query>,
-        ) : Order<Query, Item>(), Input<Query, Item>
+        ) : Order<Query, Item>(),
+            Input<Query, Item>
 
         /**
          * Sort items with the specified [comparator] but pivoted around a specific query.
@@ -147,8 +151,8 @@ value class Tile internal constructor(
         data class PivotSorted<Query, Item>(
             val query: Query,
             override val comparator: Comparator<Query>,
-        ) : Order<Query, Item>(), Input<Query, Item>
-
+        ) : Order<Query, Item>(),
+            Input<Query, Item>
     }
 
     /**
@@ -165,7 +169,8 @@ value class Tile internal constructor(
          * limit parameter.
          */
         val itemSizeHint: Int? = null,
-    ) : Input<Query, Item>, Output<Query, Item>
+    ) : Input<Query, Item>,
+        Output<Query, Item>
 
     /**
      * A [Tile.Input] for applying multiple [Tile.Request]s and a single [Tile.Order].
@@ -185,7 +190,7 @@ value class Tile internal constructor(
 
     internal data class Data<Query, Item>(
         val items: List<Item>,
-        val query: Query
+        val query: Query,
     ) : Output<Query, Item>
 }
 
@@ -193,7 +198,7 @@ value class Tile internal constructor(
  * Convenience method to convert a [Flow] of [Tile.Input] to a [Flow] of a [TiledList] of [Item]s
  */
 fun <Query, Item> Flow<Tile.Input<Query, Item>>.toTiledList(
-    listTiler: ListTiler<Query, Item>
+    listTiler: ListTiler<Query, Item>,
 ): Flow<TiledList<Query, Item>> = listTiler(inputs = this)
 
 /**
@@ -205,10 +210,10 @@ fun <Query, Item> listTiler(
         maxQueries = Int.MIN_VALUE,
         itemSizeHint = null,
     ),
-    fetcher: QueryFetcher<Query, Item>
+    fetcher: QueryFetcher<Query, Item>,
 ): ListTiler<Query, Item> =
     concurrentListTiler(
         order = order,
         limiter = limiter,
-        fetcher = fetcher
+        fetcher = fetcher,
     )

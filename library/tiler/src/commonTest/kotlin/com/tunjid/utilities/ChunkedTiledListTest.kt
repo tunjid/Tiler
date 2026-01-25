@@ -34,32 +34,32 @@ class ChunkedTiledListTest {
                 optimizedAndIterativeChunkedLists(chunkSize)
 
             val expectedTiledList = consecutiveIntegerTiledList(
-                chunkSize = chunkSize
+                chunkSize = chunkSize,
             )
             assertEquals(
                 expected = expectedTiledList,
-                actual = constantTimeChunkedTiledList
+                actual = constantTimeChunkedTiledList,
             )
             assertEquals(
                 expected = constantTimeChunkedTiledList,
-                actual = binarySearchChunkedTiledList
+                actual = binarySearchChunkedTiledList,
             )
             assertEquals(
                 expected = indices.toList(),
-                actual = constantTimeChunkedTiledList.queries()
+                actual = constantTimeChunkedTiledList.queries(),
             )
             assertEquals(
                 expected = indices.toList(),
-                actual = binarySearchChunkedTiledList.queries()
+                actual = binarySearchChunkedTiledList.queries(),
             )
             (0 until constantTimeChunkedTiledList.tileCount).forEach { tileIndex ->
                 assertEquals(
                     expected = chunkSize,
-                    actual = constantTimeChunkedTiledList.tileAt(tileIndex).size
+                    actual = constantTimeChunkedTiledList.tileAt(tileIndex).size,
                 )
                 assertEquals(
                     expected = chunkSize,
-                    actual = binarySearchChunkedTiledList.tileAt(tileIndex).size
+                    actual = binarySearchChunkedTiledList.tileAt(tileIndex).size,
                 )
             }
         }
@@ -67,7 +67,7 @@ class ChunkedTiledListTest {
 }
 
 private fun optimizedAndIterativeChunkedLists(
-    chunkSize: Int
+    chunkSize: Int,
 ): Triple<TiledList<Int, Int>, TiledList<Int, Int>, IntArrayList> {
     val indices = IntArrayList(chunkSize).apply {
         (0 until chunkSize).forEach(::add)
@@ -80,7 +80,7 @@ private fun optimizedAndIterativeChunkedLists(
         itemsLookup = { index ->
             val offset = index * chunkSize
             (0 until chunkSize).map(offset::plus)
-        }
+        },
     )
     val binarySearchChunkedTiledList = chunkedTiledList(
         chunkSizeHint = null,
@@ -89,23 +89,23 @@ private fun optimizedAndIterativeChunkedLists(
         itemsLookup = { index ->
             val offset = index * chunkSize
             (0 until chunkSize).map(offset::plus)
-        }
+        },
     )
     return Triple(
         first = constantTimeChunkedTiledList,
         second = binarySearchChunkedTiledList,
-        third = indices
+        third = indices,
     )
 }
 
 private fun consecutiveIntegerTiledList(
     chunkSize: Int,
-    upUntilInt: Int = chunkSize * chunkSize
+    upUntilInt: Int = chunkSize * chunkSize,
 ) = tiledListOf(
     *(0 until upUntilInt)
         .map { item ->
             val query = item / chunkSize
             query to item
         }
-        .toTypedArray()
+        .toTypedArray(),
 )

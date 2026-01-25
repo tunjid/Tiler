@@ -37,46 +37,46 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 fun <Query> LazyListState.PivotedTilingEffect(
     items: TiledList<Query, *>,
     indexSelector: IntRange.() -> Int = kotlin.ranges.IntRange::first,
-    onQueryChanged: (Query?) -> Unit
+    onQueryChanged: (Query?) -> Unit,
 ) = PivotedTilingEffect(
     items = items,
     indexSelector = indexSelector,
     onQueryChanged = onQueryChanged,
     itemsList = { layoutInfo.visibleItemsInfo },
-    indexForItem = LazyListItemInfo::index
+    indexForItem = LazyListItemInfo::index,
 )
 
 @Composable
 fun <Query> LazyGridState.PivotedTilingEffect(
     items: TiledList<Query, *>,
     indexSelector: IntRange.() -> Int = kotlin.ranges.IntRange::first,
-    onQueryChanged: (Query?) -> Unit
+    onQueryChanged: (Query?) -> Unit,
 ) = PivotedTilingEffect(
     items = items,
     indexSelector = indexSelector,
     onQueryChanged = onQueryChanged,
     itemsList = { layoutInfo.visibleItemsInfo },
-    indexForItem = LazyGridItemInfo::index
+    indexForItem = LazyGridItemInfo::index,
 )
 
 @Composable
 fun <Query> LazyStaggeredGridState.PivotedTilingEffect(
     items: TiledList<Query, *>,
     indexSelector: IntRange.() -> Int = kotlin.ranges.IntRange::first,
-    onQueryChanged: (Query?) -> Unit
+    onQueryChanged: (Query?) -> Unit,
 ) = PivotedTilingEffect(
     items = items,
     indexSelector = indexSelector,
     onQueryChanged = onQueryChanged,
     itemsList = { layoutInfo.visibleItemsInfo },
-    indexForItem = LazyStaggeredGridItemInfo::index
+    indexForItem = LazyStaggeredGridItemInfo::index,
 )
 
 @Composable
 @ExperimentalFoundationApi
 fun <Query> PagerState.PivotedTilingEffect(
     items: TiledList<Query, *>,
-    onQueryChanged: (Query?) -> Unit
+    onQueryChanged: (Query?) -> Unit,
 ) {
     val updatedItems by rememberUpdatedState(items)
     LaunchedEffect(this) {

@@ -16,10 +16,13 @@
 
 package com.tunjid.utilities
 
-import com.tunjid.tiler.PivotRequest
 import com.tunjid.tiler.Pivot
+import com.tunjid.tiler.PivotRequest
 import com.tunjid.tiler.pivotWith
 import com.tunjid.tiler.toPivotedTileInputs
+import kotlin.math.abs
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
@@ -30,10 +33,6 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import kotlin.math.abs
-import kotlin.test.Test
-import kotlin.test.assertEquals
-
 
 class PivotingKtTest {
 
@@ -112,7 +111,7 @@ class PivotingKtTest {
             off = listOf(0, 4, 5, 6).sortedByFurthestDistanceFrom(2),
             evict = emptyList(),
 
-            )
+        )
 
         pivotResults[3].assertEquals(
             query = 3,
@@ -197,7 +196,7 @@ class PivotingKtTest {
             .shareIn(
                 scope = this,
                 started = SharingStarted.Lazily,
-                replay = 5
+                replay = 5,
             )
 
         val queries = queriesAndRequests.filterIsInstance<Int>()
@@ -307,7 +306,7 @@ class PivotingKtTest {
 
         assertEquals(
             expected = queries.pivotWith(pivotRequest).toList(),
-            actual = queries.toPivotedTileInputs(pivotRequest).toList()
+            actual = queries.toPivotedTileInputs(pivotRequest).toList(),
         )
     }
 }
@@ -318,7 +317,7 @@ private fun List<Int>.sortedByFurthestDistanceFrom(pivot: Int) = sortedWith(
         val distance = pivot - item
         if (distance < 0) abs(distance).times(2)
         else distance.times(2) + 1
-    }.reversed()
+    }.reversed(),
 )
 
 private fun <Query, Item> Pivot<Query, Item>.assertEquals(
@@ -330,22 +329,22 @@ private fun <Query, Item> Pivot<Query, Item>.assertEquals(
 ) {
     assertEquals(
         expected = query,
-        actual = this.query
+        actual = this.query,
     )
     assertEquals(
         expected = comparator,
-        actual = this.comparator
+        actual = this.comparator,
     )
     assertEquals(
         expected = on,
-        actual = this.on
+        actual = this.on,
     )
     assertEquals(
         expected = off,
-        actual = this.off
+        actual = this.off,
     )
     assertEquals(
         expected = evict,
-        actual = this.evict
+        actual = this.evict,
     )
 }

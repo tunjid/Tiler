@@ -22,12 +22,12 @@ import com.tunjid.tiler.toListWithTimeout
 import com.tunjid.tiler.utilities.NeighboredFetchResult
 import com.tunjid.tiler.utilities.NeighbouredQueryFetcher
 import com.tunjid.tiler.utilities.neighboredQueryFetcher
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runTest
 
 class NeighboredQueryFetcherTest {
 
@@ -36,7 +36,7 @@ class NeighboredQueryFetcherTest {
         val fetcher = testTokenizedQueryFetcher()
         assertEquals(
             expected = 0.tiledTestRange(),
-            actual = fetcher.invoke(query = 0).first()
+            actual = fetcher.invoke(query = 0).first(),
         )
     }
 
@@ -48,19 +48,19 @@ class NeighboredQueryFetcherTest {
         assertTrue(
             fetcher.invoke(query = 1)
                 .toListWithTimeout(10)
-                .isEmpty()
+                .isEmpty(),
         )
 
         // Fetch for 0
         assertEquals(
             expected = 0.tiledTestRange(),
-            actual = fetcher.invoke(query = 0).first()
+            actual = fetcher.invoke(query = 0).first(),
         )
 
         // Fetch for 1
         assertEquals(
             expected = 1.tiledTestRange(),
-            actual = fetcher.invoke(query = 1).first()
+            actual = fetcher.invoke(query = 1).first(),
         )
     }
 
@@ -70,18 +70,18 @@ class NeighboredQueryFetcherTest {
         (0..6).forEach { page ->
             assertEquals(
                 expected = page.tiledTestRange(),
-                actual = fetcher.invoke(query = page).first()
+                actual = fetcher.invoke(query = page).first(),
             )
         }
         val tokenizedQueryFetcher = fetcher as NeighbouredQueryFetcher<*, *, *>
 
         assertEquals(
             expected = 5,
-            actual = tokenizedQueryFetcher.queriesToTokens.value.keys.size
+            actual = tokenizedQueryFetcher.queriesToTokens.value.keys.size,
         )
         assertEquals(
             expected = (3..7).toList(),
-            actual = tokenizedQueryFetcher.queriesToTokens.value.keys.toList()
+            actual = tokenizedQueryFetcher.queriesToTokens.value.keys.toList(),
         )
     }
 
@@ -91,18 +91,18 @@ class NeighboredQueryFetcherTest {
         (0..6).forEach { page ->
             assertEquals(
                 expected = page.tiledTestRange(),
-                actual = fetcher.invoke(query = page).first()
+                actual = fetcher.invoke(query = page).first(),
             )
         }
         val tokenizedQueryFetcher = fetcher as NeighbouredQueryFetcher<*, *, *>
 
         assertEquals(
             expected = 5,
-            actual = tokenizedQueryFetcher.queriesToTokens.value.keys.size
+            actual = tokenizedQueryFetcher.queriesToTokens.value.keys.size,
         )
         assertEquals(
             expected = (3..7).toList(),
-            actual = tokenizedQueryFetcher.queriesToTokens.value.keys.toList()
+            actual = tokenizedQueryFetcher.queriesToTokens.value.keys.toList(),
         )
     }
 }
@@ -116,7 +116,7 @@ private fun testTokenizedQueryFetcher(
         val mockApiResult = MockApiResult(
             nextPageToken = token.hashCode().toString(),
             previousPageToken = if (page >= 0) token.reversed().hashCode().toString() else null,
-            items = page.tiledTestRange()
+            items = page.tiledTestRange(),
         )
         flowOf(
             NeighboredFetchResult(
@@ -125,10 +125,10 @@ private fun testTokenizedQueryFetcher(
                     mockApiResult.previousPageToken?.let { page - 1 to it },
                 )
                     .toMap(),
-                items = mockApiResult.items
-            )
+                items = mockApiResult.items,
+            ),
         )
-    }
+    },
 )
 
 private data class MockApiResult(

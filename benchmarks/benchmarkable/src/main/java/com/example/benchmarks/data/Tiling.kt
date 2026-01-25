@@ -27,7 +27,7 @@ private fun Int.prev() = if (this <= 0) null else this - 1
 
 class TilingBenchmark(
     private val pageToScrollTo: Int,
-    private val pagesToInvalidate: IntRange
+    private val pagesToInvalidate: IntRange,
 ) : Benchmarked {
 
     private var lastInvalidatedPage: Int = pagesToInvalidate.first + 1
@@ -67,8 +67,8 @@ class TilingBenchmark(
                 // Find an item from the page that was invalidated
                 val invalidatedItem = latestItems.lastInvalidatedItem()
 
-                val isFinished = invalidatedItem != null
-                        && invalidatedItem.lastInvalidatedPage >= pagesToInvalidate.last
+                val isFinished = invalidatedItem != null &&
+                    invalidatedItem.lastInvalidatedPage >= pagesToInvalidate.last
 
                 emit(latestItems)
                 !isFinished
@@ -76,8 +76,8 @@ class TilingBenchmark(
             .collect {
                 // Invalidate
                 val invalidatedItem = it.lastInvalidatedItem()
-                val canIncrementAndInvalidate = invalidatedItem == null
-                        || invalidatedItem.lastInvalidatedPage == lastInvalidatedPage
+                val canIncrementAndInvalidate = invalidatedItem == null ||
+                    invalidatedItem.lastInvalidatedPage == lastInvalidatedPage
 
                 if (canIncrementAndInvalidate && ++lastInvalidatedPage <= pagesToInvalidate.last) {
                     invalidationSignal.emit(lastInvalidatedPage)
@@ -108,18 +108,20 @@ private fun Flow<Int>.listTiler() = listTiler(
                 range.map {
                     Item(
                         index = it,
-                        lastInvalidatedPage = invalidatedPage
+                        lastInvalidatedPage = invalidatedPage,
                     )
-                }
+                },
             )
         }
             .onStart {
-                emit(range.map {
-                    Item(
-                        index = it,
-                        lastInvalidatedPage = Int.MIN_VALUE
-                    )
-                })
+                emit(
+                    range.map {
+                        Item(
+                            index = it,
+                            lastInvalidatedPage = Int.MIN_VALUE,
+                        )
+                    },
+                )
             }
     },
 )

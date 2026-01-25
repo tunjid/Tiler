@@ -24,18 +24,15 @@ import com.tunjid.demo.common.ui.AppTheme
 import com.tunjid.demo.common.ui.Root
 import org.jetbrains.skiko.wasm.onWasmReady
 
-
 fun main() {
     onWasmReady {
         Window("Tiler") {
-
             Column(modifier = Modifier.fillMaxSize()) {
-
                 Button(
                     onClick = { println("Clicked") },
                     content = {
                         Text("HELLO")
-                    }
+                    },
                 )
 
                 AppTheme {

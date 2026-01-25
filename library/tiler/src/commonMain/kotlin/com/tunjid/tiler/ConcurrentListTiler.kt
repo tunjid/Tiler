@@ -39,15 +39,15 @@ import kotlinx.coroutines.flow.takeWhile
 fun <Query, Item> concurrentListTiler(
     order: Tile.Order<Query, Item>,
     limiter: Tile.Limiter<Query, Item>,
-    fetcher: QueryFetcher<Query, Item>
+    fetcher: QueryFetcher<Query, Item>,
 ): ListTiler<Query, Item> = ListTiler { requests ->
     OutputFlow(requests, fetcher)
         .flattenMerge(concurrency = Int.MAX_VALUE)
         .mapNotNull(
             Tiler(
                 limiter = limiter,
-                order = order
-            )::process
+                order = order,
+            )::process,
         )
 }
 
@@ -60,54 +60,60 @@ fun <Query, Item> concurrentListTiler(
  */
 private class OutputFlow<Query, Item>(
     private val flow: Flow<Tile.Input<Query, Item>>,
-    private val fetcher: QueryFetcher<Query, Item>
+    private val fetcher: QueryFetcher<Query, Item>,
 ) : AbstractFlow<Flow<Tile.Output<Query, Item>>>() {
     override suspend fun collectSafely(collector: FlowCollector<Flow<Tile.Output<Query, Item>>>) {
         val queriesToValves = mutableMapOf<Query, QueryFlowValve<Query, Item>>()
         flow.collect { input ->
             when (input) {
                 is Tile.Order -> collector.emit(
-                    flowOf(input)
+                    flowOf(input),
                 )
 
                 is Tile.Request.Evict -> evict(
                     queriesToValves = queriesToValves,
                     query = input.query,
-                    collector = collector
+                    collector = collector,
                 )
 
                 is Tile.Request.Off -> turnOff(
                     queriesToValves = queriesToValves,
-                    query = input.query
+                    query = input.query,
                 )
 
                 is Tile.Request.On -> turnOn(
                     queriesToValves = queriesToValves,
                     query = input.query,
-                    collector = collector
+                    collector = collector,
                 )
 
                 is Tile.Limiter -> collector.emit(
-                    flowOf(input)
+                    flowOf(input),
                 )
 
                 is Tile.Batch -> {
                     // Evict first because order will be invalid if queries that are not part
                     // of this pivot are ordered with its order
-                    for (query in input.evict) evict(
-                        queriesToValves = queriesToValves,
-                        query = query,
-                        collector = collector
-                    )
-                    for (query in input.off) turnOff(
-                        queriesToValves = queriesToValves,
-                        query = query
-                    )
-                    for (query in input.on) turnOn(
-                        queriesToValves = queriesToValves,
-                        query = query,
-                        collector = collector
-                    )
+                    for (query in input.evict) {
+                        evict(
+                            queriesToValves = queriesToValves,
+                            query = query,
+                            collector = collector,
+                        )
+                    }
+                    for (query in input.off) {
+                        turnOff(
+                            queriesToValves = queriesToValves,
+                            query = query,
+                        )
+                    }
+                    for (query in input.on) {
+                        turnOn(
+                            queriesToValves = queriesToValves,
+                            query = query,
+                            collector = collector,
+                        )
+                    }
                     input.order
                         ?.let(::flowOf)
                         ?.let { collector.emit(it) }
@@ -123,7 +129,7 @@ private class OutputFlow<Query, Item>(
     private suspend fun evict(
         queriesToValves: MutableMap<Query, QueryFlowValve<Query, Item>>,
         query: Query,
-        collector: FlowCollector<Flow<Tile.Output<Query, Item>>>
+        collector: FlowCollector<Flow<Tile.Output<Query, Item>>>,
     ) {
         val valve = queriesToValves.remove(query) ?: return
         valve.terminate()
@@ -132,7 +138,7 @@ private class OutputFlow<Query, Item>(
 
     private suspend fun turnOff(
         queriesToValves: MutableMap<Query, QueryFlowValve<Query, Item>>,
-        query: Query
+        query: Query,
     ) {
         queriesToValves[query]?.turnOff()
     }
@@ -140,7 +146,7 @@ private class OutputFlow<Query, Item>(
     private suspend fun turnOn(
         queriesToValves: MutableMap<Query, QueryFlowValve<Query, Item>>,
         query: Query,
-        collector: FlowCollector<Flow<Tile.Output<Query, Item>>>
+        collector: FlowCollector<Flow<Tile.Output<Query, Item>>>,
     ) {
         when (val existingValve = queriesToValves[query]) {
             null -> {
@@ -190,12 +196,12 @@ private suspend fun <Query, Item> QueryFlowValve<Query, Item>.turnOff() = invoke
 private suspend fun <Query, Item> QueryFlowValve<Query, Item>.terminate() = invoke(flow = null)
 
 private fun <Query, Item> QueryFetcher<Query, Item>.toOutputDataFlow(
-    query: Query
+    query: Query,
 ): Flow<Tile.Data<Query, Item>> = flow {
     val outputs = invoke(query).map {
         Tile.Data(
             query = query,
-            items = it
+            items = it,
         )
     }
     emitAll(outputs)

@@ -31,7 +31,7 @@ internal fun Int.testRange(
 
 internal fun Int.tiledTestRange(
     itemsPerPage: Int = ITEMS_PER_PAGE,
-    transform: List<Int>.() -> List<Int> = { this }
+    transform: List<Int>.() -> List<Int> = { this },
 ) = buildTiledList {
     addAll(query = this@tiledTestRange, items = transform(testRange(itemsPerPage).toList()))
 }

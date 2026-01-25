@@ -28,19 +28,19 @@ class SparseTiledListTest {
         val sparseTiledList = SparseTiledList<Int, Int>()
         sparseTiledList.add(
             query = 1,
-            item = 1
+            item = 1,
         )
         sparseTiledList.add(
             query = 1,
-            item = 2
+            item = 2,
         )
         sparseTiledList.add(
             query = 1,
-            item = 5
+            item = 5,
         )
         sparseTiledList.add(
             query = 1,
-            item = 10
+            item = 10,
         )
         assertEquals(
             expected = listOf(
@@ -49,17 +49,17 @@ class SparseTiledListTest {
                 1 to 5,
                 1 to 10,
             ),
-            actual = sparseTiledList.toPairedList()
+            actual = sparseTiledList.toPairedList(),
         )
         assertEquals(
             expected = listOf(
                 4,
             ),
-            actual = sparseTiledList.sizes()
+            actual = sparseTiledList.sizes(),
         )
         assertEquals(
             expected = listOf(1),
-            actual = sparseTiledList.queries()
+            actual = sparseTiledList.queries(),
         )
     }
 
@@ -68,19 +68,19 @@ class SparseTiledListTest {
         val sparseTiledList = SparseTiledList<Int, Int>()
         sparseTiledList.addAll(
             query = 1,
-            items = listOf(1, 2, 3)
+            items = listOf(1, 2, 3),
         )
         sparseTiledList.addAll(
             query = 1,
-            items = listOf(5, 8, 9)
+            items = listOf(5, 8, 9),
         )
         sparseTiledList.add(
             query = 1,
-            item = 5
+            item = 5,
         )
         sparseTiledList.add(
             query = 1,
-            item = 10
+            item = 10,
         )
         assertEquals(
             expected = listOf(
@@ -93,17 +93,17 @@ class SparseTiledListTest {
                 1 to 5,
                 1 to 10,
             ),
-            actual = sparseTiledList.toPairedList()
+            actual = sparseTiledList.toPairedList(),
         )
         assertEquals(
             expected = listOf(
                 8,
             ),
-            actual = sparseTiledList.sizes()
+            actual = sparseTiledList.sizes(),
         )
         assertEquals(
             expected = listOf(1),
-            actual = sparseTiledList.queries()
+            actual = sparseTiledList.queries(),
         )
     }
 
@@ -112,24 +112,24 @@ class SparseTiledListTest {
         val sparseTiledList = SparseTiledList<Int, Int>()
         sparseTiledList.add(
             query = 1,
-            item = 1
+            item = 1,
         )
         sparseTiledList.add(
             query = 1,
-            item = 3
+            item = 3,
         )
         sparseTiledList.add(
             query = 1,
-            item = 5
+            item = 5,
         )
         sparseTiledList.add(
             query = 1,
-            item = 6
+            item = 6,
         )
         sparseTiledList.add(
             index = 2,
             query = 1,
-            item = 4
+            item = 4,
         )
         assertEquals(
             expected = listOf(
@@ -139,17 +139,17 @@ class SparseTiledListTest {
                 1 to 5,
                 1 to 6,
             ),
-            actual = sparseTiledList.toPairedList()
+            actual = sparseTiledList.toPairedList(),
         )
         assertEquals(
             expected = listOf(
                 5,
             ),
-            actual = sparseTiledList.sizes()
+            actual = sparseTiledList.sizes(),
         )
         assertEquals(
             expected = listOf(1),
-            actual = sparseTiledList.queries()
+            actual = sparseTiledList.queries(),
         )
     }
 
@@ -158,23 +158,23 @@ class SparseTiledListTest {
         val sparseTiledList = SparseTiledList<Int, Int>()
         sparseTiledList.add(
             query = 1,
-            item = 1
+            item = 1,
         )
         sparseTiledList.add(
             query = 1,
-            item = 2
+            item = 2,
         )
         sparseTiledList.add(
             query = 3,
-            item = 5
+            item = 5,
         )
         sparseTiledList.add(
             query = 7,
-            item = 10
+            item = 10,
         )
         sparseTiledList.add(
             query = 1,
-            item = 18
+            item = 18,
         )
 
         assertEquals(
@@ -185,7 +185,7 @@ class SparseTiledListTest {
                 7 to 10,
                 1 to 18,
             ),
-            actual = sparseTiledList.toPairedList()
+            actual = sparseTiledList.toPairedList(),
         )
         assertEquals(
             expected = listOf(
@@ -194,16 +194,16 @@ class SparseTiledListTest {
                 1,
                 1,
             ),
-            actual = sparseTiledList.sizes()
+            actual = sparseTiledList.sizes(),
         )
         assertEquals(
             expected = listOf(
                 1,
                 3,
                 7,
-                1
+                1,
             ),
-            actual = sparseTiledList.queries()
+            actual = sparseTiledList.queries(),
         )
     }
 
@@ -212,29 +212,29 @@ class SparseTiledListTest {
         val sparseTiledList = SparseTiledList<Int, Int>()
         sparseTiledList.add(
             query = 1,
-            item = 1
+            item = 1,
         )
         sparseTiledList.add(
             query = 1,
-            item = 2
+            item = 2,
         )
         sparseTiledList.add(
             query = 3,
-            item = 5
+            item = 5,
         )
         sparseTiledList.add(
             query = 7,
-            item = 10
+            item = 10,
         )
         sparseTiledList.add(
             index = 2,
             query = 9,
-            item = 4
+            item = 4,
         )
         sparseTiledList.add(
             index = 3,
             query = 17,
-            item = 27
+            item = 27,
         )
         assertEquals(
             expected = listOf(
@@ -245,7 +245,7 @@ class SparseTiledListTest {
                 3 to 5,
                 7 to 10,
             ),
-            actual = sparseTiledList.toPairedList()
+            actual = sparseTiledList.toPairedList(),
         )
         assertEquals(
             expected = listOf(
@@ -253,9 +253,9 @@ class SparseTiledListTest {
                 1,
                 1,
                 1,
-                1
+                1,
             ),
-            actual = sparseTiledList.sizes()
+            actual = sparseTiledList.sizes(),
         )
         assertEquals(
             expected = listOf(
@@ -265,7 +265,7 @@ class SparseTiledListTest {
                 3,
                 7,
             ),
-            actual = sparseTiledList.queries()
+            actual = sparseTiledList.queries(),
         )
     }
 
@@ -274,23 +274,23 @@ class SparseTiledListTest {
         val sparseTiledList = SparseTiledList<Int, Int>()
         sparseTiledList.add(
             query = 1,
-            item = 1
+            item = 1,
         )
         sparseTiledList.add(
             query = 1,
-            item = 2
+            item = 2,
         )
         sparseTiledList.add(
             query = 3,
-            item = 5
+            item = 5,
         )
         sparseTiledList.add(
             query = 7,
-            item = 10
+            item = 10,
         )
         sparseTiledList.add(
             query = 1,
-            item = 18
+            item = 18,
         )
         assertEquals(
             expected = listOf(
@@ -300,7 +300,7 @@ class SparseTiledListTest {
                 7 to 10,
                 1 to 18,
             ),
-            actual = sparseTiledList.toPairedList()
+            actual = sparseTiledList.toPairedList(),
         )
         assertEquals(
             expected = listOf(
@@ -309,7 +309,7 @@ class SparseTiledListTest {
                 1,
                 1,
             ),
-            actual = sparseTiledList.sizes()
+            actual = sparseTiledList.sizes(),
         )
         assertEquals(
             expected = listOf(
@@ -318,7 +318,7 @@ class SparseTiledListTest {
                 7,
                 1,
             ),
-            actual = sparseTiledList.queries()
+            actual = sparseTiledList.queries(),
         )
 
         sparseTiledList.remove(2)
@@ -329,7 +329,7 @@ class SparseTiledListTest {
                 7 to 10,
                 1 to 18,
             ),
-            actual = sparseTiledList.toPairedList()
+            actual = sparseTiledList.toPairedList(),
         )
         assertEquals(
             expected = listOf(
@@ -337,7 +337,7 @@ class SparseTiledListTest {
                 1,
                 1,
             ),
-            actual = sparseTiledList.sizes()
+            actual = sparseTiledList.sizes(),
         )
         assertEquals(
             expected = listOf(
@@ -345,7 +345,7 @@ class SparseTiledListTest {
                 7,
                 1,
             ),
-            actual = sparseTiledList.queries()
+            actual = sparseTiledList.queries(),
         )
 
         sparseTiledList.remove(1)
@@ -355,7 +355,7 @@ class SparseTiledListTest {
                 7 to 10,
                 1 to 18,
             ),
-            actual = sparseTiledList.toPairedList()
+            actual = sparseTiledList.toPairedList(),
         )
         assertEquals(
             expected = listOf(
@@ -363,7 +363,7 @@ class SparseTiledListTest {
                 1,
                 1,
             ),
-            actual = sparseTiledList.sizes()
+            actual = sparseTiledList.sizes(),
         )
         assertEquals(
             expected = listOf(
@@ -371,7 +371,7 @@ class SparseTiledListTest {
                 7,
                 1,
             ),
-            actual = sparseTiledList.queries()
+            actual = sparseTiledList.queries(),
         )
 
         sparseTiledList.remove(2)
@@ -380,21 +380,21 @@ class SparseTiledListTest {
                 1 to 1,
                 7 to 10,
             ),
-            actual = sparseTiledList.toPairedList()
+            actual = sparseTiledList.toPairedList(),
         )
         assertEquals(
             expected = listOf(
                 1,
                 1,
             ),
-            actual = sparseTiledList.sizes()
+            actual = sparseTiledList.sizes(),
         )
         assertEquals(
             expected = listOf(
                 1,
                 7,
             ),
-            actual = sparseTiledList.queries()
+            actual = sparseTiledList.queries(),
         )
     }
 }

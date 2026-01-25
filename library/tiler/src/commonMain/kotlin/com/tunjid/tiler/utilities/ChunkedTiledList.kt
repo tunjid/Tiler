@@ -30,7 +30,6 @@ internal inline fun <Query, Item> chunkedTiledList(
     crossinline queryLookup: (Int) -> Query,
     crossinline itemsLookup: (Query) -> List<Item>,
 ): TiledList<Query, Item> {
-
     val numberOfChunks = indices.size
     val chunkSizes = IntArray(numberOfChunks)
     val queries = arrayOfNulls<Any>(numberOfChunks)
@@ -62,13 +61,14 @@ internal class ChunkedTiledList<Query, Item>(
     private val chunkSizes: IntArray,
     private val queries: Array<Any?>,
     private val chunkedItems: Array<List<Item>?>,
-) : AbstractList<Item>(), TiledList<Query, Item> {
+) : AbstractList<Item>(),
+    TiledList<Query, Item> {
 
     override val tileCount: Int = queries.size
 
     override fun tileAt(tileIndex: Int): Tile = Tile(
         start = if (tileIndex == 0) 0 else chunkSizes[tileIndex - 1],
-        end = chunkSizes[tileIndex]
+        end = chunkSizes[tileIndex],
     )
 
     @Suppress("UNCHECKED_CAST")
@@ -76,12 +76,12 @@ internal class ChunkedTiledList<Query, Item>(
 
     @Suppress("UNCHECKED_CAST")
     override fun queryAt(index: Int): Query = withItemAtIndex(
-        index
+        index,
     ) { chunkIndex, _ -> queries[chunkIndex] as Query }
 
     @Suppress("UNCHECKED_CAST")
     override fun get(index: Int): Item = withItemAtIndex(
-        index
+        index,
     ) { chunkIndex, indexInChunk -> chunkedItems[chunkIndex]?.get(indexInChunk) as Item }
 
     override fun hashCode(): Int =
@@ -93,15 +93,15 @@ internal class ChunkedTiledList<Query, Item>(
 
     private inline fun <T> withItemAtIndex(
         index: Int,
-        crossinline retriever: (chunkIndex: Int, indexInChunk: Int) -> T
+        crossinline retriever: (chunkIndex: Int, indexInChunk: Int) -> T,
     ): T {
         if (isEmpty()) throw IndexOutOfBoundsException(
-            "Trying to read $index in empty TiledList"
+            "Trying to read $index in empty TiledList",
         )
         // Get item in constant time
         if (chunkSizeHint != null) return retriever(
             index / chunkSizeHint,
-            index % chunkSizeHint
+            index % chunkSizeHint,
         )
         val chunkIndex = chunkSizes.findIndexInChunkSizes(index)
 
@@ -111,7 +111,7 @@ internal class ChunkedTiledList<Query, Item>(
             when (chunkIndex) {
                 0 -> index
                 else -> index - chunkSizes[chunkIndex - 1]
-            }
+            },
         )
     }
 }

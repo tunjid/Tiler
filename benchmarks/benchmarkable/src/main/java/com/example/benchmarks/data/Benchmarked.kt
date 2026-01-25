@@ -16,8 +16,8 @@ sealed interface Benchmarked {
 }
 
 data class Item(
-  val  index: Int,
-  val  lastInvalidatedPage: Int = Int.MIN_VALUE
+    val index: Int,
+    val lastInvalidatedPage: Int = Int.MIN_VALUE,
 )
 
 fun rangeFor(startPage: Int, numberOfPages: Int = 1): IntRange {

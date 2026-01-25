@@ -16,12 +16,13 @@
 
 package com.tunjid.tiler
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import kotlin.test.*
 
 class TilerKtTest {
 
@@ -30,16 +31,16 @@ class TilerKtTest {
         val tiler = Tiler<Int, Int>(
             limiter = Tile.Limiter(
                 maxQueries = Int.MIN_VALUE,
-                itemSizeHint = 10
+                itemSizeHint = 10,
             ),
-            order = Tile.Order.Sorted(comparator = Int::compareTo)
+            order = Tile.Order.Sorted(comparator = Int::compareTo),
         )
         val tiled =
             (1..9)
                 .map { int ->
                     Tile.Data(
                         query = int,
-                        items = int.testRange().toList()
+                        items = int.testRange().toList(),
                     )
                 }
                 .asFlow()
@@ -50,7 +51,7 @@ class TilerKtTest {
             (1..9)
                 .map(Int::tiledTestRange)
                 .fold(tiledListOf(), TiledList<Int, Int>::plus),
-            tiled
+            tiled,
         )
     }
 
@@ -59,19 +60,19 @@ class TilerKtTest {
         val tiler = Tiler<Int, Int>(
             limiter = Tile.Limiter(
                 maxQueries = 5,
-                itemSizeHint = 10
+                itemSizeHint = 10,
             ),
             order = Tile.Order.PivotSorted(
                 query = 4,
-                comparator = Int::compareTo
-            )
+                comparator = Int::compareTo,
+            ),
         )
         val tiles =
             (1..9).map { int ->
                 listOf(
                     Tile.Data(
                         query = int,
-                        items = int.testRange().toList()
+                        items = int.testRange().toList(),
                     ),
                 )
             }
@@ -103,7 +104,7 @@ class TilerKtTest {
                 null,
                 null,
             ),
-            tiles
+            tiles,
         )
     }
 
@@ -114,10 +115,10 @@ class TilerKtTest {
             actual = mutableListOf(1, 2, 3, 4).apply {
                 insertSorted(
                     query = 2,
-                    comparator = Int::compareTo
+                    comparator = Int::compareTo,
                 )
             },
-            message = "inserting ordered query fails at de-duplicating"
+            message = "inserting ordered query fails at de-duplicating",
         )
 
         assertEquals(
@@ -125,10 +126,10 @@ class TilerKtTest {
             actual = mutableListOf(1, 2, 4).apply {
                 insertSorted(
                     query = 3,
-                    comparator = Int::compareTo
+                    comparator = Int::compareTo,
                 )
             },
-            message = "inserting ordered query fails at inserting in the middle"
+            message = "inserting ordered query fails at inserting in the middle",
         )
 
         assertEquals(
@@ -136,10 +137,10 @@ class TilerKtTest {
             actual = mutableListOf(1, 2, 4).apply {
                 insertSorted(
                     query = 0,
-                    comparator = Int::compareTo
+                    comparator = Int::compareTo,
                 )
             },
-            message = "inserting ordered query fails at inserting in the beginning"
+            message = "inserting ordered query fails at inserting in the beginning",
         )
 
         assertEquals(
@@ -147,10 +148,10 @@ class TilerKtTest {
             actual = mutableListOf(1, 2, 4).apply {
                 insertSorted(
                     query = 5,
-                    comparator = Int::compareTo
+                    comparator = Int::compareTo,
                 )
             },
-            message = "inserting ordered query fails at inserting at the end"
+            message = "inserting ordered query fails at inserting at the end",
         )
     }
 
@@ -162,18 +163,18 @@ class TilerKtTest {
             ),
             order = Tile.Order.PivotSorted(
                 query = 0,
-                comparator = Int::compareTo
-            )
+                comparator = Int::compareTo,
+            ),
         )
         val updates = (0..2)
             .map { page ->
                 Tile.Data(
                     query = page,
-                    items = page.testRange(itemsPerPage = 1).toList()
+                    items = page.testRange(itemsPerPage = 1).toList(),
                 )
             } + Tile.Data(
             query = 2,
-            items = emptyList()
+            items = emptyList(),
         )
         val tiled =
             updates
@@ -184,7 +185,7 @@ class TilerKtTest {
         assertEquals(
             expected = listOf(
                 tiledListOf(
-                    0 to 0
+                    0 to 0,
                 ),
                 tiledListOf(
                     0 to 0,
@@ -200,7 +201,7 @@ class TilerKtTest {
                     1 to 1,
                 ),
             ),
-            actual = tiled
+            actual = tiled,
         )
     }
 
@@ -212,18 +213,18 @@ class TilerKtTest {
             ),
             order = Tile.Order.PivotSorted(
                 query = 0,
-                comparator = Int::compareTo
-            )
+                comparator = Int::compareTo,
+            ),
         )
         val updates = (0..3)
             .map { page ->
                 Tile.Data(
                     query = page,
-                    items = page.testRange(itemsPerPage = 1).toList()
+                    items = page.testRange(itemsPerPage = 1).toList(),
                 )
             } + Tile.Data(
             query = 3,
-            items = emptyList()
+            items = emptyList(),
         )
         val tiled =
             updates
@@ -234,7 +235,7 @@ class TilerKtTest {
         assertEquals(
             expected = listOf(
                 tiledListOf(
-                    0 to 0
+                    0 to 0,
                 ),
                 tiledListOf(
                     0 to 0,
@@ -248,7 +249,7 @@ class TilerKtTest {
                 null,
                 null,
             ),
-            actual = tiled
+            actual = tiled,
         )
     }
 }

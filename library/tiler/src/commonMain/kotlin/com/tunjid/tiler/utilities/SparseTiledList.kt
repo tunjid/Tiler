@@ -21,23 +21,25 @@ import com.tunjid.tiler.Tile
 import com.tunjid.tiler.TiledList
 import com.tunjid.tiler.strictEquals
 
-
 /**
  * A [TiledList] implementation that associates each [Item] with its [Query] using a
  * [SparseQueryArray]
  */
 internal class SparseTiledList<Query, Item>(
-    vararg pairs: Pair<Query, Item>
-) : AbstractList<Item>(), MutableTiledList<Query, Item> {
+    vararg pairs: Pair<Query, Item>,
+) : AbstractList<Item>(),
+    MutableTiledList<Query, Item> {
 
     private val tileQueryMap = SparseQueryArray<Query>(pairs.size)
     private val items: MutableList<Item> = mutableListOf()
 
     init {
-        for (pair in pairs) add(
-            query = pair.first,
-            item = pair.second
-        )
+        for (pair in pairs) {
+            add(
+                query = pair.first,
+                item = pair.second,
+            )
+        }
     }
 
     override val size: Int get() = items.size
@@ -60,7 +62,7 @@ internal class SparseTiledList<Query, Item>(
         tileQueryMap.insertQuery(
             index = index,
             query = query,
-            count = 1
+            count = 1,
         )
         this.items.add(index, item)
     }
@@ -68,7 +70,7 @@ internal class SparseTiledList<Query, Item>(
     override fun add(query: Query, item: Item): Boolean {
         tileQueryMap.appendQuery(
             query = query,
-            count = 1
+            count = 1,
         )
         return this.items.add(item)
     }
@@ -77,7 +79,7 @@ internal class SparseTiledList<Query, Item>(
         if (items.isEmpty()) return false
         tileQueryMap.appendQuery(
             query = query,
-            count = items.size
+            count = items.size,
         )
         this.items.addAll(items)
         return true
@@ -88,7 +90,7 @@ internal class SparseTiledList<Query, Item>(
         tileQueryMap.insertQuery(
             index = index,
             query = query,
-            count = items.size
+            count = items.size,
         )
         this.items.addAll(index = index, elements = items)
         return true
@@ -105,5 +107,4 @@ internal class SparseTiledList<Query, Item>(
     override fun equals(other: Any?): Boolean =
         if (other is TiledList<*, *>) strictEquals(other)
         else super.equals(other)
-
 }

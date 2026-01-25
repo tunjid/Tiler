@@ -36,4 +36,3 @@ internal object EmptyTiledList : TiledList<Nothing, Nothing>, List<Nothing> by e
     override fun hashCode(): Int = 1
     override fun toString(): String = "[]"
 }
-

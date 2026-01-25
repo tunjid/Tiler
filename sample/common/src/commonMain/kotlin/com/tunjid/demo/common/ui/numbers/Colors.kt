@@ -28,7 +28,7 @@ object MutedColors {
         Color(0xFF2c3e50).toArgb(), // Midnight Blue
         Color(0xFFc0392b).toArgb(), // Pomegranate
         Color(0xFF16a085).toArgb(), // Green Sea
-        Color(0xFF7f8c8d).toArgb() // Concrete
+        Color(0xFF7f8c8d).toArgb(), // Concrete
     )
 
     private val darkerMutedColors = intArrayOf(
@@ -36,7 +36,7 @@ object MutedColors {
         Color(0xFF353b45).toArgb(),
         Color(0xFF392e3a).toArgb(),
         Color(0xFF3e2a2a).toArgb(),
-        Color(0xFF474747).toArgb()
+        Color(0xFF474747).toArgb(),
     )
 
     fun colorAt(isDark: Boolean, index: Int) = palette(isDark).circular(index)

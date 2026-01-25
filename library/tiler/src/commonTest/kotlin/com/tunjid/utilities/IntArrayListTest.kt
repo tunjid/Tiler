@@ -30,18 +30,18 @@ class IntArrayListTest {
         intList.add(1)
         assertEquals(
             expected = 1,
-            actual = intList.size
+            actual = intList.size,
         )
 
         intList.add(2)
         assertEquals(
             expected = listOf(1, 2),
-            actual = intList.toList()
+            actual = intList.toList(),
         )
 
         assertEquals(
             expected = 2,
-            actual = intList.size
+            actual = intList.size,
         )
     }
 
@@ -52,39 +52,39 @@ class IntArrayListTest {
         intList.add(1)
         assertEquals(
             expected = 1,
-            actual = intList.size
+            actual = intList.size,
         )
 
         intList.add(2)
         assertEquals(
             expected = 2,
-            actual = intList.size
+            actual = intList.size,
         )
 
         intList.add(
             index = 1,
-            element = 3
+            element = 3,
         )
         assertEquals(
             expected = 3,
-            actual = intList.size
+            actual = intList.size,
         )
         assertEquals(
             expected = listOf(1, 3, 2),
-            actual = intList.toList()
+            actual = intList.toList(),
         )
 
         intList.add(
             index = 0,
-            element = 9
+            element = 9,
         )
         assertEquals(
             expected = 4,
-            actual = intList.size
+            actual = intList.size,
         )
         assertEquals(
             expected = listOf(9, 1, 3, 2),
-            actual = intList.toList()
+            actual = intList.toList(),
         )
     }
 
@@ -98,16 +98,16 @@ class IntArrayListTest {
 
         assertEquals(
             expected = listOf(1, 2, 3, 4),
-            actual = intList.toList()
+            actual = intList.toList(),
         )
 
-        for(i in 0..intList.lastIndex) {
+        for (i in 0..intList.lastIndex) {
             intList[i] = intList[i] + 5
         }
 
         assertEquals(
             expected = listOf(6, 7, 8, 9),
-            actual = intList.toList()
+            actual = intList.toList(),
         )
     }
 
@@ -118,18 +118,18 @@ class IntArrayListTest {
         intList.add(1)
         assertEquals(
             expected = 1,
-            actual = intList.size
+            actual = intList.size,
         )
 
         intList.add(2)
         assertEquals(
             expected = 2,
-            actual = intList.size
+            actual = intList.size,
         )
 
         assertEquals(
             expected = listOf(1, 2),
-            actual = intList.toList()
+            actual = intList.toList(),
         )
     }
 
@@ -145,25 +145,25 @@ class IntArrayListTest {
 
         assertEquals(
             expected = listOf(1, 2, 3, 4, 5),
-            actual = intList.toList()
+            actual = intList.toList(),
         )
 
         intList.removeAt(0)
         assertEquals(
             expected = listOf(2, 3, 4, 5),
-            actual = intList.toList()
+            actual = intList.toList(),
         )
 
         intList.removeAt(2)
         assertEquals(
             expected = listOf(2, 3, 5),
-            actual = intList.toList()
+            actual = intList.toList(),
         )
 
         intList.removeAt(2)
         assertEquals(
             expected = listOf(2, 3),
-            actual = intList.toList()
+            actual = intList.toList(),
         )
     }
 
