@@ -39,8 +39,6 @@ kotlin {
 
                 api(libs.tunjid.mutator.core.common)
                 api(libs.tunjid.mutator.coroutines.common)
-
-                api(libs.tunjid.treenav.common)
             }
         }
         named("androidMain") {

@@ -20,7 +20,6 @@ materialIcons = "1.7.3"
 mavenPublish = "0.34.0"
 googleMaterial = "1.13.0"
 tunjidMutator = "1.1.0"
-tunjidTreeNav = "0.0.44"
 turbine = "1.2.1"
 spotless = "8.2.0"
 
@@ -65,7 +64,6 @@ tunjid-mutator-core-common = { group = "com.tunjid.mutator", name = "core", vers
 tunjid-mutator-core-jvm = { group = "com.tunjid.mutator", name = "core-jvm", version.ref = "tunjidMutator" }
 tunjid-mutator-coroutines-common = { group = "com.tunjid.mutator", name = "coroutines", version.ref = "tunjidMutator" }
 tunjid-mutator-coroutines-jvm = { group = "com.tunjid.mutator", name = "coroutines-jvm", version.ref = "tunjidMutator" }
-tunjid-treenav-common = { group = "com.tunjid.treenav", name = "treenav", version.ref = "tunjidTreeNav" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
