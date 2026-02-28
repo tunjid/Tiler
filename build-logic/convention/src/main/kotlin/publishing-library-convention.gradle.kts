@@ -26,6 +26,10 @@ scmVersion {
         // Use an empty string for prefix
         prefix.set("v")
     }
+    nextVersion {
+        suffix.set("alpha")
+        separator.set("-")
+    }
     repository {
         pushTagsOnly.set(true)
     }
