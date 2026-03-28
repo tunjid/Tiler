@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import com.diffplug.gradle.spotless.SpotlessExtension
+
 buildscript {
     extra.apply {
         set(
@@ -41,13 +43,38 @@ buildscript {
     }
 }
 
+allprojects {
+    plugins.apply(
+        rootProject.libs.plugins.spotless
+            .get()
+            .pluginId,
+    )
+    extensions.configure<SpotlessExtension> {
+        kotlin {
+            target(
+                "src/**/*.kt",
+                "build-logic/**/*.kt",
+                "**/*.kts",
+            )
+            targetExclude("**/build/**")
+            ktlint(
+                rootProject.libs.ktlint
+                    .get()
+                    .version,
+            )
+        }
+    }
+}
+
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.androidx.benchmark) apply false
+    alias(libs.plugins.axionRelease) apply false
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.jetbrains.compose) apply false
     alias(libs.plugins.jetbrains.dokka) apply false
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.spotless) apply false
 }

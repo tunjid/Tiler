@@ -1,25 +1,27 @@
 [versions]
-androidGradlePlugin = "8.9.3"
-androidxActivity = "1.11.0"
+androidGradlePlugin = "9.1.0"
+androidxActivity = "1.13.0"
 androidxAppCompat = "1.7.1"
 androidxBenchmark = "1.4.1"
-androidxCore = "1.17.0"
-androidxPaging = "3.3.6"
+androidxCore = "1.18.0"
+androidxPaging = "3.4.2"
 androidxTestCore = "1.7.0"
 androidxTestExt = "1.3.0"
 androidxTestRunner = "1.7.0"
 androidxTestRules = "1.7.0"
-dokka = "2.1.0"
-composeMultiplatform = "1.10.0"
+axion-release = "1.21.1"
+dokka = "2.2.0"
+composeMultiplatform = "1.11.0-beta01"
 junit4 = "4.13.2"
-kotlin = "2.2.21"
+kotlin = "2.3.20"
 kotlinxCoroutines = "1.10.2"
+ktlint-cli = "1.8.0"
 materialIcons = "1.7.3"
-mavenPublish = "0.34.0"
+mavenPublish = "0.36.0"
 googleMaterial = "1.13.0"
-tunjidMutator = "1.1.0"
-tunjidTreeNav = "0.0.44"
+tunjidMutator = "1.2.0"
 turbine = "1.2.1"
+spotless = "8.4.0"
 
 [libraries]
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradlePlugin" }
@@ -33,6 +35,7 @@ androidx-test-core = { group = "androidx.test", name = "core", version.ref = "an
 androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
 androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "androidxTestRules" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
+axionRelease-gradlePlugin = { group = "pl.allegro.tech.build.axion-release", name = "pl.allegro.tech.build.axion-release.gradle.plugin", version.ref = "axion-release" }
 cashapp-turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 compose-compiler-plugin = { group = "org.jetbrains.kotlin", name = "compose-compiler-gradle-plugin", version.ref = "kotlin" }
 google-material = { group = "com.google.android.material", name = "material", version.ref = "googleMaterial" }
@@ -50,6 +53,7 @@ compose-multiplatform-ui-util = { group = "org.jetbrains.compose.ui", name = "ui
 compose-multiplatform-material-icons-core = { group = "org.jetbrains.compose.material", name = "material-icons-core", version.ref = "materialIcons" }
 compose-multiplatform-material-icons-extended = { group = "org.jetbrains.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
+ktlint = { group = "com.pinterest.ktlint", name = "ktlint-cli", version.ref = "ktlint-cli" }
 dokka-gradlePlugin = { group = "org.jetbrains.dokka", name = "dokka-gradle-plugin", version.ref = "dokka" }
 kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
@@ -60,15 +64,16 @@ tunjid-mutator-core-common = { group = "com.tunjid.mutator", name = "core", vers
 tunjid-mutator-core-jvm = { group = "com.tunjid.mutator", name = "core-jvm", version.ref = "tunjidMutator" }
 tunjid-mutator-coroutines-common = { group = "com.tunjid.mutator", name = "coroutines", version.ref = "tunjidMutator" }
 tunjid-mutator-coroutines-jvm = { group = "com.tunjid.mutator", name = "coroutines-jvm", version.ref = "tunjidMutator" }
-tunjid-treenav-common = { group = "com.tunjid.treenav", name = "treenav", version.ref = "tunjidTreeNav" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 androidx-benchmark = { id = "androidx.benchmark", version.ref = "androidxBenchmark" }
+axionRelease = { id = "pl.allegro.tech.build.axion-release", version.ref = "axion-release" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 jetbrains-compose = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 jetbrains-dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
