@@ -39,6 +39,7 @@ include(
     ":sample:android",
     ":sample:desktop",
 //    ":sample:browser",
-    ":benchmarks:benchmarkable",
-    ":benchmarks:microbenchmark",
+    // Excluded until androidx.benchmark supports AGP 9
+//    ":benchmarks:benchmarkable",
+//    ":benchmarks:microbenchmark",
 )

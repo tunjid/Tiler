@@ -16,7 +16,6 @@
 
 plugins {
     id("android-application-convention")
-    id("kotlin-android")
     alias(libs.plugins.compose.compiler)
 }
 

@@ -1,5 +1,4 @@
 plugins {
-    id("org.jetbrains.kotlin.android")
     id("android-library-convention")
 }
 
