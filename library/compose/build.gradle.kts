@@ -17,7 +17,6 @@
 plugins {
     kotlin("multiplatform")
     id("publishing-library-convention")
-    id("android-library-convention")
     id("kotlin-jvm-convention")
     id("kotlin-library-convention")
     id("maven-publish")
@@ -25,12 +24,6 @@ plugins {
     id("org.jetbrains.dokka")
     id("org.jetbrains.compose")
     alias(libs.plugins.compose.compiler)
-}
-
-android {
-    buildFeatures {
-        compose = true
-    }
 }
 
 kotlin {

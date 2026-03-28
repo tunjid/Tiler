@@ -17,7 +17,6 @@
 plugins {
     kotlin("multiplatform")
     id("publishing-library-convention")
-    id("android-library-convention")
     id("kotlin-jvm-convention")
     id("kotlin-library-convention")
     id("maven-publish")
