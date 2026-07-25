@@ -1,0 +1,84 @@
+version: 2
+
+updates:
+  # Gradle. Every version lives in the root gradle/libs.versions.toml, and build-logic is an
+  # included build that reads the same catalog, so "/" covers the whole project.
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    commit-message:
+      prefix: deps
+      include: scope
+    cooldown:
+      default-days: 5
+      semver-major-days: 14
+    # Groups are first-match-wins, so order matters: specific domains first, catch-alls last.
+    # Minor and patch bumps are grouped per domain; majors always get their own pull request.
+    # Patterns omit the ":" because catalog [plugins] entries surface as
+    # <plugin-id>:<plugin-id>.gradle.plugin, and a trailing "*" catches both forms.
+    groups:
+      kotlin-and-compose:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "org.jetbrains.compose*"
+          - "org.jetbrains.androidx*"
+        update-types:
+          - minor
+          - patch
+      androidx:
+        patterns:
+          - "androidx.*"
+          - "com.google.android.material*"
+        update-types:
+          - minor
+          - patch
+      tunjid-libraries:
+        patterns:
+          - "com.tunjid*"
+        update-types:
+          - minor
+          - patch
+      build-tooling:
+        patterns:
+          - "com.android*"
+          - "com.vanniktech*"
+          - "com.diffplug*"
+          - "com.pinterest*"
+          - "com.gradleup*"
+          - "com.github.gmazzo*"
+          - "pl.allegro.tech.build*"
+        update-types:
+          - minor
+          - patch
+      other-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      major-updates:
+        patterns:
+          - "*"
+        update-types:
+          - major
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: ci
+    groups:
+      github-actions:
+        patterns:
+          - "*"
