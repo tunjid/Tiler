@@ -19,7 +19,7 @@ ktlint-cli = "1.8.0"
 materialIcons = "1.7.3"
 mavenPublish = "0.36.0"
 googleMaterial = "1.13.0"
-tunjidMutator = "1.2.1"
+tunjidMutator = "2.0.0"
 turbine = "1.2.1"
 spotless = "8.4.0"
 
