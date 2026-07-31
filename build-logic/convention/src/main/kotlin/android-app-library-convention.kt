@@ -25,7 +25,7 @@ fun org.gradle.api.Project.androidConfiguration(
     extension: ApplicationExtension,
 ) = extension.apply {
     namespace = "com.tunjid.tiler.${project.name}"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 23
