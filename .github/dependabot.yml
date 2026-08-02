@@ -7,7 +7,7 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
-      day: monday
+      day: saturday
       time: "06:00"
       timezone: America/New_York
     open-pull-requests-limit: 10
@@ -72,7 +72,10 @@ updates:
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: monthly
+      interval: weekly
+      day: saturday
+      time: "06:00"
+      timezone: America/New_York
     labels:
       - dependencies
       - github-actions
