@@ -1,5 +1,5 @@
 [versions]
-androidGradlePlugin = "9.3.2"
+androidGradlePlugin = "9.4.0"
 androidxActivity = "1.13.0"
 androidxAppCompat = "1.8.0"
 androidxBenchmark = "1.4.1"
@@ -21,7 +21,7 @@ mavenPublish = "0.37.0"
 googleMaterial = "1.14.0"
 tunjidMutator = "2.0.1"
 turbine = "1.2.1"
-spotless = "8.10.0"
+spotless = "8.10.1"
 
 [libraries]
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradlePlugin" }
