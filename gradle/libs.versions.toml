@@ -21,7 +21,7 @@ mavenPublish = "0.37.0"
 googleMaterial = "1.14.0"
 tunjidMutator = "2.0.1"
 turbine = "1.2.1"
-spotless = "8.10.1"
+spotless = "8.10.2"
 
 [libraries]
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradlePlugin" }
